@@ -1,0 +1,10 @@
+{
+  "feature_number": "001",
+  "slug": "001-fyp-management-system-mvp",
+  "friendly_name": "FYP Management System - MVP",
+  "mission": "software-dev",
+  "source_description": "Build a comprehensive Final Year Project Management System with core authentication, topic matching, document submission tracking, and dashboards",
+  "created_at": "2026-02-02T00:00:00Z",
+  "target_branch": "main",
+  "vcs": "git"
+}
