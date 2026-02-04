@@ -1,0 +1,30 @@
+{
+  "name": "fyp-email-reminder",
+  "version": "1.0.0",
+  "description": "Email reminder system for FYP using Azure Communication Services",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "test": "ts-node src/index.ts -- --test"
+  },
+  "keywords": [
+    "email",
+    "azure",
+    "fyp"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@azure/communication-email": "^1.0.0",
+    "dotenv": "^16.4.5",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.19",
+    "@types/node-cron": "^3.0.11",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}
