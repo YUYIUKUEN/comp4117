@@ -1,10 +1,12 @@
 ---
 work_package_id: "WP01"
 title: "Backend Foundation & Database"
-lane: "planned"
+lane: "doing"
 dependencies: []
 subtasks: ["T001", "T002", "T003", "T004", "T005"]
 created_at: "2026-02-02"
+agent: "GitHub Copilot"
+shell_pid: "15740"
 ---
 
 # WP01: Backend Foundation & Database
@@ -647,3 +649,7 @@ created_at: "2026-02-02"
 **Next Work Package**: WP02 (User Authentication API)  
 **Estimated Start**: After WP01 completion  
 **Command**: `spec-kitty implement WP02 --base WP01`
+
+## Activity Log
+
+- 2026-02-07T05:27:50Z – GitHub Copilot – shell_pid=15740 – lane=doing – Started implementation via workflow command
