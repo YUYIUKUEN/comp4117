@@ -1,10 +1,13 @@
 ---
-work_package_id: "WP08"
-title: "Admin Dashboards & System Management"
-lane: "planned"
-dependencies: ["WP04"]
-subtasks: ["T038", "T039", "T040", "T041", "T042"]
-created_at: "2026-02-02"
+work_package_id: WP08
+title: Admin Dashboards & System Management
+lane: "doing"
+dependencies: [WP04]
+base_branch: 001-fyp-management-system-mvp-WP04
+base_commit: 3a6005134dc3bb8e1d2d87d29e9f52cdf5747b65
+created_at: '2026-02-07T12:33:29.330061+00:00'
+subtasks: [T038, T039, T040, T041, T042]
+shell_pid: "16752"
 ---
 
 # WP08: Admin Dashboards & System Management
