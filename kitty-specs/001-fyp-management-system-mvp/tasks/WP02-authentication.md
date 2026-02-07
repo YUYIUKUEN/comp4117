@@ -1,10 +1,13 @@
 ---
-work_package_id: "WP02"
-title: "User Authentication & JWT"
-lane: "planned"
-dependencies: ["WP01"]
-subtasks: ["T006", "T007", "T008", "T009", "T010", "T011"]
-created_at: "2026-02-02"
+work_package_id: WP02
+title: User Authentication & JWT
+lane: "doing"
+dependencies: [WP01]
+base_branch: main
+base_commit: ddf1a19fdd6c5b8309af35c626b0b54ff97ff9d0
+created_at: '2026-02-07T05:42:08.261984+00:00'
+subtasks: [T006, T007, T008, T009, T010, T011]
+shell_pid: "17788"
 ---
 
 # WP02: User Authentication & JWT
