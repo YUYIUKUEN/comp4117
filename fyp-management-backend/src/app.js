@@ -6,8 +6,10 @@ const connectDB = require('./config/database');
 
 const app = express();
 
-// Connect to database
-connectDB();
+// Connect to database (skip in test mode where jest.setup.js handles it)
+if (process.env.NODE_ENV !== 'test') {
+  connectDB();
+}
 
 // Middleware order matters!
 app.use(corsMiddleware);
@@ -20,8 +22,9 @@ app.get('/api/v1/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Routes will be added here
-// app.use('/api/v1/auth', require('./routes/auth'));
+// Routes
+const authRoutes = require('./routes/authRoutes');
+app.use('/api/v1/auth', authRoutes);
 // app.use('/api/v1/users', require('./routes/users'));
 // app.use('/api/v1/topics', require('./routes/topics'));
 

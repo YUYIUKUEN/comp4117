@@ -8,19 +8,28 @@ const connectDB = async () => {
       minPoolSize: 5,
       socketTimeoutMS: 45000,
     });
-    console.log('✓ MongoDB connected:', mongoUri);
+    if (process.env.NODE_ENV !== 'test') {
+      console.log('✓ MongoDB connected:', mongoUri);
+    }
   } catch (error) {
-    console.error('✗ MongoDB connection failed:', error.message);
-    process.exit(1);
+    if (process.env.NODE_ENV !== 'test') {
+      console.error('✗ MongoDB connection failed:', error.message);
+    }
+    if (process.env.NODE_ENV !== 'test') {
+      process.exit(1);
+    }
+    throw error;
   }
 };
 
-mongoose.connection.on('error', (err) => {
-  console.error('MongoDB connection error:', err);
-});
+if (process.env.NODE_ENV !== 'test') {
+  mongoose.connection.on('error', (err) => {
+    console.error('MongoDB connection error:', err);
+  });
 
-mongoose.connection.on('disconnected', () => {
-  console.warn('MongoDB disconnected');
-});
+  mongoose.connection.on('disconnected', () => {
+    console.warn('MongoDB disconnected');
+  });
+}
 
 module.exports = connectDB;
