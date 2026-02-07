@@ -251,8 +251,8 @@
 **Subtasks**:
 - [x] T036: Create ActivityLog model and middleware to capture all actions (submissions, approvals, feedback)
 - [x] T037: Implement activity log queries (GET `/api/v1/admin/activity-log` with filtering by user, action, date)
-- [ ] T038: Add audit trail validation (ensure logs are immutable, no deletions)
-- [ ] T039: Write activity logging tests (log completeness, immutability, filtering accuracy)
+- [x] T038: Add audit trail validation (ensure logs are immutable, no deletions)
+- [x] T039: Write activity logging tests (log completeness, immutability, filtering accuracy)
 
 **Dependencies**: WP02  
 **Command**: `spec-kitty implement WP07 --base WP02`  
