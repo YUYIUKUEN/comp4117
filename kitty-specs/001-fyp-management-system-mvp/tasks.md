@@ -249,8 +249,8 @@
 **Independent Test**: All user actions logged with timestamps and user info, logs are immutable, admin can query by user/action
 
 **Subtasks**:
-- [ ] T036: Create ActivityLog model and middleware to capture all actions (submissions, approvals, feedback)
-- [ ] T037: Implement activity log queries (GET `/api/v1/admin/activity-log` with filtering by user, action, date)
+- [x] T036: Create ActivityLog model and middleware to capture all actions (submissions, approvals, feedback)
+- [x] T037: Implement activity log queries (GET `/api/v1/admin/activity-log` with filtering by user, action, date)
 - [ ] T038: Add audit trail validation (ensure logs are immutable, no deletions)
 - [ ] T039: Write activity logging tests (log completeness, immutability, filtering accuracy)
 
