@@ -19,6 +19,10 @@ if (!process.env.JWT_SECRET) {
 if (!process.env.PORT) {
   process.env.PORT = '5000';
 }
+// Set a placeholder MongoDB URI to allow modules to load - will be replaced in beforeAll
+if (!process.env.MONGODB_URI) {
+  process.env.MONGODB_URI = 'mongodb://localhost:27017/test';
+}
 
 let mongoServer;
 
