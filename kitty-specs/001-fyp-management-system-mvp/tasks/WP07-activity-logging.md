@@ -1,10 +1,12 @@
 ---
 work_package_id: "WP07"
 title: "Activity Logging & Audit Trail"
-lane: "planned"
+lane: "doing"
 dependencies: ["WP02"]
 subtasks: ["T034", "T035", "T036", "T037"]
 created_at: "2026-02-02"
+agent: "GitHub Copilot"
+shell_pid: "20616"
 ---
 
 # WP07: Activity Logging & Audit Trail
@@ -700,3 +702,7 @@ Create integration tests and documentation covering all logging scenarios.
 **Next Work Package**: WP08 (Admin Dashboards)  
 **Estimated Start**: After WP07 completion (or in parallel)  
 **Command**: `spec-kitty implement WP08 --base WP04`
+
+## Activity Log
+
+- 2026-02-07T12:11:44Z – GitHub Copilot – shell_pid=20616 – lane=doing – Started implementation via workflow command
