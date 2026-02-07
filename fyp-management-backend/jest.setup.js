@@ -13,6 +13,10 @@ try {
 process.env.NODE_ENV = 'test';
 
 // Set required environment variables for testing if not already set
+// MUST be set before any modules are loaded that require these
+if (!process.env.MONGODB_URI) {
+  process.env.MONGODB_URI = 'mongodb://localhost:27017/test';
+}
 if (!process.env.JWT_SECRET) {
   process.env.JWT_SECRET = 'test-jwt-secret-key-for-testing-only';
 }
