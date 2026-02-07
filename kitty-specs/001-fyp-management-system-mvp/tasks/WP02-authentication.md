@@ -1,10 +1,12 @@
 ---
 work_package_id: "WP02"
 title: "User Authentication & JWT"
-lane: "planned"
+lane: "doing"
 dependencies: ["WP01"]
 subtasks: ["T006", "T007", "T008", "T009", "T010", "T011"]
 created_at: "2026-02-02"
+agent: "GitHub Copilot"
+shell_pid: "17788"
 ---
 
 # WP02: User Authentication & JWT
@@ -955,3 +957,7 @@ created_at: "2026-02-02"
 **Next Work Package**: WP03 (Topic Management API)  
 **Estimated Start**: After WP02 completion  
 **Command**: `spec-kitty implement WP03 --base WP02`
+
+## Activity Log
+
+- 2026-02-07T05:42:08Z – GitHub Copilot – shell_pid=17788 – lane=doing – Started implementation via workflow command
