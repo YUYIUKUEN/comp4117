@@ -5,7 +5,12 @@
     </div>
     <div class="header-right">
       <span v-if="user">Welcome, {{ user.fullName }}</span>
-      <button @click="handleLogout" class="logout-btn">Logout</button>
+      <button
+        class="logout-btn"
+        @click="handleLogout"
+      >
+        Logout
+      </button>
     </div>
   </header>
 </template>

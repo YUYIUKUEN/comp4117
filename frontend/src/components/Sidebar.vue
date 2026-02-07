@@ -1,11 +1,41 @@
 <template>
-  <aside class="sidebar" v-if="isAuthenticated">
+  <aside
+    v-if="isAuthenticated"
+    class="sidebar"
+  >
     <nav class="nav-menu">
-      <router-link to="/dashboard" class="nav-item">Dashboard</router-link>
-      <router-link to="/topics" class="nav-item">Topics</router-link>
-      <router-link v-if="isStudent" to="/applications" class="nav-item">Applications</router-link>
-      <router-link to="/submissions" class="nav-item">Submissions</router-link>
-      <router-link v-if="isAdmin" to="/admin" class="nav-item">Admin Panel</router-link>
+      <router-link
+        to="/dashboard"
+        class="nav-item"
+      >
+        Dashboard
+      </router-link>
+      <router-link
+        to="/topics"
+        class="nav-item"
+      >
+        Topics
+      </router-link>
+      <router-link
+        v-if="isStudent"
+        to="/applications"
+        class="nav-item"
+      >
+        Applications
+      </router-link>
+      <router-link
+        to="/submissions"
+        class="nav-item"
+      >
+        Submissions
+      </router-link>
+      <router-link
+        v-if="isAdmin"
+        to="/admin"
+        class="nav-item"
+      >
+        Admin Panel
+      </router-link>
     </nav>
   </aside>
 </template>

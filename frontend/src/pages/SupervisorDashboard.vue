@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed } from 'vue';
 import {
   Bars3Icon,
   AcademicCapIcon,
@@ -11,16 +11,16 @@ import {
   XCircleIcon,
   ArrowPathIcon,
   ChevronRightIcon,
-} from '@heroicons/vue/24/outline'
+} from '@heroicons/vue/24/outline';
 
-const sidebarOpen = ref(false)
+const sidebarOpen = ref(false);
 
 const supervisor = {
   name: 'Dr. Emily Lee',
   dept: 'Department of Geography',
   avatar:
     'https://ui-avatars.com/api/?name=Emily+Lee&background=0F172A&color=fff',
-}
+};
 
 const students = ref([
   {
@@ -47,16 +47,16 @@ const students = ref([
     },
     pendingApprovals: 0,
   },
-])
+]);
 
 const stats = computed(() => {
-  const total = students.value.length
-  const pending = students.value.filter((s) => s.pendingApprovals > 0).length
+  const total = students.value.length;
+  const pending = students.value.filter((s) => s.pendingApprovals > 0).length;
   const overdue = students.value.filter(
     (s) => s.submissions.progress1 === 'Overdue',
-  ).length
-  return { total, pending, overdue }
-})
+  ).length;
+  return { total, pending, overdue };
+});
 </script>
 
 <template>
@@ -64,9 +64,9 @@ const stats = computed(() => {
     <div
       v-if="sidebarOpen"
       class="fixed inset-0 z-20 bg-black/40 lg:hidden"
-      @click="sidebarOpen = false"
       aria-hidden="true"
-    ></div>
+      @click="sidebarOpen = false"
+    />
 
     <aside
       class="fixed z-30 inset-y-0 left-0 w-64 transform bg-white border-r border-slate-200 transition-transform duration-200 ease-out
@@ -76,7 +76,10 @@ const stats = computed(() => {
     >
       <div class="flex h-14 items-center gap-2 px-4 border-b border-slate-200">
         <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-600 shadow-sm shadow-blue-500/40">
-          <AcademicCapIcon class="h-5 w-5 text-white" aria-hidden="true" />
+          <AcademicCapIcon
+            class="h-5 w-5 text-white"
+            aria-hidden="true"
+          />
         </div>
         <div class="flex flex-col">
           <span class="text-[11px] uppercase tracking-[0.18em] text-slate-500">
@@ -88,7 +91,10 @@ const stats = computed(() => {
         </div>
       </div>
 
-      <nav class="mt-3 px-2 space-y-1 text-sm" aria-label="Primary">
+      <nav
+        class="mt-3 px-2 space-y-1 text-sm"
+        aria-label="Primary"
+      >
         <button
           type="button"
           class="flex w-full items-center gap-2 rounded-lg px-3 py-2 bg-slate-100 text-slate-900"
@@ -107,10 +113,13 @@ const stats = computed(() => {
           <button
             type="button"
             class="inline-flex items-center justify-center rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 lg:hidden"
-            @click="sidebarOpen = !sidebarOpen"
             aria-label="Toggle navigation"
+            @click="sidebarOpen = !sidebarOpen"
           >
-            <Bars3Icon class="h-6 w-6" aria-hidden="true" />
+            <Bars3Icon
+              class="h-6 w-6"
+              aria-hidden="true"
+            />
           </button>
           <div>
             <p class="text-[11px] uppercase tracking-[0.2em] text-slate-500">
@@ -141,7 +150,7 @@ const stats = computed(() => {
               :src="supervisor.avatar"
               alt="Supervisor avatar"
               class="h-8 w-8 rounded-full object-cover"
-            />
+            >
             <div class="hidden sm:flex flex-col items-start">
               <span class="font-medium text-slate-900">
                 {{ supervisor.name }}
@@ -220,11 +229,36 @@ const stats = computed(() => {
             <table class="min-w-full text-xs">
               <thead class="bg-slate-50 text-slate-600 border-b border-slate-200">
                 <tr>
-                  <th scope="col" class="px-3 py-2 text-left font-medium">Student</th>
-                  <th scope="col" class="px-3 py-2 text-left font-medium">Topic</th>
-                  <th scope="col" class="px-3 py-2 text-left font-medium">Submissions</th>
-                  <th scope="col" class="px-3 py-2 text-center font-medium">Pending</th>
-                  <th scope="col" class="px-3 py-2 text-right font-medium">Quick actions</th>
+                  <th
+                    scope="col"
+                    class="px-3 py-2 text-left font-medium"
+                  >
+                    Student
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-3 py-2 text-left font-medium"
+                  >
+                    Topic
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-3 py-2 text-left font-medium"
+                  >
+                    Submissions
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-3 py-2 text-center font-medium"
+                  >
+                    Pending
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-3 py-2 text-right font-medium"
+                  >
+                    Quick actions
+                  </th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-800">
@@ -239,7 +273,7 @@ const stats = computed(() => {
                         :src="`https://ui-avatars.com/api/?name=${encodeURIComponent(s.name)}&background=2563EB&color=fff`"
                         :alt="s.name"
                         class="h-7 w-7 rounded-full object-cover"
-                      />
+                      >
                       <div>
                         <p class="font-medium text-slate-900">
                           {{ s.name }}

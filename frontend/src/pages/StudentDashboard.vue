@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed } from 'vue';
 import {
   Bars3Icon,
   HomeIcon,
@@ -13,10 +13,10 @@ import {
   ChevronRightIcon,
   EnvelopeIcon,
   ArrowRightOnRectangleIcon,
-} from '@heroicons/vue/24/outline'
-import { AcademicCapIcon } from '@heroicons/vue/24/solid'
+} from '@heroicons/vue/24/outline';
+import { AcademicCapIcon } from '@heroicons/vue/24/solid';
 
-const sidebarOpen = ref(false)
+const sidebarOpen = ref(false);
 
 const student = {
   name: 'Student Chan Hoi Ting',
@@ -25,7 +25,7 @@ const student = {
   avatar:
     'https://ui-avatars.com/api/?name=Student+Chan&background=2563EB&color=fff',
   email: 'student001@life.hkbu.edu.hk',
-}
+};
 
 const currentTopic = {
   title:
@@ -37,7 +37,7 @@ const currentTopic = {
   concentration: 'Urban Planning & Smart Cities',
   status: 'Approved',
   code: 'FYP-GEOG-2026-018',
-}
+};
 
 const submissionSteps = [
   {
@@ -75,7 +75,7 @@ const submissionSteps = [
     due: '2026-05-25',
     submittedOn: null,
   },
-]
+];
 
 const upcomingDeadlines = [
   {
@@ -93,7 +93,7 @@ const upcomingDeadlines = [
     date: '25 May 2026',
     daysLeft: 110,
   },
-]
+];
 
 const recentFeedback = {
   from: 'Dr. Emily Lee',
@@ -101,7 +101,7 @@ const recentFeedback = {
   date: '29 Jan 2026',
   excerpt:
     'Your literature review is progressing well. Please clarify how you will operationalise “walkability” and consider including at least one qualitative method alongside GIS analysis.',
-}
+};
 
 const navItems = [
   { name: 'Home', icon: HomeIcon, active: true },
@@ -109,14 +109,14 @@ const navItems = [
   { name: 'Submissions', icon: DocumentArrowUpIcon, active: false },
   { name: 'Feedback', icon: ChatBubbleLeftRightIcon, active: false },
   { name: 'History', icon: ClockIcon, active: false },
-]
+];
 
 const overallCompletion = computed(() => {
   const completed = submissionSteps.filter((s) =>
     ['Completed', 'Not Required'].includes(s.status)
-  ).length
-  return Math.round((completed / submissionSteps.length) * 100)
-})
+  ).length;
+  return Math.round((completed / submissionSteps.length) * 100);
+});
 </script>
 
 <template>
@@ -124,9 +124,9 @@ const overallCompletion = computed(() => {
     <div
       v-if="sidebarOpen"
       class="fixed inset-0 z-20 bg-black/40 lg:hidden"
-      @click="sidebarOpen = false"
       aria-hidden="true"
-    ></div>
+      @click="sidebarOpen = false"
+    />
 
     <aside
       class="fixed z-30 inset-y-0 left-0 w-64 transform bg-white border-r border-slate-200 transition-transform duration-200 ease-out
@@ -138,7 +138,10 @@ const overallCompletion = computed(() => {
         <div
           class="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-600/90 shadow shadow-blue-500/40"
         >
-          <AcademicCapIcon class="h-5 w-5 text-white" aria-hidden="true" />
+          <AcademicCapIcon
+            class="h-5 w-5 text-white"
+            aria-hidden="true"
+          />
         </div>
         <div class="flex flex-col">
           <span class="text-[11px] uppercase tracking-[0.18em] text-slate-500">
@@ -150,7 +153,10 @@ const overallCompletion = computed(() => {
         </div>
       </div>
 
-      <nav class="mt-3 px-2 space-y-1 text-sm" aria-label="Primary">
+      <nav
+        class="mt-3 px-2 space-y-1 text-sm"
+        aria-label="Primary"
+      >
         <button
           v-for="item in navItems"
           :key="item.name"
@@ -163,7 +169,11 @@ const overallCompletion = computed(() => {
               : 'text-slate-600'
           "
         >
-          <component :is="item.icon" class="h-5 w-5 text-slate-300" aria-hidden="true" />
+          <component
+            :is="item.icon"
+            class="h-5 w-5 text-slate-300"
+            aria-hidden="true"
+          />
           <span class="flex-1 text-left">
             {{ item.name }}
           </span>
@@ -189,7 +199,7 @@ const overallCompletion = computed(() => {
             <div
               class="h-1.5 bg-blue-500 rounded-full"
               :style="{ width: `${overallCompletion}%` }"
-            ></div>
+            />
           </div>
           <span class="text-[11px] text-slate-600">
             {{ overallCompletion }}%
@@ -206,10 +216,13 @@ const overallCompletion = computed(() => {
           <button
             type="button"
             class="inline-flex items-center justify-center rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 lg:hidden"
-            @click="sidebarOpen = !sidebarOpen"
             aria-label="Toggle navigation"
+            @click="sidebarOpen = !sidebarOpen"
           >
-            <Bars3Icon class="h-6 w-6" aria-hidden="true" />
+            <Bars3Icon
+              class="h-6 w-6"
+              aria-hidden="true"
+            />
           </button>
           <div>
             <p class="text-[11px] uppercase tracking-[0.2em] text-slate-500">
@@ -238,11 +251,14 @@ const overallCompletion = computed(() => {
               :src="student.avatar"
               alt="Student avatar"
               class="h-8 w-8 rounded-full object-cover"
-            />
+            >
             <span class="hidden sm:inline text-slate-700">
               Student
             </span>
-            <ArrowRightOnRectangleIcon class="h-4 w-4 text-slate-500" aria-hidden="true" />
+            <ArrowRightOnRectangleIcon
+              class="h-4 w-4 text-slate-500"
+              aria-hidden="true"
+            />
           </button>
         </div>
       </header>
@@ -268,7 +284,10 @@ const overallCompletion = computed(() => {
               <span
                 class="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-3 py-1 text-[11px] font-medium text-emerald-300 border border-emerald-500/30"
               >
-                <CheckCircleIcon class="h-3.5 w-3.5" aria-hidden="true" />
+                <CheckCircleIcon
+                  class="h-3.5 w-3.5"
+                  aria-hidden="true"
+                />
                 {{ currentTopic.status }}
               </span>
             </header>
@@ -284,18 +303,21 @@ const overallCompletion = computed(() => {
                     src="https://ui-avatars.com/api/?name=Emily+Lee&background=0F172A&color=fff"
                     alt="Supervisor avatar"
                     class="h-7 w-7 rounded-full object-cover ring-2 ring-slate-950"
-                  />
+                  >
                   <div>
                     <p class="font-medium text-slate-900">
                       {{ currentTopic.supervisor.name }}
                     </p>
                     <p class="inline-flex items-center gap-1 text-[11px] text-slate-500">
-                      <EnvelopeIcon class="h-3.5 w-3.5" aria-hidden="true" />
+                      <EnvelopeIcon
+                        class="h-3.5 w-3.5"
+                        aria-hidden="true"
+                      />
                       {{ currentTopic.supervisor.email }}
                     </p>
                   </div>
                 </div>
-                <div class="hidden sm:block h-8 w-px bg-slate-200"></div>
+                <div class="hidden sm:block h-8 w-px bg-slate-200" />
                 <div class="flex flex-col gap-0.5 text-[11px] sm:text-xs">
                   <span class="text-slate-500">
                     Concentration
@@ -335,7 +357,10 @@ const overallCompletion = computed(() => {
                   class="hidden sm:inline-flex items-center gap-1 rounded-full border border-slate-300 px-2.5 py-1 text-[11px] text-slate-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50"
                 >
                   View topic history
-                  <ChevronRightIcon class="h-3.5 w-3.5" aria-hidden="true" />
+                  <ChevronRightIcon
+                    class="h-3.5 w-3.5"
+                    aria-hidden="true"
+                  />
                 </button>
               </div>
             </div>
@@ -357,7 +382,10 @@ const overallCompletion = computed(() => {
                   Based on your programme timeline
                 </p>
               </div>
-              <ClockIcon class="h-5 w-5 text-slate-300" aria-hidden="true" />
+              <ClockIcon
+                class="h-5 w-5 text-slate-300"
+                aria-hidden="true"
+              />
             </header>
 
             <div class="mt-4 space-y-3">
@@ -405,7 +433,7 @@ const overallCompletion = computed(() => {
                 <div
                   class="h-1.5 rounded-full bg-gradient-to-r from-blue-500 via-sky-400 to-emerald-400"
                   :style="{ width: `${overallCompletion}%` }"
-                ></div>
+                />
               </div>
             </div>
           </section>
@@ -473,7 +501,10 @@ const overallCompletion = computed(() => {
                     </h3>
                     <p class="mt-0.5 text-[11px] text-slate-500">
                       Due: <span class="font-medium text-slate-800">{{ step.due }}</span>
-                      <span v-if="step.submittedOn" class="ml-2 text-slate-400">
+                      <span
+                        v-if="step.submittedOn"
+                        class="ml-2 text-slate-400"
+                      >
                         · Submitted {{ step.submittedOn }}
                       </span>
                       <span
@@ -529,7 +560,10 @@ const overallCompletion = computed(() => {
                   Remember to acknowledge feedback in your next meeting.
                 </p>
               </div>
-              <ChatBubbleLeftRightIcon class="h-5 w-5 text-slate-300" aria-hidden="true" />
+              <ChatBubbleLeftRightIcon
+                class="h-5 w-5 text-slate-300"
+                aria-hidden="true"
+              />
             </header>
 
             <article class="mt-3 rounded-lg border border-slate-200 bg-white p-3 text-xs">
@@ -539,7 +573,7 @@ const overallCompletion = computed(() => {
                     src="https://ui-avatars.com/api/?name=Emily+Lee&background=1D4ED8&color=fff"
                     alt="Supervisor avatar"
                     class="h-7 w-7 rounded-full object-cover"
-                  />
+                  >
                   <div>
                     <p class="text-slate-900 font-medium">
                       {{ recentFeedback.from }}
@@ -566,7 +600,10 @@ const overallCompletion = computed(() => {
                   class="inline-flex items-center gap-1 text-blue-700 hover:text-blue-800"
                 >
                   View full feedback thread
-                  <ChevronRightIcon class="h-3.5 w-3.5" aria-hidden="true" />
+                  <ChevronRightIcon
+                    class="h-3.5 w-3.5"
+                    aria-hidden="true"
+                  />
                 </button>
                 <button
                   type="button"
