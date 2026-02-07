@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import SidebarAdmin from '../components/layout/SidebarAdmin.vue'
-import { useDummyData } from '../composables/useDummyData'
+import SidebarAdmin from '../components/layout/SidebarAdmin.vue';
+import { useDummyData } from '../composables/useDummyData';
 
-const { role, supervisedStudents, topicChangeRequests, systemOverview } = useDummyData()
+const { role, supervisedStudents, topicChangeRequests, systemOverview } = useDummyData();
 </script>
 
 <template>
   <div class="flex min-h-[calc(100vh-3.25rem)]">
-    <SidebarAdmin :role="role" current="dashboard" />
+    <SidebarAdmin
+      :role="role"
+      current="dashboard"
+    />
 
     <main class="flex-1 px-4 sm:px-6 pb-6 pt-4 sm:pt-5">
       <!-- Stats row -->
@@ -65,11 +68,21 @@ const { role, supervisedStudents, topicChangeRequests, systemOverview } = useDum
             <table class="min-w-full text-[11px]">
               <thead class="bg-slate-50 text-slate-600 border-b border-slate-200">
                 <tr>
-                  <th class="px-3 py-2 text-left font-medium">Student</th>
-                  <th class="px-3 py-2 text-left font-medium">Topic</th>
-                  <th class="px-3 py-2 text-left font-medium">Last submission</th>
-                  <th class="px-3 py-2 text-left font-medium">Status</th>
-                  <th class="px-3 py-2 text-right font-medium">Actions</th>
+                  <th class="px-3 py-2 text-left font-medium">
+                    Student
+                  </th>
+                  <th class="px-3 py-2 text-left font-medium">
+                    Topic
+                  </th>
+                  <th class="px-3 py-2 text-left font-medium">
+                    Last submission
+                  </th>
+                  <th class="px-3 py-2 text-left font-medium">
+                    Status
+                  </th>
+                  <th class="px-3 py-2 text-right font-medium">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
@@ -84,7 +97,7 @@ const { role, supervisedStudents, topicChangeRequests, systemOverview } = useDum
                         :src="`https://ui-avatars.com/api/?name=${encodeURIComponent(s.name)}&background=2563EB&color=fff`"
                         :alt="s.name"
                         class="h-7 w-7 rounded-full object-cover"
-                      />
+                      >
                       <div>
                         <p class="font-medium text-slate-900">
                           {{ s.name }}
