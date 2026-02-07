@@ -216,8 +216,8 @@
 **Independent Test**: Supervisor adds feedback to submission, student views feedback, feedback visible with timestamp
 
 **Subtasks**:
-- [ ] T032: Implement POST `/api/v1/feedback/submission/:submissionId` (supervisor adds text feedback)
-- [ ] T033: Implement GET `/api/v1/feedback/submission/:submissionId` (student views feedback with supervisor name)
+- [x] T032: Implement POST `/api/v1/feedback/submission/:submissionId` (supervisor adds text feedback)
+- [x] T033: Implement GET `/api/v1/feedback/submission/:submissionId` (student views feedback with supervisor name)
 - [ ] T034: Create feedback history (maintain all feedback versions, timestamps)
 - [ ] T035: Write feedback tests (permission checks, timestamp accuracy, retrieval)
 
