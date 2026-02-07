@@ -1,10 +1,12 @@
 ---
 work_package_id: "WP10"
 title: "Authentication UI (Login, Register, Password Reset)"
-lane: "planned"
+lane: "doing"
 dependencies: ["WP02", "WP09"]
 subtasks: ["T048", "T049", "T050", "T051", "T052"]
 created_at: "2026-02-02"
+agent: "GitHub Copilot"
+shell_pid: "5800"
 ---
 
 # WP10: Authentication UI (Login, Register, Password Reset)
@@ -758,3 +760,7 @@ Create end-to-end auth flow tests covering login, registration, password reset, 
 **Next Work Package**: WP11 (Topic Discovery UI)  
 **Estimated Start**: Can run in parallel with WP10  
 **Command**: `spec-kitty implement WP11`
+
+## Activity Log
+
+- 2026-02-07T13:26:59Z – GitHub Copilot – shell_pid=5800 – lane=doing – Started review via workflow command
