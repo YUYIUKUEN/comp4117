@@ -146,7 +146,7 @@
 - [ ] T021: Implement GET `/api/v1/applications/topic/:topicId` (supervisor views applicants for topic)
 - [ ] T022: Implement POST `/api/v1/applications/:id/approve` (supervisor approves, creates Assignment, notifies student)
 - [ ] T023: Implement POST `/api/v1/applications/:id/reject` (supervisor rejects with optional notes)
-- [ ] T024: Write comprehensive application tests (permissions, workflow state transitions, duplicate prevention)
+- [x] T024: Write comprehensive application tests (permissions, workflow state transitions, duplicate prevention)
 
 **Dependencies**: WP03  
 **Command**: `spec-kitty implement WP04 --base WP03`  
@@ -178,11 +178,11 @@
 **Independent Test**: Student uploads document for phase, status updates to "Submitted", can resubmit, can declare not needed
 
 **Subtasks**:
-- [ ] T025: Implement POST `/api/v1/submissions/:phase/upload` (file upload, validation, storage)
-- [ ] T026: Implement file validation (MIME type whitelist, size limit 50MB, virus scan placeholder)
-- [ ] T027: Implement GET `/api/v1/submissions/my-submissions` (student views all submissions with status, due dates)
-- [ ] T028: Implement POST `/api/v1/submissions/:phase/declare-not-needed` (declaration with justification)
-- [ ] T029: Implement resubmission logic (update existing submission, maintain version history)
+- [x] T025: Implement POST `/api/v1/submissions/:phase/upload` (file upload, validation, storage)
+- [x] T026: Implement file validation (MIME type whitelist, size limit 50MB, virus scan placeholder)
+- [x] T027: Implement GET `/api/v1/submissions/my-submissions` (student views all submissions with status, due dates)
+- [x] T028: Implement POST `/api/v1/submissions/:phase/declare-not-needed` (declaration with justification)
+- [x] T029: Implement resubmission logic (update existing submission, maintain version history)
 - [ ] T030: Create submission status tracking (Not Submitted, Submitted, Overdue, Declared Not Needed)
 - [ ] T031: Write comprehensive submission tests (upload validation, resubmission, declarations, permission checks)
 
