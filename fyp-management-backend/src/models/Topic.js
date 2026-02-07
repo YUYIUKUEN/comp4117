@@ -48,6 +48,13 @@ const topicSchema = new mongoose.Schema({
     default: 'Draft',
     index: true,
   },
+  flags: [
+    {
+      reason: { type: String, required: true },
+      flaggedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+      flaggedAt: { type: Date, default: Date.now, immutable: true },
+    },
+  ],
   applicationDeadline: Date,
   maxApplications: { type: Number, min: 1, default: 5 },
   createdAt: { type: Date, default: Date.now, immutable: true },

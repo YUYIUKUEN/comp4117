@@ -17,17 +17,20 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(loggingMiddleware);
 
-// Health check endpoint
-app.get('/api/v1/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
 // Routes
 const authRoutes = require('./routes/authRoutes');
 const topicRoutes = require('./routes/topicRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
+const userManagementRoutes = require('./routes/userManagementRoutes');
+const topicModerationRoutes = require('./routes/topicModerationRoutes');
+const healthRoutes = require('./routes/healthRoutes');
+
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/topics', topicRoutes);
-// app.use('/api/v1/users', require('./routes/users'));
+app.use('/api/v1/dashboards', dashboardRoutes);
+app.use('/api/v1/admin/users', userManagementRoutes);
+app.use('/api/v1/admin/topics', topicModerationRoutes);
+app.use('/api/v1/health', healthRoutes);
 
 // 404 handler
 app.use((req, res) => {
