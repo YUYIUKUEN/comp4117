@@ -323,7 +323,7 @@
 - [x] T045: Initialize Vue 3 + Vite project with dependencies (vite, vue, vue-router, pinia, axios, vitest, playwright)
 - [x] T046: Configure Vite for development (port 5173, hot reload, environment variables)
 - [x] T047: Setup Pinia stores structure (authStore, topicStore, submissionStore) with basic state
-- [ ] T048: Create project directory structure (/src/components, /src/pages, /src/stores, /src/services, /tests)
+- [x] T048: Create project directory structure (/src/components, /src/pages, /src/stores, /src/services, /tests)
 
 **Dependencies**: None  
 **Parallelization**: [P] T045-T048 can be developed in parallel
