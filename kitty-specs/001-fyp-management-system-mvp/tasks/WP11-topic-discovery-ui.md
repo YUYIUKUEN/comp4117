@@ -1,10 +1,12 @@
 ---
 work_package_id: "WP11"
 title: "Topic Discovery & Search UI"
-lane: "planned"
+lane: "doing"
 dependencies: ["WP03", "WP09"]
 subtasks: ["T053", "T054", "T055", "T056", "T057"]
 created_at: "2026-02-02"
+agent: "GitHub Copilot"
+shell_pid: "22748"
 ---
 
 # WP11: Topic Discovery & Search UI
@@ -980,3 +982,7 @@ Create end-to-end tests for topic discovery flow and comprehensive documentation
 **Next Work Package**: WP12 (Submission Management UI)  
 **Estimated Start**: Can run in parallel with WP11  
 **Command**: `spec-kitty implement WP12`
+
+## Activity Log
+
+- 2026-02-07T13:38:03Z – GitHub Copilot – shell_pid=22748 – lane=doing – Started review via workflow command
