@@ -24,9 +24,10 @@ app.get('/api/v1/health', (req, res) => {
 
 // Routes
 const authRoutes = require('./routes/authRoutes');
+const topicRoutes = require('./routes/topicRoutes');
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/topics', topicRoutes);
 // app.use('/api/v1/users', require('./routes/users'));
-// app.use('/api/v1/topics', require('./routes/topics'));
 
 // 404 handler
 app.use((req, res) => {

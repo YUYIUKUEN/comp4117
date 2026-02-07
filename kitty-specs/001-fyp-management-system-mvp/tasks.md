@@ -111,7 +111,7 @@
 - [x] T015: Implement topic archive feature (GET `/api/v1/topics/archive` with same filtering)
 - [x] T016: Add full-text search capability (MongoDB text indexes on title, description)
 - [x] T017: Implement supervisor topic management (PUT `/api/v1/topics/:id`, DELETE/archive)
-- [x] T018: Write comprehensive topic tests (search performance, filtering accuracy, pagination)
+- [ ] T018: Write comprehensive topic tests (search performance, filtering accuracy, pagination)
 
 **Dependencies**: WP02  
 **Command**: `spec-kitty implement WP03 --base WP02`  
@@ -146,7 +146,7 @@
 - [ ] T021: Implement GET `/api/v1/applications/topic/:topicId` (supervisor views applicants for topic)
 - [ ] T022: Implement POST `/api/v1/applications/:id/approve` (supervisor approves, creates Assignment, notifies student)
 - [ ] T023: Implement POST `/api/v1/applications/:id/reject` (supervisor rejects with optional notes)
-- [x] T024: Write comprehensive application tests (permissions, workflow state transitions, duplicate prevention)
+- [ ] T024: Write comprehensive application tests (permissions, workflow state transitions, duplicate prevention)
 
 **Dependencies**: WP03  
 **Command**: `spec-kitty implement WP04 --base WP03`  
@@ -178,13 +178,13 @@
 **Independent Test**: Student uploads document for phase, status updates to "Submitted", can resubmit, can declare not needed
 
 **Subtasks**:
-- [x] T025: Implement POST `/api/v1/submissions/:phase/upload` (file upload, validation, storage)
-- [x] T026: Implement file validation (MIME type whitelist, size limit 50MB, virus scan placeholder)
-- [x] T027: Implement GET `/api/v1/submissions/my-submissions` (student views all submissions with status, due dates)
-- [x] T028: Implement POST `/api/v1/submissions/:phase/declare-not-needed` (declaration with justification)
-- [x] T029: Implement resubmission logic (update existing submission, maintain version history)
-- [x] T030: Create submission status tracking (Not Submitted, Submitted, Overdue, Declared Not Needed)
-- [x] T031: Write comprehensive submission tests (upload validation, resubmission, declarations, permission checks)
+- [ ] T025: Implement POST `/api/v1/submissions/:phase/upload` (file upload, validation, storage)
+- [ ] T026: Implement file validation (MIME type whitelist, size limit 50MB, virus scan placeholder)
+- [ ] T027: Implement GET `/api/v1/submissions/my-submissions` (student views all submissions with status, due dates)
+- [ ] T028: Implement POST `/api/v1/submissions/:phase/declare-not-needed` (declaration with justification)
+- [ ] T029: Implement resubmission logic (update existing submission, maintain version history)
+- [ ] T030: Create submission status tracking (Not Submitted, Submitted, Overdue, Declared Not Needed)
+- [ ] T031: Write comprehensive submission tests (upload validation, resubmission, declarations, permission checks)
 
 **Dependencies**: WP04  
 **Command**: `spec-kitty implement WP05 --base WP04`  
@@ -216,10 +216,10 @@
 **Independent Test**: Supervisor adds feedback to submission, student views feedback, feedback visible with timestamp
 
 **Subtasks**:
-- [x] T032: Implement POST `/api/v1/feedback/submission/:submissionId` (supervisor adds text feedback)
-- [x] T033: Implement GET `/api/v1/feedback/submission/:submissionId` (student views feedback with supervisor name)
-- [x] T034: Create feedback history (maintain all feedback versions, timestamps)
-- [x] T035: Write feedback tests (permission checks, timestamp accuracy, retrieval)
+- [ ] T032: Implement POST `/api/v1/feedback/submission/:submissionId` (supervisor adds text feedback)
+- [ ] T033: Implement GET `/api/v1/feedback/submission/:submissionId` (student views feedback with supervisor name)
+- [ ] T034: Create feedback history (maintain all feedback versions, timestamps)
+- [ ] T035: Write feedback tests (permission checks, timestamp accuracy, retrieval)
 
 **Dependencies**: WP05  
 **Command**: `spec-kitty implement WP06 --base WP05`  
@@ -249,10 +249,10 @@
 **Independent Test**: All user actions logged with timestamps and user info, logs are immutable, admin can query by user/action
 
 **Subtasks**:
-- [x] T036: Create ActivityLog model and middleware to capture all actions (submissions, approvals, feedback)
-- [x] T037: Implement activity log queries (GET `/api/v1/admin/activity-log` with filtering by user, action, date)
-- [x] T038: Add audit trail validation (ensure logs are immutable, no deletions)
-- [x] T039: Write activity logging tests (log completeness, immutability, filtering accuracy)
+- [ ] T036: Create ActivityLog model and middleware to capture all actions (submissions, approvals, feedback)
+- [ ] T037: Implement activity log queries (GET `/api/v1/admin/activity-log` with filtering by user, action, date)
+- [ ] T038: Add audit trail validation (ensure logs are immutable, no deletions)
+- [ ] T039: Write activity logging tests (log completeness, immutability, filtering accuracy)
 
 **Dependencies**: WP02  
 **Command**: `spec-kitty implement WP07 --base WP02`  
@@ -283,11 +283,11 @@
 **Independent Test**: Admin dashboard loads <3 seconds, shows accurate student count/status, submission completion rates
 
 **Subtasks**:
-- [x] T040: Implement GET `/api/v1/dashboard/admin` (statistics: total students, supervisors, topics, assignments, submission rates)
-- [x] T041: Implement student list view with filtering (by concentration, supervisor, status)
-- [x] T042: Implement submission status reporting (completion rates per phase)
-- [x] T043: Implement activity summary (recent actions, email tracking)
-- [x] T044: Write admin dashboard tests (data accuracy, permission checks, performance)
+- [ ] T040: Implement GET `/api/v1/dashboard/admin` (statistics: total students, supervisors, topics, assignments, submission rates)
+- [ ] T041: Implement student list view with filtering (by concentration, supervisor, status)
+- [ ] T042: Implement submission status reporting (completion rates per phase)
+- [ ] T043: Implement activity summary (recent actions, email tracking)
+- [ ] T044: Write admin dashboard tests (data accuracy, permission checks, performance)
 
 **Dependencies**: WP01, WP05, WP07  
 **Command**: `spec-kitty implement WP08 --base WP07`  
@@ -320,10 +320,10 @@
 **Independent Test**: Frontend dev server starts on port 5173, hot reload works, Axios configured for backend API
 
 **Subtasks**:
-- [x] T045: Initialize Vue 3 + Vite project with dependencies (vite, vue, vue-router, pinia, axios, vitest, playwright)
-- [x] T046: Configure Vite for development (port 5173, hot reload, environment variables)
-- [x] T047: Setup Pinia stores structure (authStore, topicStore, submissionStore) with basic state
-- [x] T048: Create project directory structure (/src/components, /src/pages, /src/stores, /src/services, /tests)
+- [ ] T045: Initialize Vue 3 + Vite project with dependencies (vite, vue, vue-router, pinia, axios, vitest, playwright)
+- [ ] T046: Configure Vite for development (port 5173, hot reload, environment variables)
+- [ ] T047: Setup Pinia stores structure (authStore, topicStore, submissionStore) with basic state
+- [ ] T048: Create project directory structure (/src/components, /src/pages, /src/stores, /src/services, /tests)
 
 **Dependencies**: None  
 **Parallelization**: [P] T045-T048 can be developed in parallel
@@ -352,12 +352,12 @@
 **Independent Test**: User can login with credentials, token stored in localStorage, redirect to dashboard, logout clears token
 
 **Subtasks**:
-- [x] T049: Create LoginForm component (email/password inputs, validation, error messages)
-- [x] T050: Implement auth service (login API call, token storage, logout)
-- [x] T051: Create authStore with Pinia (user state, login/logout actions, computed properties for roles)
-- [x] T052: Implement route guards (auth check, redirect to login if not authenticated, role-based redirects)
-- [x] T053: Create layout components (Navbar with user menu, logout button, role-based navigation)
-- [x] T054: Write component tests (login validation, auth state updates, token management)
+- [ ] T049: Create LoginForm component (email/password inputs, validation, error messages)
+- [ ] T050: Implement auth service (login API call, token storage, logout)
+- [ ] T051: Create authStore with Pinia (user state, login/logout actions, computed properties for roles)
+- [ ] T052: Implement route guards (auth check, redirect to login if not authenticated, role-based redirects)
+- [ ] T053: Create layout components (Navbar with user menu, logout button, role-based navigation)
+- [ ] T054: Write component tests (login validation, auth state updates, token management)
 
 **Dependencies**: WP09  
 **Command**: `spec-kitty implement WP10 --base WP09`  
@@ -388,9 +388,9 @@
 **Independent Test**: Full topic list loads immediately, filters work without page reload, student can apply with preference ranking
 
 **Subtasks**:
-- [x] T055: Create TopicList component (display all topics with pagination options)
-- [x] T056: Create TopicFilter component (inline filters: concentration, year, keyword search)
-- [x] T057: Implement topic search service (Axios call with query params)
+- [ ] T055: Create TopicList component (display all topics with pagination options)
+- [ ] T056: Create TopicFilter component (inline filters: concentration, year, keyword search)
+- [ ] T057: Implement topic search service (Axios call with query params)
 - [ ] T058: Create TopicDetail modal/page (supervisor info, requirements, reference docs, apply button)
 - [ ] T059: Implement application form (preference ranking 1-5, submit application)
 - [ ] T060: Create topicStore with Pinia (topics state, search actions, filters)
@@ -427,13 +427,13 @@
 **Independent Test**: Student sees all submission phases with status, can upload document, can declare not needed, resubmit works
 
 **Subtasks**:
-- [x] T062: Create SubmissionPhases component (display 4 phases with status: Not Submitted, Submitted, Overdue, Declared)
-- [x] T063: Create FileUpload component (drag-drop, file validation, progress indicator)
-- [x] T064: Create DeclarationForm component (reason text, justification, submit)
-- [x] T065: Create submission service (upload API call, status polling, error handling)
-- [x] T066: Implement submissionStore with Pinia (submissions state, upload/declare actions)
-- [x] T067: Create StatusBadge component (visual indicators for each status)
-- [x] T068: Write component tests (upload validation, status updates, declaration flow)
+- [ ] T062: Create SubmissionPhases component (display 4 phases with status: Not Submitted, Submitted, Overdue, Declared)
+- [ ] T063: Create FileUpload component (drag-drop, file validation, progress indicator)
+- [ ] T064: Create DeclarationForm component (reason text, justification, submit)
+- [ ] T065: Create submission service (upload API call, status polling, error handling)
+- [ ] T066: Implement submissionStore with Pinia (submissions state, upload/declare actions)
+- [ ] T067: Create StatusBadge component (visual indicators for each status)
+- [ ] T068: Write component tests (upload validation, status updates, declaration flow)
 
 **Dependencies**: WP10  
 **Command**: `spec-kitty implement WP12 --base WP10`  
