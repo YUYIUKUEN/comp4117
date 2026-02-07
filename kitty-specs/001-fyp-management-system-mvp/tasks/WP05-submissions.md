@@ -1,10 +1,12 @@
 ---
 work_package_id: "WP05"
 title: "Submissions & Document Management"
-lane: "planned"
+lane: "doing"
 dependencies: ["WP04"]
 subtasks: ["T024", "T025", "T026", "T027", "T028", "T029"]
 created_at: "2026-02-02"
+agent: "GitHub-Copilot"
+shell_pid: "8196"
 ---
 
 # WP05: Submissions & Document Management
@@ -969,3 +971,7 @@ Create integration tests and API documentation as previously outlined.
 **Next Work Package**: WP06 (Feedback & Comments)  
 **Estimated Start**: Can parallelize with WP07  
 **Command**: `spec-kitty implement WP06 --base WP05`
+
+## Activity Log
+
+- 2026-02-07T07:14:06Z – GitHub-Copilot – shell_pid=8196 – lane=doing – Started implementation via workflow command
