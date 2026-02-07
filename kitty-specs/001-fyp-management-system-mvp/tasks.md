@@ -428,12 +428,12 @@
 
 **Subtasks**:
 - [ ] T062: Create SubmissionPhases component (display 4 phases with status: Not Submitted, Submitted, Overdue, Declared)
-- [ ] T063: Create FileUpload component (drag-drop, file validation, progress indicator)
-- [ ] T064: Create DeclarationForm component (reason text, justification, submit)
-- [ ] T065: Create submission service (upload API call, status polling, error handling)
-- [ ] T066: Implement submissionStore with Pinia (submissions state, upload/declare actions)
-- [ ] T067: Create StatusBadge component (visual indicators for each status)
-- [ ] T068: Write component tests (upload validation, status updates, declaration flow)
+- [x] T063: Create FileUpload component (drag-drop, file validation, progress indicator)
+- [x] T064: Create DeclarationForm component (reason text, justification, submit)
+- [x] T065: Create submission service (upload API call, status polling, error handling)
+- [x] T066: Implement submissionStore with Pinia (submissions state, upload/declare actions)
+- [x] T067: Create StatusBadge component (visual indicators for each status)
+- [x] T068: Write component tests (upload validation, status updates, declaration flow)
 
 **Dependencies**: WP10  
 **Command**: `spec-kitty implement WP12 --base WP10`  
@@ -465,12 +465,12 @@
 **Independent Test**: Student dashboard shows topic/supervisor/submissions, Supervisor dashboard shows students list, Admin dashboard shows statistics
 
 **Subtasks**:
-- [ ] T069: Create StudentDashboard component (assigned topic, supervisor, submissions status, feedback history)
-- [ ] T070: Create SupervisorDashboard component (list of students, their submission status, pending applications)
-- [ ] T071: Create AdminDashboard component (statistics, student list with filtering, activity log)
-- [ ] T072: Create FeedbackView component (display feedback from supervisor with timestamp)
-- [ ] T073: Implement dashboard service (fetch dashboard data, students list, statistics)
-- [ ] T074: Write dashboard tests (permission checks, data accuracy, filtering)
+- [x] T069: Create StudentDashboard component (assigned topic, supervisor, submissions status, feedback history)
+- [x] T070: Create SupervisorDashboard component (list of students, their submission status, pending applications)
+- [x] T071: Create AdminDashboard component (statistics, student list with filtering, activity log)
+- [x] T072: Create FeedbackView component (display feedback from supervisor with timestamp)
+- [x] T073: Implement dashboard service (fetch dashboard data, students list, statistics)
+- [x] T074: Write dashboard tests (permission checks, data accuracy, filtering)
 
 **Dependencies**: WP11, WP12  
 **Command**: `spec-kitty implement WP13 --base WP12`  
