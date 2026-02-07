@@ -433,7 +433,7 @@
 - [x] T065: Create submission service (upload API call, status polling, error handling)
 - [x] T066: Implement submissionStore with Pinia (submissions state, upload/declare actions)
 - [x] T067: Create StatusBadge component (visual indicators for each status)
-- [ ] T068: Write component tests (upload validation, status updates, declaration flow)
+- [x] T068: Write component tests (upload validation, status updates, declaration flow)
 
 **Dependencies**: WP10  
 **Command**: `spec-kitty implement WP12 --base WP10`  
