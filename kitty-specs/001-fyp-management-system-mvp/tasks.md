@@ -352,10 +352,10 @@
 **Independent Test**: User can login with credentials, token stored in localStorage, redirect to dashboard, logout clears token
 
 **Subtasks**:
-- [ ] T049: Create LoginForm component (email/password inputs, validation, error messages)
-- [ ] T050: Implement auth service (login API call, token storage, logout)
-- [ ] T051: Create authStore with Pinia (user state, login/logout actions, computed properties for roles)
-- [ ] T052: Implement route guards (auth check, redirect to login if not authenticated, role-based redirects)
+- [x] T049: Create LoginForm component (email/password inputs, validation, error messages)
+- [x] T050: Implement auth service (login API call, token storage, logout)
+- [x] T051: Create authStore with Pinia (user state, login/logout actions, computed properties for roles)
+- [x] T052: Implement route guards (auth check, redirect to login if not authenticated, role-based redirects)
 - [ ] T053: Create layout components (Navbar with user menu, logout button, role-based navigation)
 - [ ] T054: Write component tests (login validation, auth state updates, token management)
 
