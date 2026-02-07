@@ -1,10 +1,13 @@
 ---
-work_package_id: "WP05"
-title: "Submissions & Document Management"
-lane: "planned"
-dependencies: ["WP04"]
-subtasks: ["T024", "T025", "T026", "T027", "T028", "T029"]
-created_at: "2026-02-02"
+work_package_id: WP05
+title: Submissions & Document Management
+lane: "doing"
+dependencies: [WP04]
+base_branch: 001-fyp-management-system-mvp-WP04
+base_commit: 3a6005134dc3bb8e1d2d87d29e9f52cdf5747b65
+created_at: '2026-02-07T07:14:05.566382+00:00'
+subtasks: [T024, T025, T026, T027, T028, T029]
+shell_pid: "8196"
 ---
 
 # WP05: Submissions & Document Management
