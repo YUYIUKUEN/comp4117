@@ -42,11 +42,11 @@
 **Independent Test**: Backend server starts, connects to MongoDB, health check endpoint works
 
 **Subtasks**:
-- [ ] T001: Initialize Express.js project with dependencies (express, mongoose, dotenv, bcrypt, jsonwebtoken)
-- [ ] T002: Configure MongoDB connection with Mongoose (Atlas or local)
-- [ ] T003: Create base middleware (CORS, body parser, error handler, logging)
-- [ ] T004: Define core Mongoose schemas (User, Topic, Application, Assignment, Submission, Feedback, ActivityLog)
-- [ ] T005: Write database initialization script and seed initial admin user
+- [x] T001: Initialize Express.js project with dependencies (express, mongoose, dotenv, bcrypt, jsonwebtoken)
+- [x] T002: Configure MongoDB connection with Mongoose (Atlas or local)
+- [x] T003: Create base middleware (CORS, body parser, error handler, logging)
+- [x] T004: Define core Mongoose schemas (User, Topic, Application, Assignment, Submission, Feedback, ActivityLog)
+- [x] T005: Write database initialization script and seed initial admin user
 
 **Dependencies**: None  
 **Parallelization**: T001 → (T002, T003) in parallel → (T004, T005) in parallel
