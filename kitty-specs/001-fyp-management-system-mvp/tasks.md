@@ -427,7 +427,7 @@
 **Independent Test**: Student sees all submission phases with status, can upload document, can declare not needed, resubmit works
 
 **Subtasks**:
-- [ ] T062: Create SubmissionPhases component (display 4 phases with status: Not Submitted, Submitted, Overdue, Declared)
+- [x] T062: Create SubmissionPhases component (display 4 phases with status: Not Submitted, Submitted, Overdue, Declared)
 - [ ] T063: Create FileUpload component (drag-drop, file validation, progress indicator)
 - [ ] T064: Create DeclarationForm component (reason text, justification, submit)
 - [ ] T065: Create submission service (upload API call, status polling, error handling)
