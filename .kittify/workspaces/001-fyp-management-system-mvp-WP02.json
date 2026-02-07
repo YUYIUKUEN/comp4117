@@ -1,0 +1,14 @@
+{
+  "wp_id": "WP02",
+  "feature_slug": "001-fyp-management-system-mvp",
+  "worktree_path": ".worktrees\\001-fyp-management-system-mvp-WP02",
+  "branch_name": "001-fyp-management-system-mvp-WP02",
+  "base_branch": "main",
+  "base_commit": "ddf1a19fdd6c5b8309af35c626b0b54ff97ff9d0",
+  "dependencies": [
+    "WP01"
+  ],
+  "created_at": "2026-02-07T05:42:08.261984+00:00",
+  "created_by": "implement-command",
+  "vcs_backend": "git"
+}
