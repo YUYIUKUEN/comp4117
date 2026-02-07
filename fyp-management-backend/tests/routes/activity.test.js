@@ -4,6 +4,7 @@ const ActivityLog = require('../../src/models/ActivityLog');
 const User = require('../../src/models/User');
 const { generateTokens } = require('../../src/utils/jwt');
 const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose');
 
 const createPasswordHash = async () => {
   return await bcrypt.hash('test-password-123', 10);
@@ -56,14 +57,14 @@ describe('Activity Routes', () => {
         user_id: student._id,
         action: 'topic_viewed',
         entityType: 'Topic',
-        entityId: 'topic123',
+        entityId: new mongoose.Types.ObjectId(),
         ipAddress: '192.168.1.1',
       },
       {
         user_id: supervisor._id,
         action: 'feedback_added',
         entityType: 'Feedback',
-        entityId: 'feedback456',
+        entityId: new mongoose.Types.ObjectId(),
         ipAddress: '10.0.0.1',
       },
     ]);

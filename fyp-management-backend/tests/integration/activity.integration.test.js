@@ -45,7 +45,7 @@ describe('Activity Logging Integration Tests', () => {
 
     topic = await Topic.create({
       title: 'AI Research',
-      description: 'Study of artificial intelligence',
+      description: 'Comprehensive study of artificial intelligence techniques and machine learning applications in modern systems',
       supervisor_id: supervisor._id,
       concentration: 'AI/ML',
     });

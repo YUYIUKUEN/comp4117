@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
-const User = require('../../src/models/User');
-const {hashPassword} = require('../../src/utils/password');
+const User = require('../src/models/User');
+const {hashPassword} = require('../src/utils/password');
 
 describe('User Creation Test', () => {
   beforeAll(async () => {
@@ -12,7 +12,7 @@ describe('User Creation Test', () => {
   });
 
   it('should create a user with correct fields', async () => {
-    const hashedPassword = await hashPassword('test123');
+    const hashedPassword = await hashPassword('test1234');
     console.log('Hashed password:', hashedPassword);
 
     const user = await User.create({

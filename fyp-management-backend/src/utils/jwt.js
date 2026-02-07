@@ -2,8 +2,11 @@ const jwt = require('jsonwebtoken');
 const { jwtSecret } = require('../config/env');
 
 const generateTokens = (userId, userRole) => {
-  const now = Math.floor(Date.now() / 1000);
+  const nowMs = Date.now();
+  const now = Math.floor(nowMs / 1000);
   const expiresIn = 24 * 60 * 60; // 24 hours
+  // Add millisecond precision to ensure different tokens even within same second
+  const jti = `${now}-${nowMs % 1000}`;
 
   const token = jwt.sign(
     {
@@ -11,6 +14,7 @@ const generateTokens = (userId, userRole) => {
       role: userRole,
       iat: now,
       exp: now + expiresIn,
+      jti: jti,
     },
     jwtSecret,
     { algorithm: 'HS256' }

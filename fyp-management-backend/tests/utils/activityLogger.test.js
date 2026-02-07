@@ -2,6 +2,7 @@ const { logActivity, logBatchActivity, LOG_ACTIONS } = require('../../src/utils/
 const ActivityLog = require('../../src/models/ActivityLog');
 const User = require('../../src/models/User');
 const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose');
 
 const createPasswordHash = async () => {
   return await bcrypt.hash('test-password-123', 10);
@@ -92,8 +93,8 @@ describe('Activity Logger Utils', () => {
     test('should create multiple activity log entries', async () => {
       const actions = [
         { action: LOG_ACTIONS.LOGIN, entityType: 'User', entityId: user._id },
-        { action: LOG_ACTIONS.TOPIC_CREATED, entityType: 'Topic', entityId: 'topic123' },
-        { action: LOG_ACTIONS.FEEDBACK_ADDED, entityType: 'Feedback', entityId: 'feedback456' },
+        { action: LOG_ACTIONS.TOPIC_CREATED, entityType: 'Topic', entityId: new mongoose.Types.ObjectId() },
+        { action: LOG_ACTIONS.FEEDBACK_ADDED, entityType: 'Feedback', entityId: new mongoose.Types.ObjectId() },
       ];
 
       const logs = await logBatchActivity(user._id, actions);
@@ -119,8 +120,8 @@ describe('Activity Logger Utils', () => {
 
     test('should include details in batch entries', async () => {
       const actions = [
-        { action: LOG_ACTIONS.TOPIC_CREATED, entityType: 'Topic', entityId: 'topic1', details: { title: 'Topic 1' } },
-        { action: LOG_ACTIONS.TOPIC_CREATED, entityType: 'Topic', entityId: 'topic2', details: { title: 'Topic 2' } },
+        { action: LOG_ACTIONS.TOPIC_CREATED, entityType: 'Topic', entityId: new mongoose.Types.ObjectId(), details: { title: 'Topic 1' } },
+        { action: LOG_ACTIONS.TOPIC_CREATED, entityType: 'Topic', entityId: new mongoose.Types.ObjectId(), details: { title: 'Topic 2' } },
       ];
 
       const logs = await logBatchActivity(user._id, actions);
@@ -142,7 +143,7 @@ describe('Activity Logger Utils', () => {
     test('should create logs with sequential timestamps', async () => {
       const actions = [
         { action: LOG_ACTIONS.LOGIN, entityType: 'User', entityId: user._id },
-        { action: LOG_ACTIONS.TOPIC_CREATED, entityType: 'Topic', entityId: 'topic123' },
+        { action: LOG_ACTIONS.TOPIC_CREATED, entityType: 'Topic', entityId: new mongoose.Types.ObjectId() },
       ];
 
       const logs = await logBatchActivity(user._id, actions);
