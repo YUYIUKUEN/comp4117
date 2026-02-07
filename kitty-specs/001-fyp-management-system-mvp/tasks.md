@@ -70,12 +70,12 @@
 **Independent Test**: Login with valid credentials returns JWT, invalid credentials return 401, logout invalidates session
 
 **Subtasks**:
-- [ ] T006: Implement POST `/api/v1/auth/login` endpoint (email/password validation, bcrypt hashing, JWT generation)
-- [ ] T007: Implement POST `/api/v1/auth/logout` endpoint (token invalidation)
-- [ ] T008: Create authentication middleware for protected routes (JWT verification, role check)
-- [ ] T009: Implement user profile endpoints (GET, PUT `/api/v1/users/profile`)
-- [ ] T010: Create admin user management endpoints (POST create user, GET list users with filtering)
-- [ ] T011: Write comprehensive auth tests (Jest + Supertest covering happy path, edge cases, security)
+- [x] T006: Implement POST `/api/v1/auth/login` endpoint (email/password validation, bcrypt hashing, JWT generation)
+- [x] T007: Implement POST `/api/v1/auth/logout` endpoint (token invalidation)
+- [x] T008: Create authentication middleware for protected routes (JWT verification, role check)
+- [x] T009: Implement user profile endpoints (GET, PUT `/api/v1/users/profile`)
+- [x] T010: Create admin user management endpoints (POST create user, GET list users with filtering)
+- [x] T011: Write comprehensive auth tests (Jest + Supertest covering happy path, edge cases, security)
 
 **Dependencies**: WP01  
 **Command**: `spec-kitty implement WP02 --base WP01`  
