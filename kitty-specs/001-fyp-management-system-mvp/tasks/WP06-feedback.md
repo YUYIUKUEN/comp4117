@@ -1,10 +1,13 @@
 ---
-work_package_id: "WP06"
-title: "Feedback & Comments Management"
-lane: "planned"
-dependencies: ["WP05"]
-subtasks: ["T030", "T031", "T032", "T033"]
-created_at: "2026-02-02"
+work_package_id: WP06
+title: Feedback & Comments Management
+lane: "doing"
+dependencies: [WP05]
+base_branch: 001-fyp-management-system-mvp-WP05
+base_commit: 8ba0c8010bf1f7f6a3acb2f36afa867cb621dcc9
+created_at: '2026-02-07T07:26:49.752463+00:00'
+subtasks: [T030, T031, T032, T033]
+shell_pid: "12464"
 ---
 
 # WP06: Feedback & Comments Management
