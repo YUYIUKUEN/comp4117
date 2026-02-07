@@ -356,8 +356,8 @@
 - [x] T050: Implement auth service (login API call, token storage, logout)
 - [x] T051: Create authStore with Pinia (user state, login/logout actions, computed properties for roles)
 - [x] T052: Implement route guards (auth check, redirect to login if not authenticated, role-based redirects)
-- [ ] T053: Create layout components (Navbar with user menu, logout button, role-based navigation)
-- [ ] T054: Write component tests (login validation, auth state updates, token management)
+- [x] T053: Create layout components (Navbar with user menu, logout button, role-based navigation)
+- [x] T054: Write component tests (login validation, auth state updates, token management)
 
 **Dependencies**: WP09  
 **Command**: `spec-kitty implement WP10 --base WP09`  
@@ -388,9 +388,9 @@
 **Independent Test**: Full topic list loads immediately, filters work without page reload, student can apply with preference ranking
 
 **Subtasks**:
-- [ ] T055: Create TopicList component (display all topics with pagination options)
-- [ ] T056: Create TopicFilter component (inline filters: concentration, year, keyword search)
-- [ ] T057: Implement topic search service (Axios call with query params)
+- [x] T055: Create TopicList component (display all topics with pagination options)
+- [x] T056: Create TopicFilter component (inline filters: concentration, year, keyword search)
+- [x] T057: Implement topic search service (Axios call with query params)
 - [ ] T058: Create TopicDetail modal/page (supervisor info, requirements, reference docs, apply button)
 - [ ] T059: Implement application form (preference ranking 1-5, submit application)
 - [ ] T060: Create topicStore with Pinia (topics state, search actions, filters)
