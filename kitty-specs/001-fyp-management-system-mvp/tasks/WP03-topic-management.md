@@ -1,10 +1,13 @@
 ---
-work_package_id: "WP03"
-title: "Topic Management & Discovery"
-lane: "planned"
-dependencies: ["WP02"]
-subtasks: ["T012", "T013", "T014", "T015", "T016", "T017"]
-created_at: "2026-02-02"
+work_package_id: WP03
+title: Topic Management & Discovery
+lane: "doing"
+dependencies: [WP02]
+base_branch: 001-fyp-management-system-mvp-WP02
+base_commit: a8ec8cc5a8a7b200d253254b13bc3c29c77c3976
+created_at: '2026-02-07T05:58:52.782112+00:00'
+subtasks: [T012, T013, T014, T015, T016, T017]
+shell_pid: "17920"
 ---
 
 # WP03: Topic Management & Discovery
