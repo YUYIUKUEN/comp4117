@@ -1,11 +1,12 @@
 ---
-work_package_id: "WP04"
-title: "Topic Applications & Matching"
+work_package_id: WP04
+title: Topic Applications & Matching
 lane: "doing"
-dependencies: ["WP03"]
-subtasks: ["T018", "T019", "T020", "T021", "T022", "T023"]
-created_at: "2026-02-02"
-agent: "GitHub Copilot"
+dependencies: [WP03]
+base_branch: 001-fyp-management-system-mvp-WP03
+base_commit: 3a6005134dc3bb8e1d2d87d29e9f52cdf5747b65
+created_at: '2026-02-07T06:11:44.596764+00:00'
+subtasks: [T018, T019, T020, T021, T022, T023]
 shell_pid: "13132"
 ---
 
@@ -1289,7 +1290,3 @@ shell_pid: "13132"
 **Next Work Package**: WP05 (Submissions & Document Management)  
 **Estimated Start**: After WP04 completion  
 **Command**: `spec-kitty implement WP05 --base WP04`
-
-## Activity Log
-
-- 2026-02-07T06:11:45Z – GitHub Copilot – shell_pid=13132 – lane=doing – Started implementation via workflow command

@@ -1,7 +1,7 @@
 ---
 work_package_id: "WP05"
 title: "Submissions & Document Management"
-lane: "doing"
+lane: "for_review"
 dependencies: ["WP04"]
 subtasks: ["T024", "T025", "T026", "T027", "T028", "T029"]
 created_at: "2026-02-02"
@@ -975,3 +975,4 @@ Create integration tests and API documentation as previously outlined.
 ## Activity Log
 
 - 2026-02-07T07:14:06Z – GitHub-Copilot – shell_pid=8196 – lane=doing – Started implementation via workflow command
+- 2026-02-07T07:23:23Z – GitHub-Copilot – shell_pid=8196 – lane=for_review – Ready for review: Implemented complete submission system with 4 phases, file uploads, deadline enforcement, declaration of non-submission, supervisor viewing, and comprehensive test coverage (34 tests passing)
