@@ -1,7 +1,7 @@
 ---
 work_package_id: "WP12"
 title: "Submission Management UI (Upload, Tracking, Status)"
-lane: "planned"
+lane: "for_review"
 dependencies: ["WP05", "WP09"]
 subtasks: ["T058", "T059", "T060", "T061", "T062"]
 created_at: "2026-02-02"
@@ -806,3 +806,7 @@ Create end-to-end tests for complete submission flow from upload to feedback vie
 **Next Work Package**: WP13 (Dashboard UI)  
 **Estimated Start**: Can run in parallel with WP12  
 **Command**: `spec-kitty implement WP13`
+
+## Activity Log
+
+- 2026-02-07T14:01:21Z – unknown – lane=for_review – ✅ Ready for review: All 7 subtasks complete (T062-T068) - 4 Vue components + service layer + Pinia store - 34 tests passing
