@@ -105,12 +105,12 @@
 **Independent Test**: Supervisor can publish topic, students can search by concentration/year/keyword, full list returns in <2 seconds
 
 **Subtasks**:
-- [ ] T012: Implement POST `/api/v1/topics` endpoint (supervisor publishes topic with description, keywords, concentration, year)
-- [ ] T013: Implement GET `/api/v1/topics` with filtering (concentration, academic_year, keyword search, pagination)
-- [ ] T014: Implement GET `/api/v1/topics/:topicId` endpoint (full details, supervisor info, reference documents)
-- [ ] T015: Implement topic archive feature (GET `/api/v1/topics/archive` with same filtering)
-- [ ] T016: Add full-text search capability (MongoDB text indexes on title, description)
-- [ ] T017: Implement supervisor topic management (PUT `/api/v1/topics/:id`, DELETE/archive)
+- [x] T012: Implement POST `/api/v1/topics` endpoint (supervisor publishes topic with description, keywords, concentration, year)
+- [x] T013: Implement GET `/api/v1/topics` with filtering (concentration, academic_year, keyword search, pagination)
+- [x] T014: Implement GET `/api/v1/topics/:topicId` endpoint (full details, supervisor info, reference documents)
+- [x] T015: Implement topic archive feature (GET `/api/v1/topics/archive` with same filtering)
+- [x] T016: Add full-text search capability (MongoDB text indexes on title, description)
+- [x] T017: Implement supervisor topic management (PUT `/api/v1/topics/:id`, DELETE/archive)
 - [ ] T018: Write comprehensive topic tests (search performance, filtering accuracy, pagination)
 
 **Dependencies**: WP02  
