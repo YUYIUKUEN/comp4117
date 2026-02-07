@@ -183,8 +183,8 @@
 - [x] T027: Implement GET `/api/v1/submissions/my-submissions` (student views all submissions with status, due dates)
 - [x] T028: Implement POST `/api/v1/submissions/:phase/declare-not-needed` (declaration with justification)
 - [x] T029: Implement resubmission logic (update existing submission, maintain version history)
-- [ ] T030: Create submission status tracking (Not Submitted, Submitted, Overdue, Declared Not Needed)
-- [ ] T031: Write comprehensive submission tests (upload validation, resubmission, declarations, permission checks)
+- [x] T030: Create submission status tracking (Not Submitted, Submitted, Overdue, Declared Not Needed)
+- [x] T031: Write comprehensive submission tests (upload validation, resubmission, declarations, permission checks)
 
 **Dependencies**: WP04  
 **Command**: `spec-kitty implement WP05 --base WP04`  
