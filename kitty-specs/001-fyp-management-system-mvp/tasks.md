@@ -320,9 +320,9 @@
 **Independent Test**: Frontend dev server starts on port 5173, hot reload works, Axios configured for backend API
 
 **Subtasks**:
-- [ ] T045: Initialize Vue 3 + Vite project with dependencies (vite, vue, vue-router, pinia, axios, vitest, playwright)
-- [ ] T046: Configure Vite for development (port 5173, hot reload, environment variables)
-- [ ] T047: Setup Pinia stores structure (authStore, topicStore, submissionStore) with basic state
+- [x] T045: Initialize Vue 3 + Vite project with dependencies (vite, vue, vue-router, pinia, axios, vitest, playwright)
+- [x] T046: Configure Vite for development (port 5173, hot reload, environment variables)
+- [x] T047: Setup Pinia stores structure (authStore, topicStore, submissionStore) with basic state
 - [ ] T048: Create project directory structure (/src/components, /src/pages, /src/stores, /src/services, /tests)
 
 **Dependencies**: None  
