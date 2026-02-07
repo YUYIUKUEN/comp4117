@@ -39,8 +39,14 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/topics',
-    name: 'TopicBrowse',
-    component: () => import('../pages/TopicBrowse.vue'),
+    name: 'TopicDiscovery',
+    component: () => import('../views/TopicDiscovery.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/topic/:id',
+    name: 'TopicDetail',
+    component: () => import('../views/TopicDetail.vue'),
     meta: { requiresAuth: true }
   },
   {
@@ -60,6 +66,12 @@ const routes: RouteRecordRaw[] = [
     name: 'AdminDashboard',
     component: () => import('../pages/AdminOverview.vue'),
     meta: { requiresAuth: true, roles: ['Admin'] }
+  },
+  {
+    path: '/supervisor/topics',
+    name: 'SupervisorTopics',
+    component: () => import('../views/SupervisorTopics.vue'),
+    meta: { requiresAuth: true, roles: ['Supervisor'] }
   },
   {
     path: '/:pathMatch(.*)*',
