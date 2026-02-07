@@ -430,7 +430,7 @@
 - [x] T062: Create SubmissionPhases component (display 4 phases with status: Not Submitted, Submitted, Overdue, Declared)
 - [x] T063: Create FileUpload component (drag-drop, file validation, progress indicator)
 - [x] T064: Create DeclarationForm component (reason text, justification, submit)
-- [ ] T065: Create submission service (upload API call, status polling, error handling)
+- [x] T065: Create submission service (upload API call, status polling, error handling)
 - [ ] T066: Implement submissionStore with Pinia (submissions state, upload/declare actions)
 - [ ] T067: Create StatusBadge component (visual indicators for each status)
 - [ ] T068: Write component tests (upload validation, status updates, declaration flow)
