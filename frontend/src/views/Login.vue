@@ -1,167 +1,292 @@
 <script setup lang="ts">
-import { ref, watchEffect } from 'vue'
-import { AcademicCapIcon, ArrowRightOnRectangleIcon } from '@heroicons/vue/24/outline'
-import { useDummyData, type Role } from '../composables/useDummyData'
+import { ref, reactive } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/authStore'
+import authService from '@/services/authService'
 
-const { role } = useDummyData()
+const router = useRouter()
+const authStore = useAuthStore()
 
-const email = ref('s22123456@life.hkbu.edu.hk')
-const password = ref('••••••••')
-const selectedRole = ref<Role>('student')
+const email = ref('')
+const password = ref('')
+const loading = ref(false)
 
-const roles: Role[] = ['student', 'supervisor', 'admin']
-
-// For demo: keep login button static; role is mainly controlled via header switcher.
-// But we sync the selector into global role reactively so dashboard reflects it.
-watchEffect(() => {
-  role.value = selectedRole.value
+const errors = reactive({
+  email: '',
+  password: '',
+  submit: '',
 })
+
+const validateEmail = () => {
+  if (!email.value) {
+    errors.email = 'Email is required'
+  } else if (!email.value.includes('@')) {
+    errors.email = 'Please enter a valid email'
+  } else {
+    errors.email = ''
+  }
+}
+
+const handleLogin = async () => {
+  errors.email = ''
+  errors.password = ''
+  errors.submit = ''
+
+  // Validate
+  if (!email.value.trim()) {
+    errors.submit = 'Please enter your email'
+    return
+  }
+  if (!password.value) {
+    errors.submit = 'Please enter your password'
+    return
+  }
+  if (password.value.length < 8) {
+    errors.submit = 'Password must be at least 8 characters'
+    return
+  }
+
+  loading.value = true
+
+  try {
+    const response = await authService.login(email.value, password.value)
+    
+    // Store auth state
+    authStore.setAuth(response.user, response.token)
+    
+    // Redirect to dashboard
+    await router.push('/dashboard-student')
+  } catch (err: any) {
+    errors.submit = err.response?.data?.error || 'Login failed. Please check your credentials.'
+  } finally {
+    loading.value = false
+  }
+}
 </script>
 
 <template>
-  <div class="min-h-[calc(100vh-3.25rem)] flex items-center justify-center bg-gradient-to-br from-slate-50 via-slate-100 to-blue-100 px-4">
-    <div class="max-w-5xl w-full grid gap-10 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] items-center">
-      <section class="space-y-6">
-        <div class="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-xs text-slate-700 ring-1 ring-slate-200 shadow-sm">
-          <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-          Final Year Project Management System
+  <div class="login-page">
+    <div class="login-container">
+      <div class="login-card">
+        <div class="login-header">
+          <h1>Welcome Back</h1>
+          <p class="subtitle">Sign in to your account</p>
         </div>
 
-        <div>
-          <h1 class="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-slate-900">
-            Final Year Project
-            <span class="block text-blue-600">
-              Management System
-            </span>
-          </h1>
-          <p class="mt-3 text-sm sm:text-base text-slate-600">
-            HKBU Faculty of Social Sciences ·
-            <span class="font-medium">COMP4117 – Spring 2026 Verbal Report | Group D</span>
-          </p>
-        </div>
-
-        <div class="grid gap-3 text-xs text-slate-700 sm:grid-cols-3">
-          <div class="rounded-xl bg-white/80 p-3 ring-1 ring-slate-200 shadow-sm">
-            <p class="font-semibold text-slate-900">
-              Student Version FYP System
-            </p>
-            <p class="mt-1 text-[11px]">
-              Focused view for your own topic, submissions, and supervisor feedback.
-            </p>
-          </div>
-          <div class="rounded-xl bg-white/80 p-3 ring-1 ring-slate-200 shadow-sm">
-            <p class="font-semibold text-slate-900">
-              Admin/Supervisor Version FYP System
-            </p>
-            <p class="mt-1 text-[11px]">
-              Management dashboards for students, topics, and approvals with the same data.
-            </p>
-          </div>
-          <div class="rounded-xl bg-white/80 p-3 ring-1 ring-slate-200 shadow-sm">
-            <p class="font-semibold text-slate-900">
-              Single source of truth
-            </p>
-            <p class="mt-1 text-[11px]">
-              Topics and submissions are shared; each role sees only the actions they need.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section
-        aria-label="Fake login form"
-        class="rounded-2xl bg-white px-6 py-7 sm:px-8 sm:py-8 shadow-xl shadow-slate-200/70 ring-1 ring-slate-200"
-      >
-        <div class="mb-5 flex items-center justify-between gap-2">
-          <div class="flex items-center gap-2">
-            <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm shadow-blue-400/70">
-              <AcademicCapIcon class="h-5 w-5" />
-            </div>
-            <div>
-              <h2 class="text-base font-semibold text-slate-900">
-                Final Year Project Management System
-              </h2>
-              <p class="mt-0.5 text-[11px] text-slate-500">
-                Fake login · data is hardcoded for demo
-              </p>
-            </div>
-          </div>
-          <ArrowRightOnRectangleIcon class="h-6 w-6 text-slate-400" aria-hidden="true" />
-        </div>
-
-        <form class="space-y-4" @submit.prevent>
-          <div class="space-y-1.5">
-            <label for="email" class="block text-xs font-medium text-slate-800">
-              University email
-            </label>
+        <form @submit.prevent="handleLogin" class="login-form">
+          <div class="form-group">
+            <label for="email">Email Address</label>
             <input
               id="email"
               v-model="email"
               type="email"
-              class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
-              placeholder="e.g. s22123456@life.hkbu.edu.hk"
-              autocomplete="email"
+              placeholder="student@university.edu"
+              required
+              :disabled="loading"
+              @blur="validateEmail"
             />
+            <span v-if="errors.email" class="error-text">{{ errors.email }}</span>
           </div>
 
-          <div class="space-y-1.5">
-            <label for="password" class="block text-xs font-medium text-slate-800">
-              Password
-            </label>
+          <div class="form-group">
+            <label for="password">Password</label>
             <input
               id="password"
               v-model="password"
               type="password"
-              class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
               placeholder="••••••••"
-              autocomplete="current-password"
+              required
+              :disabled="loading"
             />
+            <span v-if="errors.password" class="error-text">{{ errors.password }}</span>
           </div>
 
-          <fieldset class="space-y-2">
-            <legend class="block text-xs font-medium text-slate-800">
-              Role
-            </legend>
-            <div class="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Select role">
-              <button
-                v-for="r in roles"
-                :key="r"
-                type="button"
-                class="flex flex-col items-center justify-center rounded-lg border px-2.5 py-2 text-[11px] transition
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/70
-                  hover:bg-slate-50"
-                :class="selectedRole === r
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-slate-300 bg-white text-slate-600'"
-                @click="selectedRole = r"
-                :aria-pressed="selectedRole === r"
-              >
-                <span class="font-medium capitalize">
-                  {{ r }}
-                </span>
-                <span class="mt-0.5 text-[10px] text-slate-500">
-                  {{ r === 'student' ? 'My own FYP' : r === 'supervisor' ? 'Supervising students' : 'Programme staff' }}
-                </span>
-              </button>
-            </div>
-          </fieldset>
+          <div v-if="errors.submit" class="error-box">
+            <span class="error-icon">⚠</span>
+            <span>{{ errors.submit }}</span>
+          </div>
 
-          <button
-            type="button"
-            class="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm shadow-blue-400/60"
-            disabled
-            aria-disabled="true"
-          >
-            Login
+          <button type="submit" class="btn-submit" :disabled="loading">
+            <span v-if="loading" class="spinner"></span>
+            {{ loading ? 'Signing in...' : 'Sign In' }}
           </button>
-
-          <p class="mt-2 text-[11px] text-slate-500">
-            This button is intentionally static for the verbal report. Use the role switcher in the top navigation bar
-            to preview the Student Version and Admin/Supervisor Version dashboards.
-          </p>
         </form>
-      </section>
+
+        <div class="login-footer">
+          <p>
+            <router-link to="/forgot-password">Forgot password?</router-link>
+          </p>
+          <p>
+            Don't have an account?
+            <router-link to="/register">Register here</router-link>
+          </p>
+        </div>
+      </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.login-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  padding: 20px;
+}
+
+.login-container {
+  width: 100%;
+}
+
+.login-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.login-header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.login-header h1 {
+  margin: 0;
+  font-size: 2rem;
+  color: #333;
+}
+
+.subtitle {
+  margin: 0.5rem 0 0 0;
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.form-group input {
+  padding: 0.75rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+  font-family: inherit;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.form-group input:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.error-text {
+  color: #d32f2f;
+  font-size: 0.85rem;
+}
+
+.error-box {
+  background-color: #ffebee;
+  border-left: 4px solid #d32f2f;
+  padding: 1rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #d32f2f;
+}
+
+.error-icon {
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.btn-submit {
+  padding: 0.85rem;
+  background-color: #667eea;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.btn-submit:hover:not(:disabled) {
+  background-color: #5568d3;
+}
+
+.btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spinner {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.login-footer {
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.login-footer p {
+  margin: 0.5rem 0;
+}
+
+.login-footer a {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.login-footer a:hover {
+  text-decoration: underline;
+}
+</style>
 
