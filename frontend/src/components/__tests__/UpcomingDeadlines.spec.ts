@@ -59,8 +59,9 @@ describe('UpcomingDeadlines', () => {
     })
 
     const items = wrapper.findAll('.deadline-item')
-    expect(items[0].text()).toContain('Project 1')
-    expect(items[1].text()).toContain('Assignment 1')
+    expect(items.length).toBeGreaterThanOrEqual(2)
+    expect(items[0]?.text()).toContain('Project 1')
+    expect(items[1]?.text()).toContain('Assignment 1')
   })
 
   it('displays deadline type badge', () => {

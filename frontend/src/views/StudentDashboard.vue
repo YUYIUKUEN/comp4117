@@ -134,7 +134,7 @@ const upcomingDeadlines = computed(() => {
 
 const recentActivity = computed(() => activities.value.slice(0, 5))
 
-const submissionStats = computed(() => {
+const submissionStats = computed<SubmissionStats>(() => {
   const total = submissions.value.length
   const submitted = submissions.value.filter(s => s.status === 'submitted').length
   const pending = submissions.value.filter(s => s.status === 'pending').length
