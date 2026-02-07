@@ -1,10 +1,12 @@
 ---
 work_package_id: "WP04"
 title: "Topic Applications & Matching"
-lane: "planned"
+lane: "doing"
 dependencies: ["WP03"]
 subtasks: ["T018", "T019", "T020", "T021", "T022", "T023"]
 created_at: "2026-02-02"
+agent: "GitHub Copilot"
+shell_pid: "13132"
 ---
 
 # WP04: Topic Applications & Matching
@@ -1287,3 +1289,7 @@ created_at: "2026-02-02"
 **Next Work Package**: WP05 (Submissions & Document Management)  
 **Estimated Start**: After WP04 completion  
 **Command**: `spec-kitty implement WP05 --base WP04`
+
+## Activity Log
+
+- 2026-02-07T06:11:45Z – GitHub Copilot – shell_pid=13132 – lane=doing – Started implementation via workflow command
