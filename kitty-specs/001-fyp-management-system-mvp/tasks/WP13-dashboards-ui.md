@@ -1,10 +1,13 @@
 ---
-work_package_id: "WP13"
-title: "Dashboard UI (Student, Supervisor, Admin Views)"
-lane: "planned"
-dependencies: ["WP08", "WP09"]
-subtasks: ["T063", "T064", "T065", "T066", "T067"]
-created_at: "2026-02-02"
+work_package_id: WP13
+title: Dashboard UI (Student, Supervisor, Admin Views)
+lane: "doing"
+dependencies: [WP08, WP09]
+base_branch: main
+base_commit: ff1a9e5f49c55ca27b87be8a6e76f3f87aef5325
+created_at: '2026-02-07T15:24:13.511687+00:00'
+subtasks: [T063, T064, T065, T066, T067]
+shell_pid: "20936"
 ---
 
 # WP13: Dashboard UI (Student, Supervisor, Admin Views)
