@@ -1,13 +1,14 @@
 ---
 work_package_id: WP13
 title: Dashboard UI (Student, Supervisor, Admin Views)
-lane: "for_review"
+lane: "doing"
 dependencies: [WP08, WP09]
 base_branch: main
 base_commit: ff1a9e5f49c55ca27b87be8a6e76f3f87aef5325
 created_at: '2026-02-07T15:24:13.511687+00:00'
 subtasks: [T063, T064, T065, T066, T067]
-shell_pid: "20936"
+shell_pid: "15240"
+agent: "copilot"
 ---
 
 # WP13: Dashboard UI (Student, Supervisor, Admin Views)
@@ -860,3 +861,4 @@ Create admin dashboard showing system statistics, user management, activity logs
 ## Activity Log
 
 - 2026-02-07T16:01:37Z – unknown – shell_pid=20936 – lane=for_review – Ready for review: Implemented complete dashboard UI with Student, Supervisor, and Admin views. Includes 9 dashboard widgets, 3 views, comprehensive test suite with 53 tests, all passing. Features real-time statistics, activity logs, application management, and quick actions.
+- 2026-02-07T16:03:39Z – copilot – shell_pid=15240 – lane=doing – Started review via workflow command
