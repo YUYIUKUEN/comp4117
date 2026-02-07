@@ -283,9 +283,9 @@
 **Independent Test**: Admin dashboard loads <3 seconds, shows accurate student count/status, submission completion rates
 
 **Subtasks**:
-- [ ] T040: Implement GET `/api/v1/dashboard/admin` (statistics: total students, supervisors, topics, assignments, submission rates)
-- [ ] T041: Implement student list view with filtering (by concentration, supervisor, status)
-- [ ] T042: Implement submission status reporting (completion rates per phase)
+- [x] T040: Implement GET `/api/v1/dashboard/admin` (statistics: total students, supervisors, topics, assignments, submission rates)
+- [x] T041: Implement student list view with filtering (by concentration, supervisor, status)
+- [x] T042: Implement submission status reporting (completion rates per phase)
 - [ ] T043: Implement activity summary (recent actions, email tracking)
 - [ ] T044: Write admin dashboard tests (data accuracy, permission checks, performance)
 
