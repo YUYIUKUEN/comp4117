@@ -431,7 +431,7 @@
 - [x] T063: Create FileUpload component (drag-drop, file validation, progress indicator)
 - [x] T064: Create DeclarationForm component (reason text, justification, submit)
 - [x] T065: Create submission service (upload API call, status polling, error handling)
-- [ ] T066: Implement submissionStore with Pinia (submissions state, upload/declare actions)
+- [x] T066: Implement submissionStore with Pinia (submissions state, upload/declare actions)
 - [ ] T067: Create StatusBadge component (visual indicators for each status)
 - [ ] T068: Write component tests (upload validation, status updates, declaration flow)
 
