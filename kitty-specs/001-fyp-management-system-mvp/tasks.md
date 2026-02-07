@@ -286,8 +286,8 @@
 - [x] T040: Implement GET `/api/v1/dashboard/admin` (statistics: total students, supervisors, topics, assignments, submission rates)
 - [x] T041: Implement student list view with filtering (by concentration, supervisor, status)
 - [x] T042: Implement submission status reporting (completion rates per phase)
-- [ ] T043: Implement activity summary (recent actions, email tracking)
-- [ ] T044: Write admin dashboard tests (data accuracy, permission checks, performance)
+- [x] T043: Implement activity summary (recent actions, email tracking)
+- [x] T044: Write admin dashboard tests (data accuracy, permission checks, performance)
 
 **Dependencies**: WP01, WP05, WP07  
 **Command**: `spec-kitty implement WP08 --base WP07`  
