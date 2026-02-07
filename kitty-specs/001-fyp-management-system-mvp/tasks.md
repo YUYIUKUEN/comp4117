@@ -218,8 +218,8 @@
 **Subtasks**:
 - [x] T032: Implement POST `/api/v1/feedback/submission/:submissionId` (supervisor adds text feedback)
 - [x] T033: Implement GET `/api/v1/feedback/submission/:submissionId` (student views feedback with supervisor name)
-- [ ] T034: Create feedback history (maintain all feedback versions, timestamps)
-- [ ] T035: Write feedback tests (permission checks, timestamp accuracy, retrieval)
+- [x] T034: Create feedback history (maintain all feedback versions, timestamps)
+- [x] T035: Write feedback tests (permission checks, timestamp accuracy, retrieval)
 
 **Dependencies**: WP05  
 **Command**: `spec-kitty implement WP06 --base WP05`  
