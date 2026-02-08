@@ -15,6 +15,38 @@ import { AcademicCapIcon } from '@heroicons/vue/24/outline';
 
 const sidebarOpen = ref(false);
 const declarationChecked = ref(true);
+const activeView = ref<'submissions' | 'checklist'>('submissions');
+
+const submissionPhases = [
+  {
+    id: 1,
+    name: 'Initial Statement',
+    dueDate: '2025-11-15',
+    status: 'Completed',
+    submittedAt: '2025-11-10',
+  },
+  {
+    id: 2,
+    name: 'Progress Report 1',
+    dueDate: '2026-02-01',
+    status: 'Overdue',
+    submittedAt: null,
+  },
+  {
+    id: 3,
+    name: 'Progress Report 2',
+    dueDate: '2026-04-10',
+    status: 'Pending',
+    submittedAt: null,
+  },
+  {
+    id: 4,
+    name: 'Final Dissertation',
+    dueDate: '2026-05-25',
+    status: 'Not Started',
+    submittedAt: null,
+  },
+];
 
 const files = [
   {
@@ -97,16 +129,20 @@ const rubric = ref([
       >
         <button
           type="button"
-          class="flex w-full items-center gap-2 rounded-lg px-3 py-2 bg-slate-800 text-slate-50"
+          class="flex w-full items-center gap-2 rounded-lg px-3 py-2 hover:bg-slate-800 hover:text-slate-50"
+          :class="activeView === 'submissions' ? 'bg-slate-800 text-slate-50' : 'text-slate-300'"
+          @click="activeView = 'submissions'"
         >
           <DocumentArrowUpIcon class="h-5 w-5 text-slate-200" />
           <span class="flex-1 text-left">My Submissions</span>
         </button>
         <button
           type="button"
-          class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800 hover:text-slate-50"
+          class="flex w-full items-center gap-2 rounded-lg px-3 py-2 hover:bg-slate-800 hover:text-slate-50"
+          :class="activeView === 'checklist' ? 'bg-slate-800 text-slate-50' : 'text-slate-300'"
+          @click="activeView = 'checklist'"
         >
-          <ClipboardDocumentListIcon class="h-5 w-5 text-slate-300" />
+          <ClipboardDocumentListIcon class="h-5 w-5" />
           <span class="flex-1 text-left">Submission checklist</span>
         </button>
         <button
@@ -162,6 +198,8 @@ const rubric = ref([
       </header>
 
       <main class="flex-1 px-4 sm:px-6 pb-6 pt-4 sm:pt-5">
+        <!-- Submissions View -->
+        <div v-if="activeView === 'submissions'">
         <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <p class="text-xs uppercase tracking-[0.2em] text-slate-500">
@@ -384,6 +422,70 @@ const rubric = ref([
               <p class="mt-1 text-[11px] text-slate-500">
                 Scores here are illustrative. In production, they would feed into programme‑level assessment dashboards.
               </p>
+            </div>
+          </section>
+        </div>
+        </div>
+
+        <!-- Checklist View -->
+        <div v-else-if="activeView === 'checklist'">
+          <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+            <div>
+              <p class="text-xs uppercase tracking-[0.2em] text-slate-500">
+                Submission Tracking
+              </p>
+              <h1 class="mt-1 text-sm sm:text-base font-semibold text-slate-900">
+                All Submission Phases
+              </h1>
+              <p class="mt-1 text-xs text-slate-500">
+                Track the status and deadlines of all your dissertation submission phases.
+              </p>
+            </div>
+          </header>
+
+          <section class="space-y-3">
+            <div
+              v-for="phase in submissionPhases"
+              :key="phase.id"
+              class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm shadow-slate-200/70 hover:border-blue-300 hover:shadow-md hover:shadow-blue-100 cursor-pointer transition-all"
+            >
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex-1">
+                  <h3 class="font-semibold text-slate-900">{{ phase.name }}</h3>
+                  <div class="mt-2 grid grid-cols-2 gap-3 text-xs text-slate-600">
+                    <div>
+                      <p class="text-slate-500">Due Date</p>
+                      <p class="font-medium text-slate-900">{{ phase.dueDate }}</p>
+                    </div>
+                    <div>
+                      <p class="text-slate-500">Submitted</p>
+                      <p class="font-medium text-slate-900">{{ phase.submittedAt || 'Not submitted' }}</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex flex-col items-end gap-2">
+                  <span
+                    class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium"
+                    :class="{
+                      'bg-emerald-50 text-emerald-700 border border-emerald-200': phase.status === 'Completed',
+                      'bg-amber-50 text-amber-700 border border-amber-200': phase.status === 'Overdue',
+                      'bg-blue-50 text-blue-700 border border-blue-200': phase.status === 'Pending',
+                      'bg-slate-100 text-slate-600 border border-slate-200': phase.status === 'Not Started',
+                    }"
+                  >
+                    <span
+                      class="h-2 w-2 rounded-full"
+                      :class="{
+                        'bg-emerald-500': phase.status === 'Completed',
+                        'bg-amber-500': phase.status === 'Overdue',
+                        'bg-blue-500': phase.status === 'Pending',
+                        'bg-slate-400': phase.status === 'Not Started',
+                      }"
+                    />
+                    {{ phase.status }}
+                  </span>
+                </div>
+              </div>
             </div>
           </section>
         </div>
