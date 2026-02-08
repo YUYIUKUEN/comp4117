@@ -35,43 +35,43 @@ const routes: RouteRecordRaw[] = [
     path: '/dashboard',
     name: 'Dashboard',
     component: () => import('../views/DashboardStudent.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: false }
   },
   {
     path: '/topics',
     name: 'TopicDiscovery',
     component: () => import('../views/TopicDiscovery.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: false }
   },
   {
     path: '/topic/:id',
     name: 'TopicDetail',
     component: () => import('../views/TopicDetail.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: false }
   },
   {
     path: '/applications',
     name: 'Applications',
     component: () => import('../pages/MatchingWizard.vue'),
-    meta: { requiresAuth: true, roles: ['Student'] }
+    meta: { requiresAuth: false, roles: ['Student'] }
   },
   {
     path: '/submissions',
     name: 'Submissions',
     component: () => import('../pages/SubmissionDetail.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: false }
   },
   {
     path: '/admin',
     name: 'AdminDashboard',
     component: () => import('../pages/AdminOverview.vue'),
-    meta: { requiresAuth: true, roles: ['Admin'] }
+    meta: { requiresAuth: false, roles: ['Admin'] }
   },
   {
     path: '/supervisor/topics',
     name: 'SupervisorTopics',
     component: () => import('../views/SupervisorTopics.vue'),
-    meta: { requiresAuth: true, roles: ['Supervisor'] }
+    meta: { requiresAuth: false, roles: ['Supervisor'] }
   },
   {
     path: '/:pathMatch(.*)*',
@@ -101,7 +101,13 @@ router.beforeEach((to, from, next) => {
     return;
   }
 
-  // Check role requirement
+  // Skip role checking if auth is not required (for demo purposes)
+  if (!requiresAuth) {
+    next();
+    return;
+  }
+
+  // Check role requirement (only if auth is required)
   if (requiredRoles && requiredRoles.length > 0) {
     if (!requiredRoles.includes(userRole)) {
       next('/dashboard');

@@ -317,11 +317,11 @@ const loadTopics = async () => {
 }
 
 onMounted(() => {
-  // Check if user is supervisor
-  if (authStore.userRole !== 'Supervisor') {
-    supervisorTopics.error = 'Access denied. Supervisors only.'
-    return
-  }
+  // Check if user is supervisor (disabled for demo)
+  // if (authStore.userRole !== 'Supervisor') {
+  //   supervisorTopics.error = 'Access denied. Supervisors only.'
+  //   return
+  // }
   loadTopics()
 })
 </script>
