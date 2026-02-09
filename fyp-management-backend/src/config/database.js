@@ -1,19 +1,24 @@
 const mongoose = require('mongoose');
-const { mongoUri } = require('./env');
+const { mongoUri, azureCosmosConnectionString } = require('./env');
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(mongoUri, {
+    // Use Azure Cosmos DB if connection string is provided, otherwise use MongoDB
+    const connectionString = azureCosmosConnectionString || mongoUri;
+    
+    await mongoose.connect(connectionString, {
       maxPoolSize: 20,
       minPoolSize: 5,
       socketTimeoutMS: 45000,
+      retryWrites: false, // Azure Cosmos DB doesn't support retryWrites
     });
     if (process.env.NODE_ENV !== 'test') {
-      console.log('✓ MongoDB connected:', mongoUri);
+      console.log('✓ Database connected successfully');
+      console.log('✓ Connection string:', connectionString.substring(0, 50) + '...');
     }
   } catch (error) {
     if (process.env.NODE_ENV !== 'test') {
-      console.error('✗ MongoDB connection failed:', error.message);
+      console.error('✗ Database connection failed:', error.message);
     }
     if (process.env.NODE_ENV !== 'test') {
       process.exit(1);
@@ -24,11 +29,11 @@ const connectDB = async () => {
 
 if (process.env.NODE_ENV !== 'test') {
   mongoose.connection.on('error', (err) => {
-    console.error('MongoDB connection error:', err);
+    console.error('Database connection error:', err);
   });
 
   mongoose.connection.on('disconnected', () => {
-    console.warn('MongoDB disconnected');
+    console.warn('Database disconnected');
   });
 }
 
