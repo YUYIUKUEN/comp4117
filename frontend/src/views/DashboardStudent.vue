@@ -1,22 +1,22 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed } from 'vue';
 import {
   ClockIcon,
   CloudArrowUpIcon,
   ArrowPathIcon,
-} from '@heroicons/vue/24/outline'
-import SidebarStudent from '../components/layout/SidebarStudent.vue'
-import { useDummyData } from '../composables/useDummyData'
+} from '@heroicons/vue/24/outline';
+import SidebarStudent from '../components/layout/SidebarStudent.vue';
+import { useDummyData } from '../composables/useDummyData';
 
-const { currentStudent, supervisor, submissions, recentFeedback } = useDummyData()
+const { currentStudent, supervisor, submissions, recentFeedback } = useDummyData();
 
 const completion = computed(() => {
-  const values = submissions.value.progress
+  const values = submissions.value.progress;
   const done = Object.values(values).filter((p) =>
     ['completed', 'not-required'].includes(p.status),
-  ).length
-  return Math.round((done / Object.keys(values).length) * 100)
-})
+  ).length;
+  return Math.round((done / Object.keys(values).length) * 100);
+});
 </script>
 
 <template>
@@ -42,7 +42,10 @@ const completion = computed(() => {
             <!-- Progress ring -->
             <div class="flex flex-col items-end gap-1 text-right">
               <div class="relative h-12 w-12">
-                <svg class="h-12 w-12 -rotate-90" viewBox="0 0 36 36">
+                <svg
+                  class="h-12 w-12 -rotate-90"
+                  viewBox="0 0 36 36"
+                >
                   <path
                     class="text-slate-200"
                     stroke="currentColor"
@@ -88,7 +91,7 @@ const completion = computed(() => {
                   :src="supervisor.avatar"
                   alt="Supervisor avatar"
                   class="h-8 w-8 rounded-full object-cover"
-                />
+                >
                 <div>
                   <p class="text-slate-900 text-xs font-medium">
                     {{ supervisor.name }}
@@ -254,7 +257,7 @@ const completion = computed(() => {
                 :src="supervisor.avatar"
                 alt="Supervisor avatar"
                 class="h-7 w-7 rounded-full object-cover"
-              />
+              >
               <div>
                 <p class="font-medium text-slate-900">
                   {{ recentFeedback.from }}

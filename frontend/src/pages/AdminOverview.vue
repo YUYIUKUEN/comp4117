@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref } from 'vue';
 import {
   Bars3Icon,
   Squares2X2Icon,
@@ -7,15 +7,15 @@ import {
   MagnifyingGlassIcon,
   ChevronRightIcon,
   AcademicCapIcon,
-} from '@heroicons/vue/24/outline'
+} from '@heroicons/vue/24/outline';
 
-const sidebarOpen = ref(false)
+const sidebarOpen = ref(false);
 
 const stats = {
   totalStudents: 128,
   topicsProposed: 94,
   submissionsThisMonth: 312,
-}
+};
 
 const rows = [
   {
@@ -34,7 +34,7 @@ const rows = [
     topic: 'Digital Platforms and Youth Political Participation',
     status: 'Pending',
   },
-]
+];
 
 const activityLog = [
   {
@@ -51,7 +51,7 @@ const activityLog = [
     description: 'approved topic change request (FYP-GEOG-2026-018).',
     type: 'approval',
   },
-]
+];
 </script>
 
 <template>
@@ -59,9 +59,9 @@ const activityLog = [
     <div
       v-if="sidebarOpen"
       class="fixed inset-0 z-20 bg-black/40 lg:hidden"
-      @click="sidebarOpen = false"
       aria-hidden="true"
-    ></div>
+      @click="sidebarOpen = false"
+    />
 
     <aside
       class="fixed z-30 inset-y-0 left-0 w-64 transform bg-white border-r border-slate-200 transition-transform duration-200 ease-out
@@ -71,7 +71,10 @@ const activityLog = [
     >
       <div class="flex h-14 items-center gap-2 px-4 border-b border-slate-200">
         <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-600 shadow-sm shadow-blue-500/40">
-          <AcademicCapIcon class="h-5 w-5 text-white" aria-hidden="true" />
+          <AcademicCapIcon
+            class="h-5 w-5 text-white"
+            aria-hidden="true"
+          />
         </div>
         <div class="flex flex-col">
           <span class="text-[11px] uppercase tracking-[0.18em] text-slate-500">
@@ -83,7 +86,10 @@ const activityLog = [
         </div>
       </div>
 
-      <nav class="mt-3 px-2 space-y-1 text-sm" aria-label="Primary">
+      <nav
+        class="mt-3 px-2 space-y-1 text-sm"
+        aria-label="Primary"
+      >
         <button
           type="button"
           class="flex w-full items-center gap-2 rounded-lg px-3 py-2 bg-slate-100 text-slate-900"
@@ -109,10 +115,13 @@ const activityLog = [
           <button
             type="button"
             class="inline-flex items-center justify-center rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 lg:hidden"
-            @click="sidebarOpen = !sidebarOpen"
             aria-label="Toggle navigation"
+            @click="sidebarOpen = !sidebarOpen"
           >
-            <Bars3Icon class="h-6 w-6" aria-hidden="true" />
+            <Bars3Icon
+              class="h-6 w-6"
+              aria-hidden="true"
+            />
           </button>
           <div>
             <p class="text-[11px] uppercase tracking-[0.2em] text-slate-500">
@@ -185,17 +194,17 @@ const activityLog = [
             </div>
           </header>
 
-            <div class="mt-4 flex items-center gap-3">
-              <div class="relative flex-1 max-w-md">
-                <MagnifyingGlassIcon
-                  class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400"
+          <div class="mt-4 flex items-center gap-3">
+            <div class="relative flex-1 max-w-md">
+              <MagnifyingGlassIcon
+                class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400"
                 aria-hidden="true"
               />
-                <input
-                  type="search"
-                  class="block w-full rounded-lg border border-slate-300 bg-white px-9 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
+              <input
+                type="search"
+                class="block w-full rounded-lg border border-slate-300 bg-white px-9 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
                 placeholder="Search by student, topic, or supervisor"
-              />
+              >
             </div>
           </div>
 
@@ -203,18 +212,46 @@ const activityLog = [
             <table class="min-w-full text-xs">
               <thead class="bg-slate-50 text-slate-600 border-b border-slate-200">
                 <tr>
-                  <th scope="col" class="px-3 py-2 text-left font-medium">
+                  <th
+                    scope="col"
+                    class="px-3 py-2 text-left font-medium"
+                  >
                     <input
                       type="checkbox"
                       class="h-3.5 w-3.5 rounded border-slate-300 bg-white text-blue-500 focus:ring-blue-500"
                       aria-label="Select all rows"
-                    />
+                    >
                   </th>
-                  <th scope="col" class="px-3 py-2 text-left font-medium">Student</th>
-                  <th scope="col" class="px-3 py-2 text-left font-medium">Supervisor</th>
-                  <th scope="col" class="px-3 py-2 text-left font-medium">Topic</th>
-                  <th scope="col" class="px-3 py-2 text-left font-medium">Status</th>
-                  <th scope="col" class="px-3 py-2 text-right font-medium">Actions</th>
+                  <th
+                    scope="col"
+                    class="px-3 py-2 text-left font-medium"
+                  >
+                    Student
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-3 py-2 text-left font-medium"
+                  >
+                    Supervisor
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-3 py-2 text-left font-medium"
+                  >
+                    Topic
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-3 py-2 text-left font-medium"
+                  >
+                    Status
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-3 py-2 text-right font-medium"
+                  >
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-800">
@@ -228,7 +265,7 @@ const activityLog = [
                       type="checkbox"
                       class="h-3.5 w-3.5 rounded border-slate-300 bg-white text-blue-500 focus:ring-blue-500"
                       :aria-label="`Select ${row.student}`"
-                    />
+                    >
                   </td>
                   <td class="px-3 py-3 align-top">
                     <div class="flex items-center gap-2">
@@ -236,7 +273,7 @@ const activityLog = [
                         :src="`https://ui-avatars.com/api/?name=${encodeURIComponent(row.student)}&background=2563EB&color=fff`"
                         :alt="row.student"
                         class="h-7 w-7 rounded-full object-cover"
-                      />
+                      >
                       <div>
                         <p class="font-medium text-slate-900">
                           {{ row.student }}
@@ -270,7 +307,7 @@ const activityLog = [
                       <span
                         class="h-1.5 w-1.5 rounded-full"
                         :class="row.status === 'Active' ? 'bg-emerald-500' : 'bg-amber-500'"
-                      ></span>
+                      />
                       {{ row.status }}
                     </span>
                   </td>
@@ -341,7 +378,7 @@ const activityLog = [
                       : item.type === 'approval'
                         ? 'bg-emerald-500'
                         : 'bg-slate-400'"
-                  ></span>
+                  />
                 </div>
                 <div>
                   <p class="text-slate-800">
