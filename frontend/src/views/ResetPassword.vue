@@ -104,7 +104,7 @@ onMounted(async () => {
       err.response?.data?.error || 'Reset link is invalid or expired. Please request a new one.';
     validating.value = false;
   }
-};
+});
 
 const handleResetPassword = async () => {
   errors.submit = '';

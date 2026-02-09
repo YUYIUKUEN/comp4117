@@ -74,6 +74,24 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: false, roles: ['Supervisor'] }
   },
   {
+    path: '/feedback',
+    name: 'Feedback',
+    component: () => import('../views/StudentDashboard.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/archive',
+    name: 'Archive',
+    component: () => import('../views/StudentDashboard.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/reminders',
+    name: 'Reminders',
+    component: () => import('../views/StudentDashboard.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('../views/Login.vue')
@@ -86,7 +104,7 @@ const router = createRouter({
 });
 
 // Apply auth guard
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore();
   authStore.loadAuthFromStorage();
 
@@ -101,13 +119,7 @@ router.beforeEach((to, from, next) => {
     return;
   }
 
-  // Skip role checking if auth is not required (for demo purposes)
-  if (!requiresAuth) {
-    next();
-    return;
-  }
-
-  // Check role requirement (only if auth is required)
+  // Check role requirement
   if (requiredRoles && requiredRoles.length > 0) {
     if (!requiredRoles.includes(userRole)) {
       next('/dashboard');

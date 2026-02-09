@@ -1,12 +1,10 @@
 <template>
-  <aside
-    v-if="isAuthenticated"
-    class="sidebar"
-  >
+  <aside class="sidebar">
     <nav class="nav-menu">
       <router-link
         to="/dashboard"
         class="nav-item"
+        active-class="router-link-active"
       >
         Dashboard
       </router-link>
