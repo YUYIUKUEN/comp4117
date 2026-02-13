@@ -7,6 +7,38 @@
       </button>
     </div>
 
+    <!-- Navigation Buttons -->
+    <div class="supervisor-nav-buttons">
+      <button
+        @click="navigateTo('/supervisor/dashboard')"
+        class="nav-button"
+      >
+        <span class="nav-label">Dashboard</span>
+        <span class="nav-desc">Overview & stats</span>
+      </button>
+      <button
+        @click="navigateTo('/supervisor/overview')"
+        class="nav-button"
+      >
+        <span class="nav-label">Overview</span>
+        <span class="nav-desc">Quick summary</span>
+      </button>
+      <button
+        @click="navigateTo('/supervisor/topics')"
+        class="nav-button active"
+      >
+        <span class="nav-label">Topics</span>
+        <span class="nav-desc">Current view</span>
+      </button>
+      <button
+        @click="navigateTo('/supervisor/management')"
+        class="nav-button"
+      >
+        <span class="nav-label">Management</span>
+        <span class="nav-desc">Students & feedback</span>
+      </button>
+    </div>
+
     <!-- Topic Form Modal -->
     <div v-if="showCreateForm" class="modal-overlay" @click="closeForm">
       <div class="modal" @click.stop>
@@ -158,8 +190,15 @@
 
 <script setup lang="ts">
 import { ref, onMounted, reactive } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import topicService from '@/services/topicService'
+
+const router = useRouter()
+
+const navigateTo = (path: string) => {
+  router.push(path)
+}
 
 interface Topic {
   _id: string
@@ -706,5 +745,56 @@ onMounted(() => {
   .topics-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.supervisor-nav-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.nav-button {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 2px solid #e2e8f0;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  font-family: inherit;
+}
+
+.nav-button:hover {
+  border-color: #3b82f6;
+  background-color: #eff6ff;
+}
+
+.nav-button.active {
+  border-color: #3b82f6;
+  background-color: #eff6ff;
+}
+
+.nav-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.25rem;
+}
+
+.nav-button.active .nav-label {
+  color: #1e40af;
+}
+
+.nav-desc {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.nav-button.active .nav-desc {
+  color: #0369a1;
 }
 </style>

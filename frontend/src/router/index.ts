@@ -53,7 +53,7 @@ const routes: RouteRecordRaw[] = [
     path: '/applications',
     name: 'Applications',
     component: () => import('../pages/MatchingWizard.vue'),
-    meta: { requiresAuth: false, roles: ['Student'] }
+    meta: { requiresAuth: false }
   },
   {
     path: '/submissions',
@@ -65,13 +65,91 @@ const routes: RouteRecordRaw[] = [
     path: '/admin',
     name: 'AdminDashboard',
     component: () => import('../pages/AdminOverview.vue'),
-    meta: { requiresAuth: false, roles: ['Admin'] }
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/admin/students-cohorts',
+    name: 'StudentCohortManagement',
+    component: () => import('../pages/StudentCohortManagement.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/supervisor',
+    name: 'SupervisorMainMenu',
+    component: () => import('../pages/SupervisorMainMenu.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/supervisor/dashboard',
+    name: 'SupervisorDashboard',
+    component: () => import('../views/DashboardSupervisor.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/supervisor/overview',
+    name: 'SupervisorOverview',
+    component: () => import('../views/SupervisorDashboard.vue'),
+    meta: { requiresAuth: false }
   },
   {
     path: '/supervisor/topics',
     name: 'SupervisorTopics',
     component: () => import('../views/SupervisorTopics.vue'),
-    meta: { requiresAuth: false, roles: ['Supervisor'] }
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/supervisor/management',
+    name: 'SupervisorManagement',
+    component: () => import('../pages/SupervisorManagement.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/supervisor/students',
+    name: 'SupervisorAllStudents',
+    component: () => import('../pages/StudentCohortManagement.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/supervisor/pending-approvals',
+    name: 'SupervisorPendingApprovals',
+    component: () => import('../pages/SupervisorPendingApprovals.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/supervisor/activity-logs',
+    name: 'SupervisorActivityLogs',
+    component: () => import('../pages/SupervisorActivityLogs.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/supervisor/feedback-grading',
+    name: 'SupervisorFeedbackGrading',
+    component: () => import('../pages/SupervisorFeedbackGrading.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/supervisor/feedback-form',
+    name: 'SupervisorFeedbackForm',
+    component: () => import('../pages/SupervisorFeedbackForm.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/supervisor/reminders',
+    name: 'SupervisorReminders',
+    component: () => import('../pages/SupervisorRemindersQueue.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/supervisor/applications',
+    name: 'SupervisorApplications',
+    component: () => import('../pages/SubmissionDetail.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/supervisor/feedback',
+    name: 'SupervisorFeedback',
+    component: () => import('../views/StudentDashboard.vue'),
+    meta: { requiresAuth: false }
   },
   {
     path: '/feedback',

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import SidebarAdmin from '../components/layout/SidebarAdmin.vue';
 import { useDummyData } from '../composables/useDummyData';
+import { useRouter } from 'vue-router';
 
+const router = useRouter();
 const { role, supervisedStudents, topicChangeRequests, systemOverview } = useDummyData();
 </script>
 
@@ -13,6 +15,59 @@ const { role, supervisedStudents, topicChangeRequests, systemOverview } = useDum
     />
 
     <main class="flex-1 px-4 sm:px-6 pb-6 pt-4 sm:pt-5">
+      <!-- Main Navigation Menu -->
+      <div class="mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <button
+          @click="router.push('/supervisor')"
+          class="p-4 rounded-lg border-2 border-slate-200 bg-white hover:border-blue-500 hover:bg-blue-50 transition-all text-left cursor-pointer"
+        >
+          <p class="text-sm font-semibold text-slate-900">📊 Main Menu</p>
+          <p class="text-xs text-slate-500 mt-1">Back to supervisor hub</p>
+        </button>
+        <button
+          @click="router.push('/supervisor/students')"
+          class="p-4 rounded-lg border-2 border-slate-200 bg-white hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left cursor-pointer"
+        >
+          <p class="text-sm font-semibold text-slate-900">👥 All Students</p>
+          <p class="text-xs text-slate-500 mt-1">View supervised students</p>
+        </button>
+        <button
+          @click="router.push('/supervisor/topics')"
+          class="p-4 rounded-lg border-2 border-slate-200 bg-white hover:border-purple-500 hover:bg-purple-50 transition-all text-left cursor-pointer"
+        >
+          <p class="text-sm font-semibold text-slate-900">📝 Topic Proposals</p>
+          <p class="text-xs text-slate-500 mt-1">Create & manage topics</p>
+        </button>
+        <button
+          @click="router.push('/supervisor/pending-approvals')"
+          class="p-4 rounded-lg border-2 border-slate-200 bg-white hover:border-amber-500 hover:bg-amber-50 transition-all text-left cursor-pointer"
+        >
+          <p class="text-sm font-semibold text-slate-900">✅ Pending Approvals</p>
+          <p class="text-xs text-slate-500 mt-1">Review requests</p>
+        </button>
+        <button
+          @click="router.push('/supervisor/feedback-grading')"
+          class="p-4 rounded-lg border-2 border-slate-200 bg-white hover:border-pink-500 hover:bg-pink-50 transition-all text-left cursor-pointer"
+        >
+          <p class="text-sm font-semibold text-slate-900">⭐ Feedback & Grading</p>
+          <p class="text-xs text-slate-500 mt-1">Grade submissions</p>
+        </button>
+        <button
+          @click="router.push('/supervisor/activity-logs')"
+          class="p-4 rounded-lg border-2 border-slate-200 bg-white hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left cursor-pointer"
+        >
+          <p class="text-sm font-semibold text-slate-900">📋 Activity Logs</p>
+          <p class="text-xs text-slate-500 mt-1">View system activity</p>
+        </button>
+        <button
+          @click="router.push('/supervisor/reminders')"
+          class="p-4 rounded-lg border-2 border-slate-200 bg-white hover:border-red-500 hover:bg-red-50 transition-all text-left cursor-pointer"
+        >
+          <p class="text-sm font-semibold text-slate-900">🔔 Reminders Queue</p>
+          <p class="text-xs text-slate-500 mt-1">Manage deadlines</p>
+        </button>
+      </div>
+
       <!-- Stats row -->
       <section class="grid gap-4 sm:grid-cols-3">
         <article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-200/70 text-xs">

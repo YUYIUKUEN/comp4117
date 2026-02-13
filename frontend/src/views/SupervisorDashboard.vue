@@ -5,6 +5,38 @@
       <p>Welcome, {{ userName }}</p>
     </div>
 
+    <!-- Navigation Buttons -->
+    <div class="supervisor-nav-buttons">
+      <button
+        @click="router.push('/supervisor/dashboard')"
+        class="nav-button"
+      >
+        <span class="nav-label">Dashboard</span>
+        <span class="nav-desc">Overview & stats</span>
+      </button>
+      <button
+        @click="router.push('/supervisor/overview')"
+        class="nav-button active"
+      >
+        <span class="nav-label">Overview</span>
+        <span class="nav-desc">Current view</span>
+      </button>
+      <button
+        @click="router.push('/supervisor/topics')"
+        class="nav-button"
+      >
+        <span class="nav-label">Topics</span>
+        <span class="nav-desc">Manage topics</span>
+      </button>
+      <button
+        @click="router.push('/supervisor/management')"
+        class="nav-button"
+      >
+        <span class="nav-label">Management</span>
+        <span class="nav-desc">Students & feedback</span>
+      </button>
+    </div>
+
     <div class="quick-actions">
       <QuickActionsMenu :actions="supervisorActions" />
     </div>
@@ -67,11 +99,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import QuickActionsMenu from '../components/QuickActionsMenu.vue'
 import TopicManagementWidget from '../components/TopicManagementWidget.vue'
 import ApplicationsWidget from '../components/ApplicationsWidget.vue'
 import FeedbackTrackingWidget from '../components/FeedbackTrackingWidget.vue'
 import ActivityLogWidget from '../components/ActivityLogWidget.vue'
+
+const router = useRouter()
 
 interface Topic {
   _id: string
@@ -258,5 +293,55 @@ onMounted(async () => {
   font-size: 1.5rem;
   font-weight: bold;
   color: #333;
+}
+
+.supervisor-nav-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.nav-button {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 2px solid #e2e8f0;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.nav-button:hover {
+  border-color: #3b82f6;
+  background-color: #eff6ff;
+}
+
+.nav-button.active {
+  border-color: #3b82f6;
+  background-color: #eff6ff;
+}
+
+.nav-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.25rem;
+}
+
+.nav-button.active .nav-label {
+  color: #1e40af;
+}
+
+.nav-desc {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.nav-button.active .nav-desc {
+  color: #0369a1;
 }
 </style>

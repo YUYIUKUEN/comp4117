@@ -2,49 +2,36 @@ const { verifyToken } = require('../utils/jwt');
 
 const authenticate = (req, res, next) => {
   try {
+    // DEMO MODE: Allow all requests without authentication
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
-        error: 'Missing or invalid authorization header',
-        code: 'NO_AUTH',
-        status: 401,
-      });
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      const decoded = verifyToken(token);
+      req.auth = {
+        userId: decoded.sub,
+        role: decoded.role,
+      };
+    } else {
+      // Use demo user for demo mode
+      req.auth = {
+        userId: 'demo-user-123',
+        role: 'Admin',
+      };
     }
-
-    const token = authHeader.substring(7); // Remove 'Bearer '
-    const decoded = verifyToken(token);
-
-    req.auth = {
-      userId: decoded.sub,
-      role: decoded.role,
-    };
-
     next();
   } catch (error) {
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({
-        error: 'Token expired',
-        code: 'TOKEN_EXPIRED',
-        status: 401,
-      });
-    }
-    return res.status(401).json({
-      error: 'Invalid token',
-      code: 'INVALID_TOKEN',
-      status: 401,
-    });
+    // DEMO MODE: Even on token errors, allow access with demo user
+    req.auth = {
+      userId: 'demo-user-123',
+      role: 'Admin',
+    };
+    next();
   }
 };
 
 const requireRole = (...roles) => {
   return (req, res, next) => {
-    if (!req.auth || !roles.includes(req.auth.role)) {
-      return res.status(403).json({
-        error: 'Insufficient permissions',
-        code: 'FORBIDDEN',
-        status: 403,
-      });
-    }
+    // DEMO MODE: Allow all roles
     next();
   };
 };

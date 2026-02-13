@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 import {
   Bars3Icon,
   Squares2X2Icon,
@@ -9,6 +10,7 @@ import {
   AcademicCapIcon,
 } from '@heroicons/vue/24/outline';
 
+const router = useRouter();
 const sidebarOpen = ref(false);
 
 const stats = {
@@ -100,6 +102,7 @@ const activityLog = [
         <button
           type="button"
           class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800 hover:text-slate-50"
+          @click="router.push('/admin/students-cohorts')"
         >
           <UsersIcon class="h-5 w-5 text-slate-300" />
           <span class="flex-1 text-left">Students & Cohorts</span>
