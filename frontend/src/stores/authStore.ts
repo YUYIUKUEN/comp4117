@@ -14,7 +14,7 @@ export const useAuthStore = defineStore('auth', () => {
     id: 'demo-user-123',
     email: 'demo@example.com',
     fullName: 'Demo User',
-    role: 'Admin'
+    role: 'Demo'
   };
   const demoToken = 'demo-token-123';
 

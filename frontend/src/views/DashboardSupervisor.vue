@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import SidebarAdmin from '../components/layout/SidebarAdmin.vue';
 import { useDummyData } from '../composables/useDummyData';
 import { useRouter } from 'vue-router';
 
@@ -8,13 +7,8 @@ const { role, supervisedStudents, topicChangeRequests, systemOverview } = useDum
 </script>
 
 <template>
-  <div class="flex min-h-[calc(100vh-3.25rem)]">
-    <SidebarAdmin
-      :role="role"
-      current="dashboard"
-    />
-
-    <main class="flex-1 px-4 sm:px-6 pb-6 pt-4 sm:pt-5">
+  <div class="w-full">
+    <main class="px-4 sm:px-6 pb-6 pt-4 sm:pt-5">
       <!-- Main Navigation Menu -->
       <div class="mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         <button

@@ -154,19 +154,19 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/feedback',
     name: 'Feedback',
-    component: () => import('../views/StudentDashboard.vue'),
+    component: () => import('../views/FeedbackReceived.vue'),
     meta: { requiresAuth: false }
   },
   {
     path: '/archive',
     name: 'Archive',
-    component: () => import('../views/StudentDashboard.vue'),
+    component: () => import('../views/TopicArchive.vue'),
     meta: { requiresAuth: false }
   },
   {
     path: '/reminders',
     name: 'Reminders',
-    component: () => import('../views/StudentDashboard.vue'),
+    component: () => import('../views/StudentReminders.vue'),
     meta: { requiresAuth: false }
   },
   {

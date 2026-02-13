@@ -5,7 +5,6 @@ import {
   CloudArrowUpIcon,
   ArrowPathIcon,
 } from '@heroicons/vue/24/outline';
-import SidebarStudent from '../components/layout/SidebarStudent.vue';
 import ActivityLogWidget from '../components/ActivityLogWidget.vue';
 import { useDummyData } from '../composables/useDummyData';
 
@@ -44,10 +43,8 @@ const completion = computed(() => {
 </script>
 
 <template>
-  <div class="flex min-h-[calc(100vh-3.25rem)]">
-    <SidebarStudent current="home" />
-
-    <main class="flex-1 px-4 sm:px-6 pb-6 pt-4 sm:pt-5">
+  <div class="w-full">
+    <main class="px-4 sm:px-6 pb-6 pt-4 sm:pt-5">
       <section class="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.9fr)]">
         <!-- Current topic hero -->
         <article class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm shadow-slate-200/70">
