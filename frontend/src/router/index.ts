@@ -92,15 +92,15 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: false }
   },
   {
-    path: '/supervisor/overview',
-    name: 'SupervisorOverview',
-    component: () => import('../views/SupervisorDashboard.vue'),
-    meta: { requiresAuth: false }
-  },
-  {
     path: '/supervisor/topics',
     name: 'SupervisorTopics',
     component: () => import('../views/SupervisorTopics.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/supervisor/topic/:id',
+    name: 'TopicDetails',
+    component: () => import('../pages/TopicDetails.vue'),
     meta: { requiresAuth: false }
   },
   {
@@ -112,7 +112,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/supervisor/students',
     name: 'SupervisorAllStudents',
-    component: () => import('../pages/StudentCohortManagement.vue'),
+    component: () => import('../pages/SupervisorStudents.vue'),
     meta: { requiresAuth: false }
   },
   {

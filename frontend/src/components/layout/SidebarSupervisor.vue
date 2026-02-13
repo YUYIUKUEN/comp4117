@@ -9,7 +9,7 @@ const router = useRouter()
 
 const items = [
   { id: 'dashboard', label: 'Dashboard', path: '/supervisor/dashboard' },
-  { id: 'overview', label: 'Supervisee Overview', path: '/supervisor/overview' },
+  { id: 'students', label: 'All Students', path: '/supervisor/students' },
   { id: 'topics', label: 'My Topics', path: '/supervisor/topics' },
   { id: 'feedback', label: 'Feedback & Grading', path: '/supervisor/feedback' },
   { id: 'activity', label: 'Activity Logs', path: '/supervisor/activity' },

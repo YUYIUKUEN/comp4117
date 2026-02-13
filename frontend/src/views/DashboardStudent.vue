@@ -1,14 +1,31 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import {
   ClockIcon,
   CloudArrowUpIcon,
   ArrowPathIcon,
 } from '@heroicons/vue/24/outline';
 import ActivityLogWidget from '../components/ActivityLogWidget.vue';
+import TopicChangeRequestModal from '../components/TopicChangeRequestModal.vue';
 import { useDummyData } from '../composables/useDummyData';
 
 const { currentStudent, supervisor, submissions, recentFeedback } = useDummyData();
+const isTopicChangeModalOpen = ref(false);
+
+const openTopicChangeModal = () => {
+  isTopicChangeModalOpen.value = true;
+};
+
+const closeTopicChangeModal = () => {
+  isTopicChangeModalOpen.value = false;
+};
+
+const handleTopicChangeSubmit = (data: { newTopic: string; reason: string }) => {
+  // In a real app, this would send the request to the backend
+  console.log('Topic change request submitted:', data);
+  // Close modal after successful submission
+  closeTopicChangeModal();
+};
 
 const activities = [
   {
@@ -140,6 +157,7 @@ const completion = computed(() => {
           <div class="mt-4 flex flex-wrap gap-2 text-[11px]">
             <button
               type="button"
+              @click="openTopicChangeModal"
               class="inline-flex items-center gap-1 rounded-full border border-blue-500 bg-blue-600 px-3 py-1.5 text-white hover:bg-blue-500"
             >
               <ArrowPathIcon class="h-3.5 w-3.5" />
@@ -313,6 +331,13 @@ const completion = computed(() => {
         </article>
       </section>
     </main>
+
+    <!-- Topic Change Request Modal -->
+    <TopicChangeRequestModal
+      :isOpen="isTopicChangeModalOpen"
+      @close="closeTopicChangeModal"
+      @submit="handleTopicChangeSubmit"
+    />
   </div>
 </template>
 

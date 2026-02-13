@@ -17,13 +17,6 @@
         <span class="nav-desc">Overview & stats</span>
       </button>
       <button
-        @click="navigateTo('/supervisor/overview')"
-        class="nav-button"
-      >
-        <span class="nav-label">Overview</span>
-        <span class="nav-desc">Quick summary</span>
-      </button>
-      <button
         @click="navigateTo('/supervisor/topics')"
         class="nav-button active"
       >

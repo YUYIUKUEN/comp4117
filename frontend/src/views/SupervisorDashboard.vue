@@ -9,17 +9,10 @@
     <div class="supervisor-nav-buttons">
       <button
         @click="router.push('/supervisor/dashboard')"
-        class="nav-button"
+        class="nav-button active"
       >
         <span class="nav-label">Dashboard</span>
         <span class="nav-desc">Overview & stats</span>
-      </button>
-      <button
-        @click="router.push('/supervisor/overview')"
-        class="nav-button active"
-      >
-        <span class="nav-label">Overview</span>
-        <span class="nav-desc">Current view</span>
       </button>
       <button
         @click="router.push('/supervisor/topics')"

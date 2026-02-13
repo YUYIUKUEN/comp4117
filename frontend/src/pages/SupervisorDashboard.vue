@@ -66,6 +66,26 @@ const stats = computed(() => {
 const goToFeedbackGrading = () => {
   router.push('/supervisor/feedback-grading');
 };
+
+const goToPendingApprovals = () => {
+  router.push('/supervisor/pending-approvals');
+};
+
+const goToReminders = () => {
+  router.push('/supervisor/reminders');
+};
+
+const goToActivityLogs = () => {
+  router.push('/supervisor/activity-logs');
+};
+
+const goToTopicDetails = (studentId: number) => {
+  router.push(`/supervisor/topic/${studentId}`);
+};
+
+const goToAllStudents = () => {
+  router.push('/supervisor/students');
+};
 </script>
 
 <template>
@@ -118,6 +138,14 @@ const goToFeedbackGrading = () => {
         <button
           type="button"
           class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-50"
+          @click="goToAllStudents"
+        >
+          <UserGroupIcon class="h-5 w-5 text-slate-400" />
+          <span class="flex-1 text-left">View All Students</span>
+        </button>
+        <button
+          type="button"
+          class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-50"
           @click="goToFeedbackGrading"
         >
           <PencilIcon class="h-5 w-5 text-slate-400" />
@@ -154,6 +182,7 @@ const goToFeedbackGrading = () => {
         <div class="flex items-center gap-4">
           <button
             type="button"
+            @click="goToPendingApprovals"
             class="relative inline-flex items-center justify-center rounded-full border border-slate-300 bg-white p-1.5 hover:border-blue-500"
           >
             <BellAlertIcon class="h-5 w-5 text-slate-600" />
@@ -231,6 +260,7 @@ const goToFeedbackGrading = () => {
             <div class="flex flex-wrap gap-2 text-[11px]">
               <button
                 type="button"
+                @click="() => location.reload()"
                 class="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-slate-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50"
               >
                 <ArrowPathIcon class="h-3.5 w-3.5" />
@@ -238,6 +268,7 @@ const goToFeedbackGrading = () => {
               </button>
               <button
                 type="button"
+                @click="goToReminders"
                 class="inline-flex items-center gap-1 rounded-full border border-blue-500/70 bg-blue-600 px-3 py-1.5 text-white hover:bg-blue-500"
               >
                 <EnvelopeOpenIcon class="h-3.5 w-3.5" />
@@ -310,6 +341,7 @@ const goToFeedbackGrading = () => {
                       {{ s.topic }}
                     </p>
                     <button
+                      @click="goToTopicDetails(s.id)"
                       type="button"
                       class="mt-1 inline-flex items-center gap-1 text-[11px] text-blue-700 hover:text-blue-800"
                     >
@@ -392,18 +424,21 @@ const goToFeedbackGrading = () => {
                     <div class="flex flex-col gap-1 text-[11px] items-end">
                       <button
                         type="button"
+                        @click="goToPendingApprovals"
                         class="inline-flex items-center gap-1 rounded-full border border-emerald-500/70 bg-emerald-600 px-2.5 py-1 text-white hover:bg-emerald-500"
                       >
                         Approve topic change
                       </button>
                       <button
                         type="button"
+                        @click="goToFeedbackGrading"
                         class="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white px-2.5 py-1 text-slate-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50"
                       >
                         View feedback
                       </button>
                       <button
                         type="button"
+                        @click="goToReminders"
                         class="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white px-2.5 py-1 text-slate-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50"
                       >
                         Send reminder

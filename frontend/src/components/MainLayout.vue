@@ -45,7 +45,6 @@ const currentRoute = computed(() => {
   if (path === '/reminders') return 'reminders';
   // Supervisor routes
   if (path === '/supervisor/dashboard') return 'sup-dashboard';
-  if (path === '/supervisor/overview') return 'overview';
   if (path === '/supervisor/topics') return 'sup-topics';
   if (path === '/supervisor/feedback-grading') return 'feedback-grading';
   if (path === '/supervisor/feedback-form') return 'feedback-grading';

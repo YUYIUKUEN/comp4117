@@ -18,7 +18,7 @@ const studentItems = [
 
 const supervisorItems = [
   { id: 'sup-dashboard', label: 'Supervisor Dashboard', path: '/supervisor/dashboard' },
-  { id: 'overview', label: 'Supervisee Overview', path: '/supervisor/overview' },
+  { id: 'sup-students', label: 'All Students', path: '/supervisor/students' },
   { id: 'sup-topics', label: 'My Topics', path: '/supervisor/topics' },
   { id: 'feedback-grading', label: 'Feedback & Grading', path: '/supervisor/feedback-grading' },
 ]

@@ -148,20 +148,13 @@ const handleProvideFeedback = (feedbackId: number) => {
 
     <main class="flex-1 px-4 sm:px-6 pb-6 pt-4 sm:pt-5">
       <!-- Navigation Tabs -->
-      <div class="mb-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div class="mb-6 grid grid-cols-2 sm:grid-cols-3 gap-3">
         <button
           @click="router.push('/supervisor/dashboard')"
           class="p-3 rounded-lg border-2 border-slate-200 bg-white hover:border-blue-500 hover:bg-blue-50 transition-colors text-left"
         >
           <p class="text-xs font-semibold text-slate-900">Dashboard</p>
           <p class="text-[10px] text-slate-500 mt-1">Overview & stats</p>
-        </button>
-        <button
-          @click="router.push('/supervisor/overview')"
-          class="p-3 rounded-lg border-2 border-slate-200 bg-white hover:border-blue-500 hover:bg-blue-50 transition-colors text-left"
-        >
-          <p class="text-xs font-semibold text-slate-900">Overview</p>
-          <p class="text-[10px] text-slate-500 mt-1">Quick summary</p>
         </button>
         <button
           @click="router.push('/supervisor/topics')"
