@@ -1,158 +1,146 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import {
   ArrowLeftIcon,
   CheckIcon,
-  PlusIcon,
-  XMarkIcon,
 } from '@heroicons/vue/24/outline';
+import { useGradingStandards } from '../composables/useGradingStandards';
+import type { GradingStandard } from '../composables/useGradingStandards';
 
 const router = useRouter();
 const route = useRoute();
+const { gradingStandards } = useGradingStandards();
 
-const submissionId = route.query.id || '1';
+const submissionId = parseInt(route.query.id as string) || 1;
 
-const submission = ref({
-  id: submissionId,
-  studentName: 'Student Chan Hoi Ting',
-  topic: 'Smart City Walkability in Kowloon East',
-  assignmentType: 'Progress Report 1',
-  submissionDate: '2025-02-13',
-  submissionContent: `
-    This progress report provides an overview of my research on smart city walkability in Kowloon East.
-    
-    Research Completed:
-    - Literature review on urban planning and walkability metrics
-    - Analysis of existing infrastructure in Kowloon East
-    - Interviews with 5 local residents
-    
-    Findings So Far:
-    - Poor pedestrian connectivity in commercial areas
-    - Limited seating and resting areas for elderly pedestrians
-    - Insufficient signage for public facilities
-    
-    Next Steps:
-    - Conduct more interviews (target 10 more)
-    - Develop recommendations for improvement
-    - Create walkability improvement proposal
-  `,
-  currentFeedback: null,
-  currentGrade: null,
-});
+// Test data for submissions
+const submissionsMap = new Map([
+  [1, {
+    id: 1,
+    studentName: 'Student Chan Hoi Ting',
+    topic: 'Smart City Walkability in Kowloon East',
+    assignmentType: 'Progress Report',
+    submissionDate: '2025-02-13',
+    submissionContent: `This progress report provides an overview of my research on smart city walkability in Kowloon East.\n\nResearch Completed:\n- Literature review on urban planning and walkability metrics\n- Analysis of existing infrastructure in Kowloon East\n- Interviews with 5 local residents\n\nFindings So Far:\n- Poor pedestrian connectivity in commercial areas\n- Limited seating and resting areas for elderly pedestrians\n- Insufficient signage for public facilities\n\nNext Steps:\n- Conduct more interviews (target 10 more)\n- Develop recommendations for improvement\n- Create walkability improvement proposal`,
+  }],
+  [2, {
+    id: 2,
+    studentName: 'Student Ho Pui Kwan',
+    topic: 'Digital Platforms and Youth Political Participation',
+    assignmentType: 'Final Presentation',
+    submissionDate: '2025-02-12',
+    submissionContent: `Presentation Summary: This research explores how digital platforms influence youth political engagement.\n\nKey Points:\n- Survey of 200+ youth participants\n- Analysis of social media trends\n- Impact assessment of digital activism\n\nFindings:\n- Significant correlation between platform usage and participation\n- TikTok and Instagram are primary channels\n- Need for improved digital literacy\n\nRecommendations:\n- Educational programs on digital engagement\n- Platform policy improvements\n- Further longitudinal studies`,
+  }],
+  [3, {
+    id: 3,
+    studentName: 'Student Lee Man Kei',
+    topic: 'Literary Analysis and Digital Storytelling',
+    assignmentType: 'Final Report',
+    submissionDate: '2025-02-10',
+    submissionContent: `This final report examines the intersection of classical literary analysis and modern digital storytelling.\n\nChapter 1: Literature Review\n- Classical narrative structures\n- Digital media evolution\n- Hybrid storytelling approaches\n\nChapter 2: Analysis\n- Case studies of 5 contemporary digital narratives\n- Application of traditional literary criticism\n- New frameworks for digital analysis\n\nConclusion:\n- Literature remains relevant in digital age\n- New methodologies emerging\n- Future directions for study`,
+  }],
+  [4, {
+    id: 4,
+    studentName: 'Student Chen Wei',
+    topic: 'AI Applications in Healthcare',
+    assignmentType: 'Proposal Review',
+    submissionDate: '2025-02-08',
+    submissionContent: `Research Proposal: AI Applications in Healthcare\n\nObjective:\nExplore practical applications of machine learning in medical diagnosis and treatment planning.\n\nProposed Methods:\n- Deep learning models for image analysis\n- Natural language processing for patient records\n- Predictive analytics for patient outcomes\n\nExpected Outcomes:\n- Improved diagnostic accuracy\n- Reduced treatment planning time\n- Better patient outcome predictions\n\nEthical Considerations:\n- Data privacy and security\n- Algorithm bias mitigation\n- Clinical validation requirements`,
+  }],
+  [5, {
+    id: 5,
+    studentName: 'Student Wong Man Ho',
+    topic: 'Climate Change Resilience',
+    assignmentType: 'Progress Report',
+    submissionDate: '2025-02-05',
+    submissionContent: `Progress Report: Climate Change Resilience in Urban Areas\n\nPhase 1 Completed:\n- Literature review on climate resilience\n- Mapping of vulnerable areas in Hong Kong\n- Stakeholder interviews (10 completed)\n\nPhase 2 In Progress:\n- Data analysis of climate patterns\n- Resilience assessment framework development\n- Policy review and recommendations\n\nKey Findings:\n- Coastal areas most vulnerable\n- Infrastructure improvements needed\n- Community engagement crucial\n\nNext Phase:\n- Complete stakeholder interviews (target 20)\n- Finalize resilience framework\n- Develop policy recommendations`,
+  }],
+]);
+
+const submission = ref(submissionsMap.get(submissionId) || submissionsMap.get(1)!);
 
 const feedbackText = ref('');
-const gradeSystem = ref('points'); // 'points' | 'custom'
-const maxPoints = ref(100);
-const earnedPoints = ref('');
-const customGradeName = ref('');
-const useGradeScale = ref(true);
-
-// Predefined grade scales
-const gradeScales = ref([
-  {
-    name: 'Standard Letter Grades (A-F)',
-    grades: [
-      { label: 'A', minPoints: 90, maxPoints: 100, description: 'Excellent' },
-      { label: 'B', minPoints: 80, maxPoints: 89, description: 'Very Good' },
-      { label: 'C', minPoints: 70, maxPoints: 79, description: 'Good' },
-      { label: 'D', minPoints: 60, maxPoints: 69, description: 'Satisfactory' },
-      { label: 'F', minPoints: 0, maxPoints: 59, description: 'Needs Improvement' },
-    ]
-  },
-  {
-    name: 'HD/D/C/P/F Scale',
-    grades: [
-      { label: 'HD', minPoints: 85, maxPoints: 100, description: 'High Distinction' },
-      { label: 'D', minPoints: 75, maxPoints: 84, description: 'Distinction' },
-      { label: 'C', minPoints: 65, maxPoints: 74, description: 'Credit' },
-      { label: 'P', minPoints: 50, maxPoints: 64, description: 'Pass' },
-      { label: 'F', minPoints: 0, maxPoints: 49, description: 'Fail' },
-    ]
-  },
-  {
-    name: 'Percentage (0-100)',
-    grades: [
-      { label: '90-100%', minPoints: 90, maxPoints: 100, description: 'Outstanding' },
-      { label: '80-89%', minPoints: 80, maxPoints: 89, description: 'Excellent' },
-      { label: '70-79%', minPoints: 70, maxPoints: 79, description: 'Good' },
-      { label: '60-69%', minPoints: 60, maxPoints: 69, description: 'Satisfactory' },
-      { label: 'Below 60%', minPoints: 0, maxPoints: 59, description: 'Needs Work' },
-    ]
-  },
-]);
-
-const customGrades = ref([
-  { label: '', minPoints: '', maxPoints: '', description: '' }
-]);
-
-const selectedScale = ref('0'); // Index of selected scale
-
+const selectedGrade = ref('');
+const pointsInput = ref('');
 const isSaving = ref(false);
 
-const addCustomGradeRow = () => {
-  customGrades.value.push({ label: '', minPoints: '', maxPoints: '', description: '' });
-};
-
-const removeCustomGradeRow = (index: number) => {
-  customGrades.value.splice(index, 1);
-};
-
-const getGradeFromPoints = (points: number) => {
-  const scale = gradeScales.value[parseInt(selectedScale.value)];
-  const grade = scale.grades.find(g => points >= g.minPoints && points <= g.maxPoints);
-  return grade ? grade.label : 'N/A';
-};
-
-const getCustomGradeFromPoints = (points: number) => {
-  const grade = customGrades.value.find(g => 
-    points >= parseInt(g.minPoints) && points <= parseInt(g.maxPoints)
+// Get the grading standard for this submission type
+const applicableStandard = computed<GradingStandard | undefined>(() => {
+  return gradingStandards.value.find(
+    (gs) => gs.submissionType === submission.value.assignmentType && gs.enabled
   );
-  return grade ? grade.label : 'N/A';
-};
+});
+
+// Validation
+const isValid = computed(() => {
+  if (!feedbackText.value.trim()) return false;
+  
+  if (!applicableStandard.value) return false;
+
+  if (applicableStandard.value.gradingSystem === 'point-range') {
+    const points = parseInt(pointsInput.value);
+    const min = applicableStandard.value.pointRange?.min || 0;
+    const max = applicableStandard.value.pointRange?.max || 100;
+    return !isNaN(points) && points >= min && points <= max;
+  }
+
+  if (applicableStandard.value.gradingSystem === 'letter-grade') {
+    return applicableStandard.value.letterGrades?.includes(selectedGrade.value) || false;
+  }
+
+  if (applicableStandard.value.gradingSystem === 'custom') {
+    return applicableStandard.value.customOptions?.includes(selectedGrade.value) || false;
+  }
+
+  return false;
+});
+
 
 const handleSaveFeedback = async () => {
-  if (!feedbackText.value) {
+  if (!feedbackText.value.trim()) {
     alert('Please add feedback');
     return;
   }
 
-  if (gradeSystem.value === 'points' && !earnedPoints.value) {
-    alert('Please enter the earned points');
+  if (!applicableStandard.value) {
+    alert('No grading standard found for this submission type');
     return;
   }
 
-  if (useGradeScale.value) {
-    let gradeLabel = '';
-    if (gradeSystem.value === 'points') {
-      const points = parseInt(earnedPoints.value);
-      if (gradeSystem.value === 'custom') {
-        gradeLabel = getCustomGradeFromPoints(points);
-      } else {
-        gradeLabel = getGradeFromPoints(points);
-      }
-    } else {
-      gradeLabel = customGradeName.value;
-    }
-
-    if (!gradeLabel || gradeLabel === 'N/A') {
-      alert('Please select a valid grade');
+  // Validate grade based on grading system
+  if (applicableStandard.value.gradingSystem === 'point-range') {
+    if (!pointsInput.value) {
+      alert('Please enter a point value');
       return;
     }
+    const points = parseInt(pointsInput.value);
+    const min = applicableStandard.value.pointRange?.min || 0;
+    const max = applicableStandard.value.pointRange?.max || 100;
+    if (isNaN(points) || points < min || points > max) {
+      alert(`Please enter a value between ${min} and ${max}`);
+      return;
+    }
+  } else if (!selectedGrade.value) {
+    alert('Please select a grade');
+    return;
   }
 
   isSaving.value = true;
   setTimeout(() => {
+    const gradeValue = applicableStandard.value?.gradingSystem === 'point-range' 
+      ? pointsInput.value 
+      : selectedGrade.value;
+
     console.log('Saved feedback:', {
       submissionId: submission.value.id,
+      studentName: submission.value.studentName,
       feedback: feedbackText.value,
-      gradeSystem: gradeSystem.value,
-      earnedPoints: earnedPoints.value,
-      maxPoints: maxPoints.value,
-      customGradeName: customGradeName.value,
-      customGrades: customGrades.value,
+      grade: gradeValue,
+      gradingSystem: applicableStandard.value?.gradingSystem,
+      submissionType: submission.value.assignmentType,
     });
-    alert('Feedback saved successfully!');
+    alert('Feedback and grade saved successfully!');
     isSaving.value = false;
     router.back();
   }, 500);
@@ -201,14 +189,32 @@ const handleCancel = () => {
         </div>
       </div>
 
-      <!-- Feedback Form -->
-      <div class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm mb-6">
-        <h3 class="text-lg font-semibold text-slate-900 mb-4">Provide Feedback</h3>
+      <!-- Error State: No Grading Standard -->
+      <div v-if="!applicableStandard" class="rounded-xl border-2 border-amber-300 bg-amber-50 p-4 sm:p-5 mb-6">
+        <h3 class="text-sm font-semibold text-amber-900 mb-2">No Grading Standard Configured</h3>
+        <p class="text-sm text-amber-800">
+          The administrator has not set up a grading standard for "{{ submission.assignmentType }}". 
+          Please contact the admin to configure the grading standard first.
+        </p>
+      </div>
+
+      <!-- Feedback & Grading Form -->
+      <div v-else class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm mb-6">
+        <h3 class="text-lg font-semibold text-slate-900 mb-4">Provide Feedback & Grade</h3>
+
+        <!-- Grading Standard Info -->
+        <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <p class="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-2">Grading Standard</p>
+          <p class="text-sm text-slate-900 font-medium">{{ applicableStandard.submissionType }}</p>
+          <p v-if="applicableStandard.description" class="text-xs text-slate-600 mt-1">
+            {{ applicableStandard.description }}
+          </p>
+        </div>
 
         <!-- Feedback Text -->
         <div class="mb-6">
           <label class="block text-sm font-medium text-slate-900 mb-2">
-            Feedback Comments
+            Feedback Comments *
           </label>
           <textarea
             v-model="feedbackText"
@@ -218,123 +224,85 @@ const handleCancel = () => {
           ></textarea>
         </div>
 
-        <!-- Grading System Type Selection -->
-        <div class="mb-6">
-          <label class="block text-sm font-medium text-slate-900 mb-3">Grading Method</label>
-          <div class="space-y-2">
-            <label class="flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-colors"
-              :class="gradeSystem === 'points' ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white'">
-              <input type="radio" v-model="gradeSystem" value="points" class="w-4 h-4" />
-              <span class="font-medium text-slate-900">Points-Based Grading</span>
-            </label>
-            <label class="flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-colors"
-              :class="gradeSystem === 'custom' ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white'">
-              <input type="radio" v-model="gradeSystem" value="custom" class="w-4 h-4" />
-              <span class="font-medium text-slate-900">Custom Grade Name</span>
-            </label>
+        <!-- Grade Input - Point Range -->
+        <div v-if="applicableStandard.gradingSystem === 'point-range'" class="mb-6">
+          <label class="block text-sm font-medium text-slate-900 mb-2">
+            Points *
+          </label>
+          <div class="flex gap-2 items-end">
+            <input
+              v-model.number="pointsInput"
+              type="number"
+              :min="applicableStandard.pointRange?.min"
+              :max="applicableStandard.pointRange?.max"
+              :placeholder="`Enter points (${applicableStandard.pointRange?.min} - ${applicableStandard.pointRange?.max})`"
+              class="block flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/60"
+            />
+            <div class="px-4 py-2 bg-slate-100 rounded-lg border border-slate-300 font-medium text-slate-600 whitespace-nowrap">
+              / {{ applicableStandard.pointRange?.max }}
+            </div>
+          </div>
+          <p v-if="pointsInput && pointsInput >= (applicableStandard.pointRange?.min || 0) && pointsInput <= (applicableStandard.pointRange?.max || 100)" 
+            class="text-xs text-slate-600 mt-2">
+            Percentage: <span class="font-semibold text-blue-600">{{ ((pointsInput / (applicableStandard.pointRange?.max || 100)) * 100).toFixed(1) }}%</span>
+          </p>
+          <p v-if="pointsInput && (pointsInput < (applicableStandard.pointRange?.min || 0) || pointsInput > (applicableStandard.pointRange?.max || 100))" 
+            class="text-xs text-red-600 mt-2">
+            Invalid: Must be between {{ applicableStandard.pointRange?.min }} - {{ applicableStandard.pointRange?.max }}
+          </p>
+        </div>
+
+        <!-- Grade Input - Letter Grade -->
+        <div v-else-if="applicableStandard.gradingSystem === 'letter-grade'" class="mb-6">
+          <label class="block text-sm font-medium text-slate-900 mb-3">
+            Grade *
+          </label>
+          <div class="grid grid-cols-5 gap-2">
+            <button
+              v-for="grade in applicableStandard.letterGrades"
+              :key="grade"
+              @click="selectedGrade = grade"
+              type="button"
+              :class="[
+                'py-2 px-1 rounded-lg font-semibold text-sm transition',
+                selectedGrade === grade
+                  ? 'bg-blue-600 text-white border border-blue-600'
+                  : 'border border-slate-300 bg-white text-slate-900 hover:border-blue-500 hover:bg-blue-50'
+              ]"
+            >
+              {{ grade }}
+            </button>
           </div>
         </div>
 
-        <!-- Points-Based Grading Section -->
-        <div v-if="gradeSystem === 'points'" class="space-y-4 mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <!-- Max Points Input -->
-          <div>
-            <label class="block text-sm font-medium text-slate-900 mb-1">Maximum Points</label>
-            <input v-model.number="maxPoints" type="number" min="1" 
-              class="block w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/60"
-              placeholder="e.g., 100" />
+        <!-- Grade Input - Custom Options -->
+        <div v-else-if="applicableStandard.gradingSystem === 'custom'" class="mb-6">
+          <label class="block text-sm font-medium text-slate-900 mb-3">
+            Grade *
+          </label>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <button
+              v-for="option in applicableStandard.customOptions"
+              :key="option"
+              @click="selectedGrade = option"
+              type="button"
+              :class="[
+                'py-2 px-3 rounded-lg font-medium text-sm transition',
+                selectedGrade === option
+                  ? 'bg-blue-600 text-white border border-blue-600'
+                  : 'border border-slate-300 bg-white text-slate-900 hover:border-blue-500 hover:bg-blue-50'
+              ]"
+            >
+              {{ option }}
+            </button>
           </div>
-
-          <!-- Earned Points Input -->
-          <div>
-            <label class="block text-sm font-medium text-slate-900 mb-1">Earned Points</label>
-            <div class="flex gap-2">
-              <input v-model.number="earnedPoints" type="number" :max="maxPoints" min="0" 
-                class="block flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/60"
-                placeholder="e.g., 85" />
-              <div class="flex items-center px-3 py-2 bg-white rounded-lg font-medium text-slate-700 border border-slate-300">
-                / {{ maxPoints }}
-              </div>
-            </div>
-            <p v-if="earnedPoints" class="text-xs text-slate-600 mt-1">
-              Percentage: <span class="font-semibold text-blue-600">{{ ((earnedPoints / maxPoints) * 100).toFixed(1) }}%</span>
-            </p>
-          </div>
-
-          <!-- Predefined Scale Selector -->
-          <div>
-            <label class="block text-sm font-medium text-slate-900 mb-1">Apply Grade Scale (Optional)</label>
-            <select v-model="selectedScale" 
-              class="block w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/60">
-              <option value="0">Standard Letter Grades (A-F)</option>
-              <option value="1">HD/D/C/P/F Scale</option>
-              <option value="2">Percentage (0-100)</option>
-            </select>
-          </div>
-
-          <!-- Display Selected Scale -->
-          <div v-if="useGradeScale" class="pt-2 space-y-2">
-            <p class="text-xs font-medium text-slate-700">Grade Breakdown:</p>
-            <div class="space-y-1">
-              <div v-for="(grade, idx) in gradeScales[parseInt(selectedScale)].grades" :key="idx"
-                class="flex items-center justify-between p-2 bg-white rounded text-xs">
-                <div class="flex gap-2">
-                  <span class="font-semibold text-slate-900">{{ grade.label }}</span>
-                  <span class="text-slate-600">({{ grade.minPoints }}-{{ grade.maxPoints }})</span>
-                </div>
-                <span class="text-slate-500">{{ grade.description }}</span>
-              </div>
-            </div>
-            <div v-if="earnedPoints" class="mt-2 p-2 bg-white border border-blue-300 rounded text-xs font-medium text-blue-900">
-              Assigned Grade: <span class="text-blue-700 font-bold">{{ getGradeFromPoints(parseInt(earnedPoints)) }}</span>
-            </div>
-          </div>
-
-          <!-- Custom Grade Scale Editor -->
-          <div class="pt-4 border-t border-blue-300">
-            <div class="flex items-center justify-between mb-2">
-              <label class="block text-sm font-medium text-slate-900">Create Custom Scale</label>
-              <button @click="addCustomGradeRow"
-                class="flex items-center gap-1 px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 transition">
-                <PlusIcon class="w-4 h-4" />
-                Add Grade
-              </button>
-            </div>
-            <div class="space-y-2">
-              <div v-for="(grade, idx) in customGrades" :key="idx" class="flex gap-2 items-end">
-                <input v-model="grade.label" type="text" placeholder="Label (A, 90%)" 
-                  class="px-2 py-1 border border-slate-300 rounded text-xs focus:ring-2 focus:ring-blue-500" />
-                <input v-model.number="grade.minPoints" type="number" placeholder="Min" 
-                  class="w-16 px-2 py-1 border border-slate-300 rounded text-xs focus:ring-2 focus:ring-blue-500" />
-                <span class="text-slate-500">-</span>
-                <input v-model.number="grade.maxPoints" type="number" placeholder="Max" 
-                  class="w-16 px-2 py-1 border border-slate-300 rounded text-xs focus:ring-2 focus:ring-blue-500" />
-                <input v-model="grade.description" type="text" placeholder="Description" 
-                  class="flex-1 px-2 py-1 border border-slate-300 rounded text-xs focus:ring-2 focus:ring-blue-500" />
-                <button v-show="customGrades.length > 1" @click="removeCustomGradeRow(idx)"
-                  class="px-2 py-1 text-red-600 hover:bg-red-50 rounded transition">
-                  <XMarkIcon class="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Custom Grade Name Section -->
-        <div v-if="gradeSystem === 'custom'" class="space-y-4 mb-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
-          <div>
-            <label class="block text-sm font-medium text-slate-900 mb-1">Grade Label</label>
-            <input v-model="customGradeName" type="text" placeholder="e.g., Excellent, Good, Pass, HD, 5/5"
-              class="block w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/60" />
-          </div>
-          <p class="text-xs text-slate-600">Enter any custom grade name or label for this submission</p>
         </div>
 
         <!-- Action Buttons -->
         <div class="flex gap-3">
           <button
             @click="handleSaveFeedback"
-            :disabled="isSaving"
+            :disabled="isSaving || !isValid"
             class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <CheckIcon class="h-5 w-5" />

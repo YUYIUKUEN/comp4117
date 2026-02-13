@@ -35,7 +35,7 @@ const feedbackItems = [
 </script>
 
 <template>
-  <div class="w-full">
+  <div>
     <main class="px-4 sm:px-6 pb-6 pt-4 sm:pt-5">
       <!-- Header -->
       <section class="mb-6">

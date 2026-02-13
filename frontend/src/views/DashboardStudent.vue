@@ -43,7 +43,7 @@ const completion = computed(() => {
 </script>
 
 <template>
-  <div class="w-full">
+  <div>
     <main class="px-4 sm:px-6 pb-6 pt-4 sm:pt-5">
       <section class="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.9fr)]">
         <!-- Current topic hero -->

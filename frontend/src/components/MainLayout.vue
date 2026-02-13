@@ -7,15 +7,15 @@
       <SidebarAdmin v-else-if="userRole === 'admin'" :role="userRole" />
       <SidebarSupervisor v-else-if="userRole === 'supervisor'" :current="currentRoute" />
       <Sidebar v-else />
-      <main class="main-content">
-        <router-view />
+      <main ref="mainContent" class="main-content">
+        <router-view :key="route.path" />
       </main>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, computed } from 'vue';
+import { onMounted, computed, watch, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 import Header from './Header.vue';
@@ -47,12 +47,24 @@ const currentRoute = computed(() => {
   if (path === '/supervisor/dashboard') return 'sup-dashboard';
   if (path === '/supervisor/overview') return 'overview';
   if (path === '/supervisor/topics') return 'sup-topics';
+  if (path === '/supervisor/feedback-grading') return 'feedback-grading';
+  if (path === '/supervisor/feedback-form') return 'feedback-grading';
   if (path === '/supervisor/feedback') return 'feedback';
   if (path === '/supervisor/activity') return 'activity';
   // Admin routes
   if (path === '/admin') return 'admin';
   if (path === '/admin/students-cohorts') return 'admin-cohorts';
+  if (path === '/admin/grading-standards') return 'admin-grading';
   return null;
+});
+
+const mainContent = ref<HTMLElement | null>(null);
+
+// Reset scroll position when route changes
+watch(() => route.path, () => {
+  if (mainContent.value) {
+    mainContent.value.scrollTop = 0;
+  }
 });
 
 onMounted(() => {
@@ -64,12 +76,13 @@ onMounted(() => {
 .main-layout {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
 }
 
 .content-wrapper {
   display: flex;
   flex: 1;
+  min-height: 0;
 }
 
 .main-content {
@@ -77,5 +90,6 @@ onMounted(() => {
   padding: 2rem;
   background: #f5f5f5;
   overflow-y: auto;
+  min-height: 0;
 }
 </style>

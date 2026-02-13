@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { useRouter } from 'vue-router';
 import {
   Bars3Icon,
   AcademicCapIcon,
@@ -11,9 +12,13 @@ import {
   XCircleIcon,
   ArrowPathIcon,
   ChevronRightIcon,
+  PencilIcon,
 } from '@heroicons/vue/24/outline';
 
 const sidebarOpen = ref(false);
+
+const router = useRouter();
+const currentPage = ref('dashboard');
 
 const supervisor = {
   name: 'Dr. Emily Lee',
@@ -57,6 +62,10 @@ const stats = computed(() => {
   ).length;
   return { total, pending, overdue };
 });
+
+const goToFeedbackGrading = () => {
+  router.push('/supervisor/feedback-grading');
+};
 </script>
 
 <template>
@@ -97,10 +106,22 @@ const stats = computed(() => {
       >
         <button
           type="button"
-          class="flex w-full items-center gap-2 rounded-lg px-3 py-2 bg-slate-100 text-slate-900"
+          class="flex w-full items-center gap-2 rounded-lg px-3 py-2"
+          :class="currentPage === 'dashboard'
+            ? 'bg-slate-100 text-slate-900'
+            : 'text-slate-700 hover:bg-slate-50'"
+          @click="currentPage = 'dashboard'"
         >
-          <UserGroupIcon class="h-5 w-5 text-slate-200" />
+          <UserGroupIcon class="h-5 w-5 text-slate-400" />
           <span class="flex-1 text-left">My Supervised Students</span>
+        </button>
+        <button
+          type="button"
+          class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-50"
+          @click="goToFeedbackGrading"
+        >
+          <PencilIcon class="h-5 w-5 text-slate-400" />
+          <span class="flex-1 text-left">Feedback & Grading</span>
         </button>
       </nav>
     </aside>

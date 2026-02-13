@@ -74,6 +74,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: false }
   },
   {
+    path: '/admin/grading-standards',
+    name: 'AdminGradingStandards',
+    component: () => import('../pages/AdminGradingStandards.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
     path: '/supervisor',
     name: 'SupervisorMainMenu',
     component: () => import('../pages/SupervisorMainMenu.vue'),

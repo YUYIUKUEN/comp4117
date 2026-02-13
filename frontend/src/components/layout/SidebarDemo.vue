@@ -20,11 +20,13 @@ const supervisorItems = [
   { id: 'sup-dashboard', label: 'Supervisor Dashboard', path: '/supervisor/dashboard' },
   { id: 'overview', label: 'Supervisee Overview', path: '/supervisor/overview' },
   { id: 'sup-topics', label: 'My Topics', path: '/supervisor/topics' },
+  { id: 'feedback-grading', label: 'Feedback & Grading', path: '/supervisor/feedback-grading' },
 ]
 
 const adminItems = [
   { id: 'admin', label: 'Admin Dashboard', path: '/admin' },
   { id: 'admin-cohorts', label: 'Student Cohorts', path: '/admin/students-cohorts' },
+  { id: 'admin-grading', label: 'Grading Standards', path: '/admin/grading-standards' },
 ]
 
 const navigate = (path: string) => {
