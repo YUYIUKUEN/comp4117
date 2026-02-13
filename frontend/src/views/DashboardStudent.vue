@@ -6,9 +6,33 @@ import {
   ArrowPathIcon,
 } from '@heroicons/vue/24/outline';
 import SidebarStudent from '../components/layout/SidebarStudent.vue';
+import ActivityLogWidget from '../components/ActivityLogWidget.vue';
 import { useDummyData } from '../composables/useDummyData';
 
 const { currentStudent, supervisor, submissions, recentFeedback } = useDummyData();
+
+const activities = [
+  {
+    _id: '1',
+    description: 'Submitted Progress Report 2 feedback to supervisor',
+    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    _id: '2',
+    description: 'Received feedback on Topic Planning Form from Dr. Emily Lee',
+    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    _id: '3',
+    description: 'Uploaded revised topic proposal document',
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    _id: '4',
+    description: 'Started FYP registration process',
+    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
 
 const completion = computed(() => {
   const values = submissions.value.progress;
@@ -272,6 +296,23 @@ const completion = computed(() => {
               {{ recentFeedback.visibleToStudent }}
             </p>
           </div>
+        </article>
+      </section>
+
+      <!-- Activity log -->
+      <section class="mt-5">
+        <article class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm shadow-slate-200/70">
+          <header class="flex items-center justify-between gap-2 mb-4">
+            <div>
+              <h2 class="text-sm font-semibold text-slate-900">
+                Activity log
+              </h2>
+              <p class="mt-1 text-xs text-slate-600">
+                Your recent actions and submissions
+              </p>
+            </div>
+          </header>
+          <ActivityLogWidget :activities="activities" />
         </article>
       </section>
     </main>
