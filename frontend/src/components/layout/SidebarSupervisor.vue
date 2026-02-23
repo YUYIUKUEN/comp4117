@@ -11,8 +11,8 @@ const items = [
   { id: 'dashboard', label: 'Dashboard', path: '/supervisor/dashboard' },
   { id: 'students', label: 'All Students', path: '/supervisor/students' },
   { id: 'topics', label: 'My Topics', path: '/supervisor/topics' },
-  { id: 'feedback', label: 'Feedback & Grading', path: '/supervisor/feedback' },
-  { id: 'activity', label: 'Activity Logs', path: '/supervisor/activity' },
+  { id: 'feedback', label: 'Feedback & Grading', path: '/supervisor/feedback-grading' },
+  { id: 'activity', label: 'Activity Logs', path: '/supervisor/activity-logs' },
 ]
 
 const navigate = (path: string) => {
