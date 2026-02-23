@@ -186,18 +186,21 @@ const { role, supervisedStudents, topicChangeRequests, systemOverview } = useDum
                     <div class="flex flex-col gap-1 items-end">
                       <button
                         type="button"
+                        @click="alert('Topic approved')"
                         class="inline-flex items-center rounded-full border border-emerald-500 bg-emerald-600 px-2.5 py-1 text-[11px] text-white hover:bg-emerald-500"
                       >
                         Approve
                       </button>
                       <button
                         type="button"
+                        @click="alert('Viewing submission documents')"
                         class="inline-flex items-center rounded-full border border-slate-300 bg-white px-2.5 py-1 text-[11px] text-slate-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50"
                       >
                         View docs
                       </button>
                       <button
                         type="button"
+                        @click="alert('Reminder sent')"
                         class="inline-flex items-center rounded-full border border-slate-300 bg-white px-2.5 py-1 text-[11px] text-slate-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50"
                       >
                         Send reminder
@@ -243,12 +246,14 @@ const { role, supervisedStudents, topicChangeRequests, systemOverview } = useDum
                 <div class="mt-2 flex gap-2">
                   <button
                     type="button"
+                    @click="alert('Topic change approved')"
                     class="inline-flex items-center rounded-full border border-emerald-500 bg-emerald-600 px-2.5 py-1 text-[11px] text-white hover:bg-emerald-500"
                   >
                     Approve
                   </button>
                   <button
                     type="button"
+                    @click="alert('Topic change rejected')"
                     class="inline-flex items-center rounded-full border border-rose-500 bg-rose-50 px-2.5 py-1 text-[11px] text-rose-700 hover:bg-rose-100"
                   >
                     Reject

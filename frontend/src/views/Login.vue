@@ -41,23 +41,44 @@ const handleLogin = async () => {
     errors.submit = 'Please enter your password'
     return
   }
-  if (password.value.length < 8) {
-    errors.submit = 'Password must be at least 8 characters'
-    return
-  }
 
   loading.value = true
 
   try {
-    const response = await authService.login(email.value, password.value)
+    console.log('🔍 Attempting login with email:', email.value)
+    const response = await authService.login({ email: email.value, password: password.value })
+    
+    console.log('✅ Login response received:', response)
     
     // Store auth state
-    authStore.setAuth(response.user, response.token)
+    const user = response.data.data?.user
+    const token = response.data.data?.token
     
-    // Redirect to dashboard
-    await router.push('/dashboard-student')
+    if (!user || !token) {
+      throw new Error('Invalid response structure: missing user or token')
+    }
+    
+    console.log('📝 User data:', user)
+    console.log('📝 User role:', user.role)
+    console.log('📝 Setting auth in store...')
+    authStore.setAuth(user, token)
+    console.log('✓ Auth store updated. Authenticated:', authStore.isAuthenticated)
+    
+    // Redirect based on user role
+    let redirectPath = '/dashboard'
+    if (user.role === 'Admin') {
+      redirectPath = '/admin'
+    } else if (user.role === 'Supervisor') {
+      redirectPath = '/supervisor/dashboard'
+    } else if (user.role === 'Student') {
+      redirectPath = '/dashboard'
+    }
+    
+    console.log('🚀 Redirecting to', redirectPath, 'for role:', user.role)
+    window.location.href = redirectPath
   } catch (err: any) {
-    errors.submit = err.response?.data?.error || 'Login failed. Please check your credentials.'
+    console.error('❌ Login error:', err)
+    errors.submit = err.response?.data?.error || err.message || 'Login failed. Please check your credentials.'
   } finally {
     loading.value = false
   }

@@ -9,20 +9,11 @@ interface User {
 }
 
 export const useAuthStore = defineStore('auth', () => {
-  // DEMO MODE: Initialize with demo user
-  const demoUser: User = {
-    id: 'demo-user-123',
-    email: 'demo@example.com',
-    fullName: 'Demo User',
-    role: 'Demo'
-  };
-  const demoToken = 'demo-token-123';
-
-  const user = ref<User | null>(demoUser);
-  const token = ref<string | null>(demoToken);
+  const user = ref<User | null>(null);
+  const token = ref<string | null>(null);
 
   const isAuthenticated = computed(() => !!token.value && !!user.value);
-  const userRole = computed(() => user.value?.role || 'Admin');
+  const userRole = computed(() => user.value?.role || null);
 
   const setAuth = (userData: User, authToken: string) => {
     user.value = userData;
@@ -47,14 +38,9 @@ export const useAuthStore = defineStore('auth', () => {
         token.value = storedToken;
         user.value = JSON.parse(storedUser);
       } catch (error) {
-        // DEMO MODE: Keep demo user on error
-        user.value = demoUser;
-        token.value = demoToken;
+        console.error('Failed to load auth from storage:', error);
+        clearAuth();
       }
-    } else {
-      // DEMO MODE: Set demo user if nothing in storage
-      user.value = demoUser;
-      token.value = demoToken;
     }
   };
 

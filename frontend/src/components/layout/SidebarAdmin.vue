@@ -1,22 +1,33 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
 import type { Role } from '../../composables/useDummyData'
 
+const router = useRouter()
 const props = defineProps<{
   role: Role
   current?: string
 }>()
 
 const baseItems = [
-  { id: 'dashboard', label: 'Dashboard' },
-  { id: 'students', label: 'All Students' },
-  { id: 'topics', label: 'Topic Proposals' },
-  { id: 'approvals', label: 'Pending Approvals' },
-  { id: 'feedback', label: 'Feedback & Grading' },
-  { id: 'logs', label: 'Activity Logs' },
-  { id: 'reminders', label: 'Reminders Queue' },
+  { id: 'dashboard', label: 'Dashboard', route: '/admin' },
+  { id: 'students', label: 'All Students', route: '/admin/students-cohorts' },
+  { id: 'topics', label: 'Topic Proposals', route: '/supervisor/topics' },
+  { id: 'approvals', label: 'Pending Approvals', route: '/supervisor/pending-approvals' },
+  { id: 'feedback', label: 'Feedback & Grading', route: '/supervisor/feedback-grading' },
+  { id: 'logs', label: 'Activity Logs', route: '/supervisor/activity-logs' },
+  { id: 'reminders', label: 'Reminders Queue', route: '/supervisor/reminders' },
 ]
 
-const adminExtra = [{ id: 'system', label: 'System Overview' }]
+const adminExtra = [
+  { id: 'grading', label: 'Grading Standards', route: '/admin/grading-standards' },
+  { id: 'system', label: 'System Overview', route: '/admin' },
+]
+
+const handleNavigation = (item: any) => {
+  if (item.route) {
+    router.push(item.route)
+  }
+}
 </script>
 
 <template>
@@ -29,6 +40,7 @@ const adminExtra = [{ id: 'system', label: 'System Overview' }]
         v-for="item in baseItems"
         :key="item.id"
         type="button"
+        @click="handleNavigation(item)"
         class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition hover:bg-slate-100 hover:text-slate-900"
         :class="item.id === (props.current || 'dashboard') ? 'bg-slate-100 text-slate-900 font-medium' : 'text-slate-600'"
       >
@@ -40,6 +52,7 @@ const adminExtra = [{ id: 'system', label: 'System Overview' }]
           v-for="item in adminExtra"
           :key="item.id"
           type="button"
+          @click="handleNavigation(item)"
           class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition hover:bg-slate-100 hover:text-slate-900"
           :class="item.id === props.current ? 'bg-slate-100 text-slate-900 font-medium' : 'text-slate-600'"
         >

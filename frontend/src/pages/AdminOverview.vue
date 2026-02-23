@@ -8,6 +8,7 @@ import {
   MagnifyingGlassIcon,
   ChevronRightIcon,
   AcademicCapIcon,
+  PencilIcon,
 } from '@heroicons/vue/24/outline';
 
 const router = useRouter();
@@ -106,6 +107,14 @@ const activityLog = [
         >
           <UsersIcon class="h-5 w-5 text-slate-300" />
           <span class="flex-1 text-left">Students & Cohorts</span>
+        </button>
+        <button
+          type="button"
+          class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800 hover:text-slate-50"
+          @click="router.push('/admin/grading-standards')"
+        >
+          <PencilIcon class="h-5 w-5 text-slate-300" />
+          <span class="flex-1 text-left">Grading Standards</span>
         </button>
       </nav>
     </aside>
@@ -317,6 +326,7 @@ const activityLog = [
                   <td class="px-3 py-3 align-top text-right">
                     <button
                       type="button"
+                      @click="router.push(`/admin/students-cohorts`)"
                       class="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white px-2.5 py-1 text-[11px] text-slate-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50"
                     >
                       Open record
@@ -342,12 +352,14 @@ const activityLog = [
             <div class="mt-4 flex flex-wrap gap-2 text-[11px]">
               <button
                 type="button"
+                @click="alert('Marking selected students as ethics not required')"
                 class="inline-flex items-center rounded-full border border-blue-500/70 bg-blue-600 px-3 py-1.5 text-white hover:bg-blue-500"
               >
-                Mark selected as “Ethics not required”
+                Mark selected as "Ethics not required"
               </button>
               <button
                 type="button"
+                @click="alert('Opening supervisor assignment pilot')"
                 class="inline-flex items-center rounded-full border border-slate-300 bg-white px-3 py-1.5 text-slate-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50"
               >
                 Assign selected to supervisor (pilot)
