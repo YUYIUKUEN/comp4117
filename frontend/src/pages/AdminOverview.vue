@@ -1,9 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import {
-  Bars3Icon,
-  Squares2X2Icon,
   UsersIcon,
   MagnifyingGlassIcon,
   ChevronRightIcon,
@@ -12,7 +9,6 @@ import {
 } from '@heroicons/vue/24/outline';
 
 const router = useRouter();
-const sidebarOpen = ref(false);
 
 const stats = {
   totalStudents: 128,
@@ -58,95 +54,21 @@ const activityLog = [
 </script>
 
 <template>
-  <div class="min-h-[calc(100vh-3.25rem)] bg-slate-50 text-slate-900 flex">
-    <div
-      v-if="sidebarOpen"
-      class="fixed inset-0 z-20 bg-black/40 lg:hidden"
-      aria-hidden="true"
-      @click="sidebarOpen = false"
-    />
-
-    <aside
-      class="fixed z-30 inset-y-0 left-0 w-64 transform bg-white border-r border-slate-200 transition-transform duration-200 ease-out
-             lg:static lg:translate-x-0"
-      :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
-      aria-label="Admin navigation"
+  <div class="min-h-[calc(100vh-3.25rem)] bg-slate-50 text-slate-900">
+    <header
+      class="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-slate-200 bg-white/95 px-4 sm:px-6 backdrop-blur"
     >
-      <div class="flex h-14 items-center gap-2 px-4 border-b border-slate-200">
-        <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-600 shadow-sm shadow-blue-500/40">
-          <AcademicCapIcon
-            class="h-5 w-5 text-white"
-            aria-hidden="true"
-          />
-        </div>
-        <div class="flex flex-col">
-          <span class="text-[11px] uppercase tracking-[0.18em] text-slate-500">
-            Admin
-          </span>
-          <span class="text-xs font-semibold text-slate-900">
-            Programme Overview
-          </span>
-        </div>
+      <div>
+        <p class="text-[11px] uppercase tracking-[0.2em] text-slate-500">
+          Admin overview
+        </p>
+        <p class="text-sm font-semibold text-slate-900">
+          Programme‑wide FYP monitoring
+        </p>
       </div>
+    </header>
 
-      <nav
-        class="mt-3 px-2 space-y-1 text-sm"
-        aria-label="Primary"
-      >
-        <button
-          type="button"
-          class="flex w-full items-center gap-2 rounded-lg px-3 py-2 bg-slate-100 text-slate-900"
-        >
-          <Squares2X2Icon class="h-5 w-5 text-slate-200" />
-          <span class="flex-1 text-left">Overview</span>
-        </button>
-        <button
-          type="button"
-          class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800 hover:text-slate-50"
-          @click="router.push('/admin/students-cohorts')"
-        >
-          <UsersIcon class="h-5 w-5 text-slate-300" />
-          <span class="flex-1 text-left">Students & Cohorts</span>
-        </button>
-        <button
-          type="button"
-          class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800 hover:text-slate-50"
-          @click="router.push('/admin/grading-standards')"
-        >
-          <PencilIcon class="h-5 w-5 text-slate-300" />
-          <span class="flex-1 text-left">Grading Standards</span>
-        </button>
-      </nav>
-    </aside>
-
-    <div class="flex-1 flex flex-col min-w-0">
-      <header
-        class="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-slate-200 bg-white/95 px-4 sm:px-6 backdrop-blur"
-      >
-        <div class="flex items-center gap-3">
-          <button
-            type="button"
-            class="inline-flex items-center justify-center rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 lg:hidden"
-            aria-label="Toggle navigation"
-            @click="sidebarOpen = !sidebarOpen"
-          >
-            <Bars3Icon
-              class="h-6 w-6"
-              aria-hidden="true"
-            />
-          </button>
-          <div>
-            <p class="text-[11px] uppercase tracking-[0.2em] text-slate-500">
-              Admin overview
-            </p>
-            <p class="text-sm font-semibold text-slate-900">
-              Programme‑wide FYP monitoring
-            </p>
-          </div>
-        </div>
-      </header>
-
-      <main class="flex-1 px-4 sm:px-6 pb-6 pt-4 sm:pt-5">
+    <main class="px-4 sm:px-6 pb-6 pt-4 sm:pt-5">
         <section
           aria-label="Key metrics"
           class="grid gap-4 sm:grid-cols-3"
@@ -407,6 +329,5 @@ const activityLog = [
         </section>
       </main>
     </div>
-  </div>
 </template>
 

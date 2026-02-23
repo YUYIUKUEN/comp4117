@@ -11,9 +11,6 @@ const props = defineProps<{
 const baseItems = [
   { id: 'dashboard', label: 'Dashboard', route: '/admin' },
   { id: 'students', label: 'All Students', route: '/admin/students-cohorts' },
-  { id: 'topics', label: 'Topic Proposals', route: '/supervisor/topics' },
-  { id: 'approvals', label: 'Pending Approvals', route: '/supervisor/pending-approvals' },
-  { id: 'feedback', label: 'Feedback & Grading', route: '/supervisor/feedback-grading' },
   { id: 'logs', label: 'Activity Logs', route: '/supervisor/activity-logs' },
   { id: 'reminders', label: 'Reminders Queue', route: '/supervisor/reminders' },
 ]
