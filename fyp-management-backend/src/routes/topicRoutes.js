@@ -26,6 +26,11 @@ router.post('/:topicId/archive', authenticate, requireRole('Supervisor'), archiv
 // Supervisor personal routes
 router.get('/my-topics/list', authenticate, requireRole('Supervisor'), getMyTopics);
 
+// Supervisor nested routes (for frontend compatibility)
+router.get('/supervisor/topics', authenticate, requireRole('Supervisor'), getMyTopics);
+router.post('/supervisor/topics', authenticate, requireRole('Supervisor'), createTopic);
+router.put('/supervisor/topics/:topicId', authenticate, requireRole('Supervisor'), updateTopic);
+
 // Admin routes
 router.delete('/:topicId', authenticate, requireRole('Admin'), deleteTopic);
 

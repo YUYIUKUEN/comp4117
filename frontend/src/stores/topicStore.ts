@@ -64,8 +64,9 @@ export const useTopicStore = defineStore('topic', () => {
         concentration: filters.value.concentration,
         status: filters.value.status
       })
-      topics.value = response.data
-      pagination.value = response.pagination
+      // Response has structure: { data: { topics: [...], pagination: {...} }, status: 200 }
+      topics.value = response.data?.topics || []
+      pagination.value = response.data?.pagination || { page: 1, limit: 10, total: 0, pages: 1 }
     } catch (err: any) {
       error.value = err.response?.data?.error || 'Failed to fetch topics'
       topics.value = []

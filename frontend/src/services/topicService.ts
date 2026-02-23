@@ -115,7 +115,7 @@ export default {
 
   async createTopic(topicData: Partial<Topic>): Promise<Topic> {
     try {
-      const response = await httpClient.post('/supervisor/topics', topicData)
+      const response = await httpClient.post('/topics/supervisor/topics', topicData)
       return response.data
     } catch (error) {
       throw error
