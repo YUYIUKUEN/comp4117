@@ -96,7 +96,20 @@ const routes: RouteRecordRaw[] = [
     name: 'SupervisorTopics',
     component: () => import('../views/SupervisorTopics.vue'),
     meta: { requiresAuth: false }
-  },  {
+  },
+  {
+    path: '/supervisor/topics/create',
+    name: 'CreateTopic',
+    component: () => import('../views/CreateTopic.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/supervisor/topics/edit/:id',
+    name: 'EditTopic',
+    component: () => import('../views/CreateTopic.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/supervisor/topic/:id',
     name: 'TopicDetails',
     component: () => import('../pages/TopicDetails.vue'),

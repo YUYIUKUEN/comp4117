@@ -106,7 +106,7 @@ export default {
   // Supervisor-specific endpoints
   async getSupervisorTopics(params: TopicParams = {}): Promise<PaginatedResponse<Topic>> {
     try {
-      const response = await httpClient.get('/supervisor/topics', { params })
+      const response = await httpClient.get('/topics/supervisor/topics', { params })
       return response.data
     } catch (error) {
       throw error
@@ -124,7 +124,7 @@ export default {
 
   async updateTopic(id: string, topicData: Partial<Topic>): Promise<Topic> {
     try {
-      const response = await httpClient.put(`/supervisor/topics/${id}`, topicData)
+      const response = await httpClient.put(`/topics/supervisor/topics/${id}`, topicData)
       return response.data
     } catch (error) {
       throw error
@@ -133,9 +133,7 @@ export default {
 
   async publishTopic(id: string): Promise<Topic> {
     try {
-      const response = await httpClient.put(`/supervisor/topics/${id}/publish`, {
-        status: 'Active'
-      })
+      const response = await httpClient.post(`/topics/${id}/publish`)
       return response.data
     } catch (error) {
       throw error
@@ -144,7 +142,7 @@ export default {
 
   async deleteTopic(id: string): Promise<{ success: boolean }> {
     try {
-      const response = await httpClient.delete(`/supervisor/topics/${id}`)
+      const response = await httpClient.delete(`/topics/${id}`)
       return response.data
     } catch (error) {
       throw error

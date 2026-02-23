@@ -2,7 +2,7 @@
   <div class="supervisor-topics">
     <div class="topics-header">
       <h1>My Topics</h1>
-      <button @click="showCreateForm = true" class="btn btn-create">
+      <button @click="navigateTo('/supervisor/topics/create')" class="btn btn-create">
         + Create New Topic
       </button>
     </div>
@@ -30,86 +30,6 @@
         <span class="nav-label">Management</span>
         <span class="nav-desc">Students & feedback</span>
       </button>
-    </div>
-
-    <!-- Topic Form Modal -->
-    <div v-if="showCreateForm" class="modal-overlay" @click="closeForm">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h2>{{ isEditing ? 'Edit Topic' : 'Create New Topic' }}</h2>
-          <button @click="closeForm" class="btn-close">×</button>
-        </div>
-        <form @submit.prevent="submitForm" class="form">
-          <div class="form-group">
-            <label for="title">Title *</label>
-            <input
-              v-model="formData.title"
-              type="text"
-              id="title"
-              placeholder="Topic title"
-              required
-            />
-          </div>
-
-          <div class="form-group">
-            <label for="description">Description *</label>
-            <textarea
-              v-model="formData.description"
-              id="description"
-              placeholder="Detailed description of the topic"
-              rows="4"
-              required
-            ></textarea>
-          </div>
-
-          <div class="form-group">
-            <label for="concentration">Concentration *</label>
-            <select v-model="formData.concentration" id="concentration" required>
-              <option value="">Select concentration</option>
-              <option value="AI">AI & Machine Learning</option>
-              <option value="WebDev">Web Development</option>
-              <option value="Mobile">Mobile Development</option>
-              <option value="DataScience">Data Science</option>
-              <option value="Security">Cybersecurity</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="keywords">Keywords (comma-separated) *</label>
-            <input
-              v-model="formData.keywords"
-              type="text"
-              id="keywords"
-              placeholder="keyword1, keyword2, keyword3"
-              required
-            />
-          </div>
-
-          <div class="form-group">
-            <label for="maxStudents">Max Students</label>
-            <input
-              v-model.number="formData.maxStudents"
-              type="number"
-              id="maxStudents"
-              min="1"
-              max="10"
-            />
-          </div>
-
-          <div class="form-actions">
-            <button type="button" @click="closeForm" class="btn btn-secondary">
-              Cancel
-            </button>
-            <button type="submit" class="btn btn-primary" :disabled="formLoading">
-              {{ formLoading ? 'Saving...' : 'Save Topic' }}
-            </button>
-          </div>
-        </form>
-
-        <div v-if="formError" class="form-error">
-          {{ formError }}
-        </div>
-      </div>
     </div>
 
     <!-- Topics List -->
@@ -146,7 +66,7 @@
         <div class="topic-actions">
           <button
             v-if="topic.status === 'Draft'"
-            @click="editTopic(topic)"
+            @click="navigateTo(`/supervisor/topics/edit/${topic._id}`)"
             class="btn-action btn-edit"
           >
             Edit
@@ -184,7 +104,6 @@
 <script setup lang="ts">
 import { ref, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/authStore'
 import topicService from '@/services/topicService'
 
 const router = useRouter()
@@ -205,103 +124,16 @@ interface Topic {
   currentApplications?: number
 }
 
-const authStore = useAuthStore()
-
-const showCreateForm = ref(false)
-const isEditing = ref(false)
-const editingTopicId = ref<string | null>(null)
-
-const formData = reactive({
-  title: '',
-  description: '',
-  concentration: '',
-  keywords: '',
-  maxStudents: 1
-})
-
 const supervisorTopics = reactive({
   topics: [] as Topic[],
   loading: false,
   error: null as string | null
 })
 
-const formLoading = ref(false)
-const formError = ref('')
 const successMessage = ref('')
 
 const truncateText = (text: string, length: number) => {
   return text.length > length ? text.substring(0, length) + '...' : text
-}
-
-const resetForm = () => {
-  formData.title = ''
-  formData.description = ''
-  formData.concentration = ''
-  formData.keywords = ''
-  formData.maxStudents = 1
-  formError.value = ''
-  isEditing.value = false
-  editingTopicId.value = null
-}
-
-const closeForm = () => {
-  showCreateForm.value = false
-  resetForm()
-}
-
-const editTopic = (topic: Topic) => {
-  isEditing.value = true
-  editingTopicId.value = topic._id
-  formData.title = topic.title
-  formData.description = topic.description
-  formData.concentration = topic.concentration
-  formData.keywords = topic.keywords.join(', ')
-  formData.maxStudents = topic.maxStudents || 1
-  showCreateForm.value = true
-}
-
-const submitForm = async () => {
-  if (!formData.title || !formData.description) {
-    formError.value = 'Title and description are required'
-    return
-  }
-
-  formLoading.value = true
-  formError.value = ''
-
-  try {
-    const keywords = formData.keywords
-      .split(',')
-      .map(k => k.trim())
-      .filter(k => k.length > 0)
-
-    const topicData = {
-      title: formData.title,
-      description: formData.description,
-      concentration: formData.concentration,
-      keywords,
-      maxStudents: formData.maxStudents
-    }
-
-    if (isEditing.value && editingTopicId.value) {
-      await topicService.updateTopic(editingTopicId.value, topicData)
-      successMessage.value = 'Topic updated successfully!'
-    } else {
-      await topicService.createTopic(topicData)
-      successMessage.value = 'Topic created successfully!'
-    }
-
-    setTimeout(() => {
-      successMessage.value = ''
-    }, 3000)
-
-    closeForm()
-    await loadTopics()
-  } catch (error: any) {
-    formError.value = error.response?.data?.error || 'Failed to save topic'
-  } finally {
-    formLoading.value = false
-  }
 }
 
 const publishTopic = async (topicId: string) => {
@@ -396,54 +228,63 @@ onMounted(() => {
 }
 
 .modal-overlay {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.7) !important;
+  z-index: 9998 !important;
 }
 
 .modal {
-  background: white;
-  border-radius: 8px;
-  max-width: 600px;
-  width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
+  background: white !important;
+  border-radius: 12px !important;
+  max-width: 600px !important;
+  width: 90% !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
+  z-index: 9999 !important;
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 .modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 2rem;
-  border-bottom: 1px solid #e0e0e0;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 2rem !important;
+  border-bottom: 1px solid #e0e0e0 !important;
+  background: white !important;
 }
 
 .modal-header h2 {
-  margin: 0;
-  color: #333;
+  margin: 0 !important;
+  color: #333 !important;
+  font-size: 1.5rem !important;
 }
 
 .btn-close {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  color: #999;
-  cursor: pointer;
+  background: none !important;
+  border: none !important;
+  font-size: 1.5rem !important;
+  color: #999 !important;
+  cursor: pointer !important;
+  padding: 0 !important;
 }
 
 .btn-close:hover {
-  color: #333;
+  color: #333 !important;
 }
 
 .form {
-  padding: 2rem;
+  padding: 2rem !important;
+  background: white !important;
 }
 
 .form-group {
