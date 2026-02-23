@@ -131,7 +131,7 @@ const getActivityColor = (type: string) => {
               <p class="text-xs text-slate-500">{{ log.time }}</p>
               <p class="text-sm font-medium text-slate-900 mt-1">
                 <span class="font-semibold">{{ log.actor }}</span>
-                <span class="text-slate-600"> {{ log.action }}</span>
+                <span class="text-slate-600 ml-1">{{ log.action }}</span>
               </p>
               <p class="text-xs text-slate-500 mt-1">{{ log.topic }}</p>
             </div>

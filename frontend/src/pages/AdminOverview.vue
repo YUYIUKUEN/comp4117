@@ -40,14 +40,14 @@ const activityLog = [
     id: 1,
     time: '10:42',
     actor: 'Student Chan Hoi Ting',
-    description: 'submitted Progress Report 1 for review.',
+    description: 'Submitted Progress Report 1 for review.',
     type: 'submission',
   },
   {
     id: 2,
     time: '10:15',
     actor: 'Supervisor Emily Lee',
-    description: 'approved topic change request (FYP-GEOG-2026-018).',
+    description: 'Approved topic change request (FYP-GEOG-2026-018).',
     type: 'approval',
   },
 ];
@@ -318,10 +318,10 @@ const activityLog = [
                   />
                 </div>
                 <div>
-                  <p class="text-slate-800">
-                    <span class="font-medium">{{ item.actor }}</span>
-                    <span> {{ item.description }}</span>
-                  </p>
+                  <div class="text-slate-800">
+                    <p class="font-medium">{{ item.actor }}</p>
+                    <p class="text-slate-600 text-xs mt-1">{{ item.description }}</p>
+                  </div>
                 </div>
               </li>
             </ol>
