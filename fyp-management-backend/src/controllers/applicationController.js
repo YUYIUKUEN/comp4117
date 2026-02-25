@@ -161,14 +161,33 @@ exports.getMyApplications = async (req, res) => {
  */
 exports.getSupervisorApplications = async (req, res) => {
   try {
+    console.log('=== getSupervisorApplications Called ===');
+    console.log('req.user:', req.user);
+    console.log('req.auth:', req.auth);
+    
+    if (!req.user || !req.user._id) {
+      console.error('ERROR: req.user not found');
+      console.error('Available req properties:', Object.keys(req).filter(k => k !== 'app').slice(0, 10));
+      return res.status(401).json({
+        code: 'UNAUTHORIZED',
+        message: 'User not authenticated',
+      });
+    }
+
     const supervisor_id = req.user._id;
     const { page = 1, limit = 10, status = null } = req.query;
+    
+    console.log('supervisor_id:', supervisor_id);
+    console.log('Finding topics for supervisor...');
 
     // Find topics supervised by this user
     const topics = await Topic.find({ supervisor_id }).select('_id');
+    console.log('Topics found:', topics.length);
+    
     const topicIds = topics.map(t => t._id);
 
     if (topicIds.length === 0) {
+      console.log('No topics found for this supervisor');
       return res.json({
         success: true,
         data: [],
@@ -186,19 +205,34 @@ exports.getSupervisorApplications = async (req, res) => {
       query.status = status;
     }
 
-    // Get total count
-    const total = await Application.countDocuments(query);
-
-    // Fetch applications with pagination, sorted by topic then by preference_rank
+    // Fetch applications without sort (Cosmos DB compatibility)
     const applications = await Application.find(query)
-      .populate(['student_id', 'topic_id'])
-      .sort({ topic_id: 1, preference_rank: 1 })
       .limit(parseInt(limit))
-      .skip((parseInt(page) - 1) * parseInt(limit));
+      .skip((parseInt(page) - 1) * parseInt(limit))
+      .lean();
 
+    console.log('Raw applications found:', applications.length);
+
+    // Manually fetch related data to avoid populate issues
+    const User = require('../models/User');
+    const enrichedApplications = await Promise.all(
+      applications.map(async (app) => {
+        const student = await User.findById(app.student_id).lean();
+        const topic = await Topic.findById(app.topic_id).lean();
+        return {
+          ...app,
+          student_id: student,
+          topic_id: topic,
+        };
+      })
+    );
+
+    const total = applications.length;
+    console.log('Returning enriched applications:', enrichedApplications.length);
+    
     res.json({
       success: true,
-      data: applications,
+      data: enrichedApplications,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),

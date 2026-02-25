@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/authStore';
+import applicationService from '@/services/applicationService';
 import {
   Bars3Icon,
   AcademicCapIcon,
@@ -11,59 +13,69 @@ import {
 } from '@heroicons/vue/24/outline';
 
 const router = useRouter();
+const authStore = useAuthStore();
 const sidebarOpen = ref(false);
 const currentPage = ref('students');
 const searchQuery = ref('');
+const isLoading = ref(false);
+const errorMessage = ref('');
 
-const supervisor = {
-  name: 'Dr. Emily Lee',
-  dept: 'Department of Geography',
+const supervisor = computed(() => ({
+  name: authStore.user?.fullName || 'Supervisor',
+  dept: 'Department',
+}));
+
+const applications = ref<any[]>([]);
+
+// Transform applications data to student format
+const students = computed(() => {
+  return applications.value
+    .filter(app => app.student_id) // Filter out any apps without student data
+    .map(app => ({
+      id: app._id,
+      name: app.student_id.fullName,
+      studentId: app.student_id._id.substring(0, 8).toUpperCase(),
+      programme: app.student_id.concentration || 'Unknown',
+      topic: app.topic_id?.title || 'Topic Deleted',
+      status: app.status === 'Approved' ? 'Active' : app.status,
+      progress1: 'Pending', // Will be fetched from submissions in future
+      ethics: 'Not Required', // Will be fetched from submissions in future
+    }));
+});
+
+const filteredStudents = computed(() => {
+  if (!searchQuery.value) {
+    return students.value;
+  }
+  const query = searchQuery.value.toLowerCase();
+  return students.value.filter(student =>
+    student.name.toLowerCase().includes(query) ||
+    student.studentId.toLowerCase().includes(query) ||
+    student.topic.toLowerCase().includes(query)
+  );
+});
+
+// Fetch supervised students from database
+const fetchStudents = async () => {
+  try {
+    isLoading.value = true;
+    errorMessage.value = '';
+    const response = await applicationService.getSupervisorApplications({
+      limit: 100,
+      page: 1
+    });
+    applications.value = response.data;
+  } catch (error: any) {
+    console.error('Failed to fetch students:', error);
+    errorMessage.value = error.response?.data?.message || 'Failed to load students. Please try again.';
+  } finally {
+    isLoading.value = false;
+  }
 };
 
-const students = ref([
-  {
-    id: 1,
-    name: 'Student Chan Hoi Ting',
-    studentId: 'SID-001',
-    programme: 'BSocSc Geography',
-    topic: 'Smart City Walkability in Kowloon East',
-    status: 'Active',
-    progress1: 'Overdue',
-    ethics: 'Not Required',
-  },
-  {
-    id: 2,
-    name: 'Student Lau Tsz Yan',
-    studentId: 'SID-002',
-    programme: 'BSocSc Geography',
-    topic: 'Urban Farming and Community Resilience in Sham Shui Po',
-    status: 'Active',
-    progress1: 'In Review',
-    ethics: 'Completed',
-  },
-  {
-    id: 3,
-    name: 'Student Wong Kai Ming',
-    studentId: 'SID-003',
-    programme: 'BBA Finance',
-    topic: 'Digital Payment Adoption in Hong Kong SMEs',
-    status: 'Active',
-    progress1: 'Completed',
-    ethics: 'Completed',
-  },
-  {
-    id: 4,
-    name: 'Student Ng Mei Ching',
-    studentId: 'SID-004',
-    programme: 'BSc Computer Science',
-    topic: 'Blockchain Voting Systems for Democratic Processes',
-    status: 'Pending',
-    progress1: 'Pending',
-    ethics: 'Completed',
-  },
-]);
-
-const filteredStudents = ref(students.value);
+onMounted(() => {
+  fetchStudents();
+});
 
 const goToFeedbackGrading = () => {
   router.push('/supervisor/feedback-grading');
@@ -191,7 +203,31 @@ const getSubmissionStatusColor = (status: string) => {
       </header>
 
       <main class="flex-1 px-4 sm:px-6 pb-6 pt-4 sm:pt-5 overflow-auto">
+        <!-- Error Message -->
+        <div v-if="errorMessage" class="mb-4 rounded-lg border border-red-200 bg-red-50 p-4">
+          <p class="text-sm text-red-800">{{ errorMessage }}</p>
+        </div>
+
+        <!-- Loading State -->
+        <div v-if="isLoading" class="rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-200/70 p-8">
+          <div class="flex items-center justify-center gap-3">
+            <div class="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600"></div>
+            <p class="text-sm text-slate-600">Loading students...</p>
+          </div>
+        </div>
+
+        <!-- Empty State -->
+        <div v-else-if="students.length === 0" class="rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-200/70 p-8">
+          <div class="flex flex-col items-center justify-center gap-2">
+            <UserGroupIcon class="h-12 w-12 text-slate-300" />
+            <p class="text-sm font-medium text-slate-900">No supervised students yet</p>
+            <p class="text-xs text-slate-500">Create topics or wait for students to apply</p>
+          </div>
+        </div>
+
+        <!-- Students Table -->
         <section
+          v-else
           class="rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-200/70"
           aria-label="Supervised students"
         >

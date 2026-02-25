@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/authStore';
+import applicationService from '@/services/applicationService';
 import {
   Bars3Icon,
   AcademicCapIcon,
@@ -16,43 +18,37 @@ import {
 } from '@heroicons/vue/24/outline';
 
 const sidebarOpen = ref(false);
+const isLoading = ref(false);
 
 const router = useRouter();
+const authStore = useAuthStore();
 const currentPage = ref('dashboard');
 
-const supervisor = {
-  name: 'Dr. Emily Lee',
-  dept: 'Department of Geography',
-  avatar:
-    'https://ui-avatars.com/api/?name=Emily+Lee&background=0F172A&color=fff',
-};
+const supervisor = computed(() => ({
+  name: authStore.user?.fullName || 'Supervisor',
+  dept: 'Department',
+  avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(authStore.user?.fullName || 'Supervisor')}&background=0F172A&color=fff`,
+}));
 
-const students = ref([
-  {
-    id: 1,
-    name: 'Student Chan Hoi Ting',
-    programme: 'BSocSc Geography',
-    topic: 'Smart City Walkability in Kowloon East',
-    submissions: {
-      topicPlanning: 'Completed',
-      ethics: 'Not Required',
-      progress1: 'Overdue',
-    },
-    pendingApprovals: 1,
-  },
-  {
-    id: 2,
-    name: 'Student Lau Tsz Yan',
-    programme: 'BSocSc Geography',
-    topic: 'Urban Farming and Community Resilience in Sham Shui Po',
-    submissions: {
-      topicPlanning: 'Completed',
-      ethics: 'Completed',
-      progress1: 'In Review',
-    },
-    pendingApprovals: 0,
-  },
-]);
+const applications = ref<any[]>([]);
+
+// Transform application data to student format
+const students = computed(() => {
+  return applications.value
+    .filter(app => app.student_id && app.topic_id)
+    .map(app => ({
+      id: app._id,
+      name: app.student_id.fullName,
+      programme: app.student_id.concentration || 'Unknown',
+      topic: app.topic_id.title || 'Topic Deleted',
+      submissions: {
+        topicPlanning: 'Completed',
+        ethics: app.status === 'Approved' ? 'Completed' : 'Not Required',
+        progress1: 'Pending',
+      },
+      pendingApprovals: app.status === 'Pending' ? 1 : 0,
+    }));
+});
 
 const stats = computed(() => {
   const total = students.value.length;
@@ -62,6 +58,26 @@ const stats = computed(() => {
   ).length;
   return { total, pending, overdue };
 });
+
+// Fetch supervised students from database
+const fetchStudents = async () => {
+  try {
+    isLoading.value = true;
+    const response = await applicationService.getSupervisorApplications({
+      limit: 100,
+      page: 1
+    });
+    applications.value = response.data;
+  } catch (error: any) {
+    console.error('Failed to fetch students:', error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+onMounted(() => {
+  fetchStudents();
+})
 
 const goToFeedbackGrading = () => {
   router.push('/supervisor/feedback-grading');
@@ -260,10 +276,10 @@ const goToAllStudents = () => {
             <div class="flex flex-wrap gap-2 text-[11px]">
               <button
                 type="button"
-                @click="() => location.reload()"
+                @click="fetchStudents"
                 class="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-slate-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50"
               >
-                <ArrowPathIcon class="h-3.5 w-3.5" />
+                <ArrowPathIcon class="h-3.5 w-3.5" :class="{ 'animate-spin': isLoading }" />
                 Refresh list
               </button>
               <button
@@ -277,7 +293,21 @@ const goToAllStudents = () => {
             </div>
           </header>
 
-          <div class="mt-4 overflow-x-auto">
+          <!-- Loading State -->
+          <div v-if="isLoading" class="mt-4 flex items-center justify-center gap-3 py-8">
+            <div class="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600"></div>
+            <p class="text-sm text-slate-600">Loading students...</p>
+          </div>
+
+          <!-- Empty State -->
+          <div v-else-if="students.length === 0" class="mt-4 flex flex-col items-center justify-center gap-2 py-8">
+            <UserGroupIcon class="h-12 w-12 text-slate-300" />
+            <p class="text-sm font-medium text-slate-900">No supervised students yet</p>
+            <p class="text-xs text-slate-500">Create topics or wait for students to apply</p>
+          </div>
+
+          <!-- Students Table -->
+          <div v-else class="mt-4 overflow-x-auto">
             <table class="min-w-full text-xs">
               <thead class="bg-slate-50 text-slate-600 border-b border-slate-200">
                 <tr>
