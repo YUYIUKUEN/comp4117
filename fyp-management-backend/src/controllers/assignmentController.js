@@ -70,10 +70,11 @@ exports.getSupervisorAssignments = async (req, res) => {
     // Get total count
     const total = await Assignment.countDocuments(query);
 
-    // Fetch assignments with pagination
+    // Fetch assignments with pagination (sort by _id desc, always indexed in Cosmos DB)
     const assignments = await Assignment.find(query)
-      .populate(['student_id', 'topic_id'])
-      .sort({ assigned_at: -1 })
+      .populate({ path: 'student_id', select: '-passwordHash' })
+      .populate('topic_id')
+      .sort({ _id: -1 })
       .limit(parseInt(limit))
       .skip((parseInt(page) - 1) * parseInt(limit));
 
@@ -186,9 +187,9 @@ exports.completeAssignment = async (req, res) => {
     await ActivityLog.create({
       user_id: supervisor_id,
       action: 'COMPLETE_ASSIGNMENT',
-      entity_type: 'Assignment',
-      entity_id: id,
-      changes: {
+      entityType: 'Assignment',
+      entityId: id,
+      details: {
         status: 'Completed',
       },
     });

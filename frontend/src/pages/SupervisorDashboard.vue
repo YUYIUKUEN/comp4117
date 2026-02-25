@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
+import assignmentService from '@/services/assignmentService';
 import applicationService from '@/services/applicationService';
 import {
   Bars3Icon,
@@ -9,9 +10,6 @@ import {
   UserGroupIcon,
   EnvelopeOpenIcon,
   BellAlertIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  XCircleIcon,
   ArrowPathIcon,
   ChevronRightIcon,
   PencilIcon,
@@ -30,44 +28,65 @@ const supervisor = computed(() => ({
   avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(authStore.user?.fullName || 'Supervisor')}&background=0F172A&color=fff`,
 }));
 
-const applications = ref<any[]>([]);
+const assignments = ref<any[]>([]);
+const pendingApplications = ref<any[]>([]);
 
-// Transform application data to student format
+// Transform assignment data to student format (only matched/assigned students)
 const students = computed(() => {
-  return applications.value
-    .filter(app => app.student_id && app.topic_id)
-    .map(app => ({
-      id: app._id,
-      name: app.student_id.fullName,
-      programme: app.student_id.concentration || 'Unknown',
-      topic: app.topic_id.title || 'Topic Deleted',
-      submissions: {
-        topicPlanning: 'Completed',
-        ethics: app.status === 'Approved' ? 'Completed' : 'Not Required',
-        progress1: 'Pending',
-      },
-      pendingApprovals: app.status === 'Pending' ? 1 : 0,
+  return assignments.value
+    .filter(a => a.student_id && a.topic_id)
+    .map(a => ({
+      id: a._id,
+      studentId: a.student_id._id,
+      name: a.student_id.fullName,
+      initials: getInitials(a.student_id.fullName),
+      programme: a.student_id.concentration || 'Unknown',
+      topic: a.topic_id.title || 'Topic Deleted',
+      status: a.status,
+      assignedAt: a.assigned_at,
     }));
 });
 
+function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .map(w => w[0])
+    .join('')
+    .toUpperCase()
+    .substring(0, 2);
+}
+
 const stats = computed(() => {
   const total = students.value.length;
-  const pending = students.value.filter((s) => s.pendingApprovals > 0).length;
+  const pending = pendingApplications.value.length;
   const overdue = students.value.filter(
     (s) => s.submissions.progress1 === 'Overdue',
   ).length;
   return { total, pending, overdue };
 });
 
-// Fetch supervised students from database
+// Fetch supervised students from database (using assignments, not applications)
 const fetchStudents = async () => {
   try {
     isLoading.value = true;
-    const response = await applicationService.getSupervisorApplications({
+    // Fetch actual assigned students
+    const assignmentResponse = await assignmentService.getSupervisorAssignments({
       limit: 100,
-      page: 1
+      page: 1,
     });
-    applications.value = response.data;
+    assignments.value = assignmentResponse.data;
+
+    // Also fetch pending applications for the notification count
+    try {
+      const appResponse = await applicationService.getSupervisorApplications({
+        limit: 100,
+        page: 1,
+        status: 'Pending',
+      });
+      pendingApplications.value = appResponse.data;
+    } catch {
+      // Non-critical — don't block dashboard
+    }
   } catch (error: any) {
     console.error('Failed to fetch students:', error);
   } finally {
@@ -311,51 +330,24 @@ const goToAllStudents = () => {
             <table class="min-w-full text-xs">
               <thead class="bg-slate-50 text-slate-600 border-b border-slate-200">
                 <tr>
-                  <th
-                    scope="col"
-                    class="px-3 py-2 text-left font-medium"
-                  >
-                    Student
-                  </th>
-                  <th
-                    scope="col"
-                    class="px-3 py-2 text-left font-medium"
-                  >
-                    Topic
-                  </th>
-                  <th
-                    scope="col"
-                    class="px-3 py-2 text-left font-medium"
-                  >
-                    Submissions
-                  </th>
-                  <th
-                    scope="col"
-                    class="px-3 py-2 text-center font-medium"
-                  >
-                    Pending
-                  </th>
-                  <th
-                    scope="col"
-                    class="px-3 py-2 text-right font-medium"
-                  >
-                    Quick actions
-                  </th>
+                  <th scope="col" class="px-3 py-2 text-left font-medium">Student</th>
+                  <th scope="col" class="px-3 py-2 text-left font-medium">Topic</th>
+                  <th scope="col" class="px-3 py-2 text-left font-medium">Programme</th>
+                  <th scope="col" class="px-3 py-2 text-left font-medium">Status</th>
+                  <th scope="col" class="px-3 py-2 text-right font-medium">Actions</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-slate-800">
+              <tbody class="divide-y divide-slate-200">
                 <tr
                   v-for="s in students"
                   :key="s.id"
-                  class="hover:bg-slate-900/80"
+                  class="hover:bg-slate-50"
                 >
                   <td class="px-3 py-3 align-top">
                     <div class="flex items-center gap-2">
-                      <img
-                        :src="`https://ui-avatars.com/api/?name=${encodeURIComponent(s.name)}&background=2563EB&color=fff`"
-                        :alt="s.name"
-                        class="h-7 w-7 rounded-full object-cover"
-                      >
+                      <div class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-medium">
+                        {{ s.initials }}
+                      </div>
                       <div>
                         <p class="font-medium text-slate-900">
                           {{ s.name }}
@@ -370,94 +362,35 @@ const goToAllStudents = () => {
                     <p class="text-[11px] font-medium text-slate-900 line-clamp-2">
                       {{ s.topic }}
                     </p>
-                    <button
-                      @click="goToTopicDetails(s.id)"
-                      type="button"
-                      class="mt-1 inline-flex items-center gap-1 text-[11px] text-blue-700 hover:text-blue-800"
-                    >
-                      View topic details
-                      <ChevronRightIcon class="h-3.5 w-3.5" />
-                    </button>
                   </td>
                   <td class="px-3 py-3 align-top">
-                    <div class="flex flex-col gap-1 text-[11px]">
-                      <div class="flex items-center gap-1.5">
-                        <span class="w-20 text-slate-500">Topic planning</span>
-                        <span
-                          class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5"
-                          :class="s.submissions.topicPlanning === 'Completed'
-                            ? 'border-emerald-500/50 bg-emerald-50 text-emerald-700'
-                            : 'border-slate-300 bg-slate-50 text-slate-700'"
-                        >
-                          <CheckCircleIcon class="h-3.5 w-3.5" />
-                          {{ s.submissions.topicPlanning }}
-                        </span>
-                      </div>
-                      <div class="flex items-center gap-1.5">
-                        <span class="w-20 text-slate-500">Ethics</span>
-                        <span
-                          class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5"
-                          :class="s.submissions.ethics === 'Completed'
-                            ? 'border-emerald-500/50 bg-emerald-50 text-emerald-700'
-                            : s.submissions.ethics === 'Not Required'
-                              ? 'border-slate-300 bg-slate-100 text-slate-600'
-                              : 'border-slate-300 bg-slate-50 text-slate-700'"
-                        >
-                          <CheckCircleIcon class="h-3.5 w-3.5" />
-                          {{ s.submissions.ethics }}
-                        </span>
-                      </div>
-                      <div class="flex items-center gap-1.5">
-                        <span class="w-20 text-slate-500">Progress 1</span>
-                        <span
-                          class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5"
-                          :class="s.submissions.progress1 === 'Completed'
-                            ? 'border-emerald-500/50 bg-emerald-50 text-emerald-700'
-                            : s.submissions.progress1 === 'Overdue'
-                              ? 'border-rose-500/50 bg-rose-50 text-rose-700'
-                              : s.submissions.progress1 === 'In Review'
-                                ? 'border-amber-500/50 bg-amber-50 text-amber-700'
-                                : 'border-slate-300 bg-slate-50 text-slate-700'"
-                        >
-                          <CheckCircleIcon
-                            v-if="s.submissions.progress1 === 'Completed'"
-                            class="h-3.5 w-3.5"
-                          />
-                          <XCircleIcon
-                            v-else-if="s.submissions.progress1 === 'Overdue'"
-                            class="h-3.5 w-3.5"
-                          />
-                          <ClockIcon
-                            v-else
-                            class="h-3.5 w-3.5"
-                          />
-                          {{ s.submissions.progress1 }}
-                        </span>
-                      </div>
-                    </div>
+                    <p class="text-[11px] text-slate-600">
+                      {{ s.programme }}
+                    </p>
                   </td>
-                  <td class="px-3 py-3 align-top text-center">
+                  <td class="px-3 py-3 align-top">
                     <span
-                      v-if="s.pendingApprovals > 0"
-                      class="inline-flex items-center justify-center rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-medium text-amber-700 border border-amber-200"
+                      :class="[
+                        'inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium',
+                        s.status === 'Active'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : s.status === 'Completed'
+                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                            : 'bg-slate-100 text-slate-700 border border-slate-200',
+                      ]"
                     >
-                      {{ s.pendingApprovals }} pending
-                    </span>
-                    <span
-                      v-else
-                      class="inline-flex items-center justify-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 border border-emerald-200"
-                    >
-                      Clear
+                      {{ s.status }}
                     </span>
                   </td>
                   <td class="px-3 py-3 align-top text-right">
                     <div class="flex flex-col gap-1 text-[11px] items-end">
                       <button
                         type="button"
-                        @click="goToPendingApprovals"
-                        class="inline-flex items-center gap-1 rounded-full border border-emerald-500/70 bg-emerald-600 px-2.5 py-1 text-white hover:bg-emerald-500"
+                        @click="goToTopicDetails(s.id)"
+                        class="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white px-2.5 py-1 text-slate-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50"
                       >
-                        Approve topic change
+                        View details
+                        <ChevronRightIcon class="h-3.5 w-3.5" />
                       </button>
                       <button
                         type="button"
@@ -478,6 +411,12 @@ const goToAllStudents = () => {
                 </tr>
               </tbody>
             </table>
+
+            <div class="border-t border-slate-200 px-3 py-2">
+              <p class="text-[11px] text-slate-500">
+                Total: {{ students.length }} assigned student{{ students.length !== 1 ? 's' : '' }}
+              </p>
+            </div>
           </div>
         </section>
       </main>
