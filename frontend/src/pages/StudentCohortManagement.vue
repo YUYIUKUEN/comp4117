@@ -1,44 +1,32 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import {
   Bars3Icon,
   ArrowLeftIcon,
   MagnifyingGlassIcon,
   PlusIcon,
   EllipsisVerticalIcon,
+  XMarkIcon,
 } from '@heroicons/vue/24/outline';
 import { useRouter } from 'vue-router';
+import userService from '@/services/userService';
 
 const router = useRouter();
 const sidebarOpen = ref(false);
 const activeTab = ref('students'); // 'students' or 'cohorts'
+const isLoading = ref(false);
+const searchQuery = ref('');
 
-const students = ref([
-  {
-    id: 1,
-    name: 'Student Chan Hoi Ting',
-    email: 'chan.ht@student.edu.hk',
-    programme: 'BSocSc Geography',
-    cohort: '2024-2025',
-    status: 'Active',
-  },
-  {
-    id: 2,
-    name: 'Student Ho Pui Kwan',
-    email: 'ho.pk@student.edu.hk',
-    programme: 'BSocSc Sociology',
-    cohort: '2024-2025',
-    status: 'Inactive',
-  },
-  {
-    id: 3,
-    name: 'Student Lee Man Kei',
-    email: 'lee.mk@student.edu.hk',
-    programme: 'BA English',
-    cohort: '2023-2024',
-    status: 'Active',
-  },
-]);
+interface Student {
+  id: string;
+  name: string;
+  email: string;
+  programme: string;
+  cohort: string;
+  status: string;
+}
+
+const students = ref<Student[]>([]);
 
 const cohorts = ref([
   {
@@ -64,24 +52,94 @@ const cohorts = ref([
   },
 ]);
 
+// Add Student Modal
+const showAddModal = ref(false);
+const addStudentForm = ref({
+  fullName: '',
+  email: '',
+  concentration: '',
+  phone: '',
+  password: '',
+});
+const addStudentError = ref('');
+const addStudentLoading = ref(false);
+
+const fetchStudents = async () => {
+  try {
+    isLoading.value = true;
+    const response = await userService.getUsers({ role: 'Student', limit: 100 });
+    students.value = (response.data?.users || []).map((u: any) => ({
+      id: u._id,
+      name: u.fullName,
+      email: u.email,
+      programme: u.concentration || 'Not set',
+      cohort: u.createdAt ? new Date(u.createdAt).getFullYear() + '-' + (new Date(u.createdAt).getFullYear() + 1) : 'Unknown',
+      status: u.deactivatedAt ? 'Inactive' : 'Active',
+    }));
+  } catch (error: any) {
+    console.error('Failed to fetch students:', error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+onMounted(() => {
+  fetchStudents();
+});
+
 const handleBack = () => {
   router.push('/admin');
 };
 
 const handleAddStudent = () => {
-  console.log('Add student');
+  addStudentForm.value = { fullName: '', email: '', concentration: '', phone: '', password: '' };
+  addStudentError.value = '';
+  showAddModal.value = true;
+};
+
+const submitAddStudent = async () => {
+  addStudentError.value = '';
+
+  if (!addStudentForm.value.fullName.trim() || !addStudentForm.value.email.trim()) {
+    addStudentError.value = 'Name and email are required.';
+    return;
+  }
+
+  try {
+    addStudentLoading.value = true;
+    await userService.createUser({
+      fullName: addStudentForm.value.fullName.trim(),
+      email: addStudentForm.value.email.trim(),
+      role: 'Student',
+      concentration: addStudentForm.value.concentration.trim() || undefined,
+      phone: addStudentForm.value.phone.trim() || undefined,
+      password: addStudentForm.value.password.trim() || undefined,
+    });
+    showAddModal.value = false;
+    await fetchStudents();
+  } catch (error: any) {
+    addStudentError.value = error.response?.data?.error || 'Failed to create student. Please try again.';
+  } finally {
+    addStudentLoading.value = false;
+  }
 };
 
 const handleAddCohort = () => {
   console.log('Add cohort');
 };
 
-const handleEditStudent = (studentId: number) => {
+const handleEditStudent = (studentId: string) => {
   console.log('Edit student', studentId);
 };
 
-const handleDeleteStudent = (studentId: number) => {
-  console.log('Delete student', studentId);
+const handleDeleteStudent = async (studentId: string) => {
+  if (!confirm('Are you sure you want to deactivate this student?')) return;
+  try {
+    await userService.deactivateUser(studentId, 'Deactivated by admin');
+    await fetchStudents();
+  } catch (error: any) {
+    console.error('Failed to deactivate student:', error);
+  }
 };
 
 const handleEditCohort = (cohortId: number) => {
@@ -348,6 +406,94 @@ const handleDeleteCohort = (cohortId: number) => {
           </table>
         </div>
       </section>
+
+      <!-- Add Student Modal -->
+      <div v-if="showAddModal" class="fixed inset-0 z-50 flex items-center justify-center">
+        <div class="fixed inset-0 bg-black/40" @click="showAddModal = false" />
+        <div class="relative z-10 w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-xl mx-4">
+          <div class="flex items-center justify-between mb-5">
+            <h3 class="text-lg font-semibold text-slate-900">Add New Student</h3>
+            <button
+              @click="showAddModal = false"
+              class="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            >
+              <XMarkIcon class="h-5 w-5" />
+            </button>
+          </div>
+
+          <div v-if="addStudentError" class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {{ addStudentError }}
+          </div>
+
+          <form @submit.prevent="submitAddStudent" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Full Name *</label>
+              <input
+                v-model="addStudentForm.fullName"
+                type="text"
+                required
+                placeholder="e.g. Chan Hoi Ting"
+                class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Email *</label>
+              <input
+                v-model="addStudentForm.email"
+                type="email"
+                required
+                placeholder="e.g. chan.ht@student.edu.hk"
+                class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Programme / Concentration</label>
+              <input
+                v-model="addStudentForm.concentration"
+                type="text"
+                placeholder="e.g. BSocSc Geography"
+                class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+              <input
+                v-model="addStudentForm.phone"
+                type="tel"
+                placeholder="e.g. 9123 4567"
+                class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+              <input
+                v-model="addStudentForm.password"
+                type="text"
+                placeholder="Default: changeme123"
+                class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
+              />
+              <p class="mt-1 text-xs text-slate-500">Leave blank to use default password.</p>
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                @click="showAddModal = false"
+                class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                :disabled="addStudentLoading"
+                class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+              >
+                <span v-if="addStudentLoading" class="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
+                {{ addStudentLoading ? 'Creating...' : 'Add Student' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     </main>
   </div>
 </template>

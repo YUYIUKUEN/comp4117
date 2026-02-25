@@ -53,15 +53,22 @@ const authenticate = async (req, res, next) => {
           req.user = user;
           req.auth = {
             userId: decoded.sub,
-            role: decoded.role,
+            role: user.role,
           };
           return next();
         } else {
           console.log('User NOT found for ID:', decoded.sub);
+          return res.status(401).json({
+            code: 'UNAUTHORIZED',
+            message: 'User session expired. Please log in again.',
+          });
         }
       } catch (tokenError) {
         console.error('Token verification error:', tokenError.message);
-        // Fall through to demo mode
+        return res.status(401).json({
+          code: 'UNAUTHORIZED',
+          message: 'Invalid or expired token. Please log in again.',
+        });
       }
     }
     
@@ -107,7 +114,13 @@ const authenticate = async (req, res, next) => {
 
 const requireRole = (...roles) => {
   return (req, res, next) => {
-    // DEMO MODE: Allow all roles
+    const userRole = req.auth?.role || req.user?.role;
+    if (!userRole || !roles.includes(userRole)) {
+      return res.status(403).json({
+        code: 'FORBIDDEN',
+        error: `Access denied. Required role(s): ${roles.join(', ')}`,
+      });
+    }
     next();
   };
 };

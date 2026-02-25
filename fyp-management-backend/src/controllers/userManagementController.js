@@ -7,15 +7,7 @@ const ActivityLog = require('../models/ActivityLog');
  */
 const getAllUsers = async (req, res, next) => {
   try {
-    const admin = await User.findById(req.auth.userId);
-    if (!admin || admin.role !== 'Admin') {
-      return res.status(403).json({
-        error: 'Only admins can view users',
-        code: 'FORBIDDEN',
-        status: 403,
-      });
-    }
-
+    // Role check is handled by requireRole('Admin') middleware on the route
     const { role, status = 'active', limit = 50, page = 1 } = req.query;
 
     const filter = {};
@@ -61,15 +53,7 @@ const getAllUsers = async (req, res, next) => {
  */
 const getUserById = async (req, res, next) => {
   try {
-    const admin = await User.findById(req.auth.userId);
-    if (!admin || admin.role !== 'Admin') {
-      return res.status(403).json({
-        error: 'Only admins can view user details',
-        code: 'FORBIDDEN',
-        status: 403,
-      });
-    }
-
+    // Role check is handled by requireRole('Admin') middleware on the route
     const user = await User.findById(req.params.userId).select('-passwordHash');
 
     if (!user) {
@@ -95,20 +79,12 @@ const getUserById = async (req, res, next) => {
  */
 const deactivateUser = async (req, res, next) => {
   try {
-    const admin = await User.findById(req.auth.userId);
-    if (!admin || admin.role !== 'Admin') {
-      return res.status(403).json({
-        error: 'Only admins can deactivate users',
-        code: 'FORBIDDEN',
-        status: 403,
-      });
-    }
-
+    // Role check is handled by requireRole('Admin') middleware on the route
     const { userId } = req.params;
     const { reason } = req.body;
 
     // Prevent self-deactivation
-    if (userId === admin._id.toString()) {
+    if (userId === req.auth.userId) {
       return res.status(400).json({
         error: 'Cannot deactivate yourself',
         code: 'INVALID_OPERATION',
@@ -139,7 +115,7 @@ const deactivateUser = async (req, res, next) => {
 
     // Log activity
     await ActivityLog.create({
-      user_id: admin._id,
+      user_id: req.auth.userId,
       action: 'user_deactivated',
       entityType: 'User',
       entityId: userId,
@@ -161,15 +137,7 @@ const deactivateUser = async (req, res, next) => {
  */
 const reactivateUser = async (req, res, next) => {
   try {
-    const admin = await User.findById(req.auth.userId);
-    if (!admin || admin.role !== 'Admin') {
-      return res.status(403).json({
-        error: 'Only admins can reactivate users',
-        code: 'FORBIDDEN',
-        status: 403,
-      });
-    }
-
+    // Role check is handled by requireRole('Admin') middleware on the route
     const user = await User.findById(req.params.userId);
     if (!user) {
       return res.status(404).json({
@@ -193,7 +161,7 @@ const reactivateUser = async (req, res, next) => {
 
     // Log activity
     await ActivityLog.create({
-      user_id: admin._id,
+      user_id: req.auth.userId,
       action: 'user_reactivated',
       entityType: 'User',
       entityId: user._id.toString(),
@@ -209,9 +177,82 @@ const reactivateUser = async (req, res, next) => {
   }
 };
 
+/**
+ * Create a new user
+ * Admin only
+ */
+const createUser = async (req, res, next) => {
+  try {
+    // Role check is handled by requireRole('Admin') middleware on the route
+    const { email, fullName, role, concentration, phone, password } = req.body;
+
+    // Validate required fields
+    if (!email || !fullName || !role) {
+      return res.status(400).json({
+        error: 'Email, fullName, and role are required',
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+
+    // Validate role
+    if (!['Student', 'Supervisor', 'Admin'].includes(role)) {
+      return res.status(400).json({
+        error: 'Role must be Student, Supervisor, or Admin',
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser) {
+      return res.status(409).json({
+        error: 'A user with this email already exists',
+        code: 'DUPLICATE_EMAIL',
+        status: 409,
+      });
+    }
+
+    const bcrypt = require('bcryptjs');
+    const defaultPassword = password || 'changeme123';
+    const passwordHash = await bcrypt.hash(defaultPassword, 10);
+
+    const user = await User.create({
+      email: email.toLowerCase(),
+      passwordHash,
+      fullName,
+      role,
+      concentration: concentration || undefined,
+      phone: phone || undefined,
+    });
+
+    // Log activity
+    await ActivityLog.create({
+      user_id: req.auth.userId,
+      action: 'user_created',
+      entityType: 'User',
+      entityId: user._id.toString(),
+      details: { role, email },
+    });
+
+    // Return user without passwordHash
+    const userObj = user.toObject();
+    delete userObj.passwordHash;
+
+    res.status(201).json({
+      data: userObj,
+      status: 201,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllUsers,
   getUserById,
+  createUser,
   deactivateUser,
   reactivateUser,
 };

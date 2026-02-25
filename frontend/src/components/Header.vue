@@ -26,15 +26,12 @@ const authStore = useAuthStore();
 
 const user = computed(() => authStore.user);
 
-const handleLogout = async () => {
-  try {
-    await authService.logout();
-  } catch (err) {
-    console.error('Logout error:', err);
-  } finally {
-    authStore.clearAuth();
-    await router.push('/login');
-  }
+const handleLogout = () => {
+  // Clear auth and redirect immediately
+  authStore.clearAuth();
+  router.push('/login');
+  // Fire backend logout in background (don't await)
+  authService.logout().catch(() => {});
 };
 </script>
 

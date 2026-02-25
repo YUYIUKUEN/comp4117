@@ -1,0 +1,56 @@
+import httpClient from './httpClient'
+
+interface CreateUserPayload {
+  email: string
+  fullName: string
+  role: 'Student' | 'Supervisor' | 'Admin'
+  concentration?: string
+  phone?: string
+  password?: string
+}
+
+interface User {
+  _id: string
+  email: string
+  fullName: string
+  role: string
+  concentration?: string
+  phone?: string
+  createdAt: string
+  deactivatedAt?: string
+}
+
+interface PaginatedUsers {
+  data: {
+    users: User[]
+    pagination: {
+      page: number
+      limit: number
+      total: number
+      pages: number
+    }
+  }
+  status: number
+}
+
+export default {
+  async getUsers(params: { role?: string; status?: string; page?: number; limit?: number } = {}): Promise<PaginatedUsers> {
+    const response = await httpClient.get('/admin/users', { params })
+    return response.data
+  },
+
+  async createUser(payload: CreateUserPayload): Promise<{ data: User; status: number }> {
+    const response = await httpClient.post('/admin/users', payload)
+    return response.data
+  },
+
+  async deactivateUser(userId: string, reason?: string): Promise<{ data: User; status: number }> {
+    const response = await httpClient.post(`/admin/users/${userId}/deactivate`, { reason })
+    return response.data
+  },
+
+  async reactivateUser(userId: string): Promise<{ data: User; status: number }> {
+    const response = await httpClient.post(`/admin/users/${userId}/reactivate`)
+    return response.data
+  },
+}

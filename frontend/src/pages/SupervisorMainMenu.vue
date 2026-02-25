@@ -6,7 +6,7 @@ import {
   DocumentTextIcon,
   CheckCircleIcon,
   StarIcon,
-  ClipboardListIcon,
+  ClipboardDocumentListIcon,
   BellIcon,
 } from '@heroicons/vue/24/outline';
 
@@ -51,7 +51,7 @@ const menuItems = [
   {
     title: 'Activity Logs',
     description: 'View system activity',
-    icon: ClipboardListIcon,
+    icon: ClipboardDocumentListIcon,
     route: '/supervisor/activity-logs',
     color: 'bg-indigo-50 border-indigo-200 text-indigo-700',
   },

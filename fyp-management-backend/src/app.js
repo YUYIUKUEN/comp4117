@@ -24,6 +24,7 @@ const dashboardRoutes = require('./routes/dashboardRoutes');
 const userManagementRoutes = require('./routes/userManagementRoutes');
 const topicModerationRoutes = require('./routes/topicModerationRoutes');
 const applicationRoutes = require('./routes/applicationRoutes');
+const activityRoutes = require('./routes/activityRoutes');
 const healthRoutes = require('./routes/healthRoutes');
 
 app.use('/api/v1/auth', authRoutes);
@@ -32,6 +33,7 @@ app.use('/api/v1/applications', applicationRoutes);
 app.use('/api/v1/dashboards', dashboardRoutes);
 app.use('/api/v1/admin/users', userManagementRoutes);
 app.use('/api/v1/admin/topics', topicModerationRoutes);
+app.use('/api/v1/activity', activityRoutes);
 app.use('/api/v1/health', healthRoutes);
 
 // 404 handler

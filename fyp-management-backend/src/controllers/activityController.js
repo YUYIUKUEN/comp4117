@@ -8,16 +8,7 @@ const mongoose = require('mongoose');
  */
 const getActivityLogs = async (req, res, next) => {
   try {
-    // Verify admin role
-    const user = await User.findById(req.auth.userId);
-    if (!user || user.role !== 'Admin') {
-      return res.status(403).json({
-        error: 'Only admins can view activity logs',
-        code: 'ADMIN_ONLY',
-        status: 403,
-      });
-    }
-
+    // Role check handled by requireRole('Admin') middleware
     const {
       action,
       entityType,

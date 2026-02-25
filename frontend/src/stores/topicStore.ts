@@ -79,7 +79,14 @@ export const useTopicStore = defineStore('topic', () => {
     loading.value = true
     error.value = null
     try {
-      selectedTopic.value = await topicService.getTopicById(id)
+      const response = await topicService.getTopicById(id)
+      // API returns { data: { ...topic }, status: 200 } — unwrap the nested data
+      const topic = response.data || response
+      // Map supervisor_id.fullName to supervisorName for template compatibility
+      if (topic.supervisor_id && typeof topic.supervisor_id === 'object') {
+        topic.supervisorName = topic.supervisor_id.fullName || ''
+      }
+      selectedTopic.value = topic
     } catch (err: any) {
       error.value = err.response?.data?.error || 'Failed to fetch topic'
       selectedTopic.value = null
