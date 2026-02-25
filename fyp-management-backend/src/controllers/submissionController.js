@@ -254,7 +254,7 @@ const getSupervisorSubmissions = async (req, res, next) => {
     const submissions = await Submission.find(filter)
       .populate('student_id', 'fullName email')
       .populate('topic_id', 'title')
-      .sort({ submittedAt: -1 });
+      .sort({ _id: -1 });
 
     res.json({
       data: submissions,

@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
-import applicationService from '@/services/applicationService';
+import assignmentService from '@/services/assignmentService';
 import {
   Bars3Icon,
   AcademicCapIcon,
@@ -25,19 +25,24 @@ const supervisor = computed(() => ({
   dept: 'Department',
 }));
 
-const applications = ref<any[]>([]);
+const assignments = ref<any[]>([]);
 
-// Transform applications data to student format
+// Transform assignment data to student format (only matched/assigned students)
 const students = computed(() => {
-  return applications.value
-    .filter(app => app.student_id) // Filter out any apps without student data
-    .map(app => ({
-      id: app._id,
-      name: app.student_id.fullName,
-      studentId: app.student_id._id.substring(0, 8).toUpperCase(),
-      programme: app.student_id.concentration || 'Unknown',
-      topic: app.topic_id?.title || 'Topic Deleted',
-      status: app.status === 'Approved' ? 'Active' : app.status,
+  return assignments.value
+    .filter(a => a.student_id && a.topic_id)
+    .map(a => ({
+      id: a._id,
+      name: a.student_id.fullName,
+      email: a.student_id.email || '—',
+      phone: a.student_id.phone || '—',
+      studentId: a.student_id._id.substring(0, 8).toUpperCase(),
+      programme: a.student_id.concentration || 'Unknown',
+      topic: a.topic_id?.title || 'Topic Deleted',
+      topicDescription: a.topic_id?.description || '',
+      keywords: a.topic_id?.keywords || [],
+      status: a.status,
+      assignedAt: a.assigned_at,
       progress1: 'Pending', // Will be fetched from submissions in future
       ethics: 'Not Required', // Will be fetched from submissions in future
     }));
@@ -51,20 +56,22 @@ const filteredStudents = computed(() => {
   return students.value.filter(student =>
     student.name.toLowerCase().includes(query) ||
     student.studentId.toLowerCase().includes(query) ||
-    student.topic.toLowerCase().includes(query)
+    student.topic.toLowerCase().includes(query) ||
+    student.email.toLowerCase().includes(query) ||
+    student.programme.toLowerCase().includes(query)
   );
 });
 
-// Fetch supervised students from database
+// Fetch supervised students from database (using assignments, not applications)
 const fetchStudents = async () => {
   try {
     isLoading.value = true;
     errorMessage.value = '';
-    const response = await applicationService.getSupervisorApplications({
+    const response = await assignmentService.getSupervisorAssignments({
       limit: 100,
-      page: 1
+      page: 1,
     });
-    applications.value = response.data;
+    assignments.value = response.data;
   } catch (error: any) {
     console.error('Failed to fetch students:', error);
     errorMessage.value = error.response?.data?.message || 'Failed to load students. Please try again.';
@@ -262,13 +269,16 @@ const getSubmissionStatusColor = (status: string) => {
                     Student Details
                   </th>
                   <th class="px-4 py-3 text-left font-semibold text-slate-900">
+                    Contact
+                  </th>
+                  <th class="px-4 py-3 text-left font-semibold text-slate-900">
                     Topic
                   </th>
                   <th class="px-4 py-3 text-left font-semibold text-slate-900">
                     Programme
                   </th>
                   <th class="px-4 py-3 text-left font-semibold text-slate-900">
-                    Progress 1
+                    Assigned
                   </th>
                   <th class="px-4 py-3 text-left font-semibold text-slate-900">
                     Status
@@ -295,9 +305,28 @@ const getSubmissionStatusColor = (status: string) => {
                     </div>
                   </td>
                   <td class="px-4 py-3">
-                    <p class="text-xs text-slate-600 line-clamp-2">
+                    <div>
+                      <p class="text-xs text-slate-600">
+                        {{ student.email }}
+                      </p>
+                      <p v-if="student.phone !== '—'" class="text-xs text-slate-400 mt-0.5">
+                        {{ student.phone }}
+                      </p>
+                    </div>
+                  </td>
+                  <td class="px-4 py-3">
+                    <p class="text-xs text-slate-600 line-clamp-2 font-medium">
                       {{ student.topic }}
                     </p>
+                    <div v-if="student.keywords.length" class="flex flex-wrap gap-1 mt-1">
+                      <span
+                        v-for="kw in student.keywords.slice(0, 3)"
+                        :key="kw"
+                        class="inline-block rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500"
+                      >
+                        {{ kw }}
+                      </span>
+                    </div>
                   </td>
                   <td class="px-4 py-3">
                     <p class="text-xs text-slate-600">
@@ -305,9 +334,9 @@ const getSubmissionStatusColor = (status: string) => {
                     </p>
                   </td>
                   <td class="px-4 py-3">
-                    <span :class="['text-xs font-medium', getSubmissionStatusColor(student.progress1)]">
-                      {{ student.progress1 }}
-                    </span>
+                    <p class="text-xs text-slate-600">
+                      {{ student.assignedAt ? new Date(student.assignedAt).toLocaleDateString() : '—' }}
+                    </p>
                   </td>
                   <td class="px-4 py-3">
                     <span
