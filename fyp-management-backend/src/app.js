@@ -27,6 +27,7 @@ const applicationRoutes = require('./routes/applicationRoutes');
 const assignmentRoutes = require('./routes/assignmentRoutes');
 const submissionRoutes = require('./routes/submissionRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
+const activityRoutes = require('./routes/activityRoutes');
 const healthRoutes = require('./routes/healthRoutes');
 
 app.use('/api/v1/auth', authRoutes);
@@ -38,6 +39,7 @@ app.use('/api/v1/submissions', submissionRoutes);
 app.use('/api/v1/feedback', feedbackRoutes);
 app.use('/api/v1/admin/users', userManagementRoutes);
 app.use('/api/v1/admin/topics', topicModerationRoutes);
+app.use('/api/v1/activity', activityRoutes);
 app.use('/api/v1/health', healthRoutes);
 
 // 404 handler

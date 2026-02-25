@@ -88,9 +88,9 @@ exports.applyToTopic = async (req, res) => {
     await ActivityLog.create({
       user_id: student_id,
       action: 'APPLY_TOPIC',
-      entity_type: 'Application',
-      entity_id: application._id,
-      changes: {
+      entityType: 'Application',
+      entityId: application._id,
+      details: {
         status: 'Pending',
         preference_rank,
       },
@@ -334,9 +334,9 @@ exports.withdrawApplication = async (req, res) => {
     await ActivityLog.create({
       user_id: student_id,
       action: 'WITHDRAW_APPLICATION',
-      entity_type: 'Application',
-      entity_id: id,
-      changes: {
+      entityType: 'Application',
+      entityId: id,
+      details: {
         status: 'Withdrawn',
       },
     });
@@ -575,9 +575,9 @@ exports.approveApplication = async (req, res) => {
       await ActivityLog.create({
         user_id: supervisor_id,
         action: 'REJECT_APPLICATION',
-        entity_type: 'Application',
-        entity_id: otherApp._id,
-        changes: {
+        entityType: 'Application',
+        entityId: otherApp._id,
+        details: {
           status: 'Rejected',
           reason: 'Student assigned to another topic',
         },
@@ -588,9 +588,9 @@ exports.approveApplication = async (req, res) => {
     await ActivityLog.create({
       user_id: supervisor_id,
       action: 'APPROVE_APPLICATION',
-      entity_type: 'Application',
-      entity_id: applicationId,
-      changes: {
+      entityType: 'Application',
+      entityId: applicationId,
+      details: {
         status: 'Approved',
         assignment_id: assignment._id,
       },
@@ -671,9 +671,9 @@ exports.rejectApplication = async (req, res) => {
     await ActivityLog.create({
       user_id: supervisor_id,
       action: 'REJECT_APPLICATION',
-      entity_type: 'Application',
-      entity_id: applicationId,
-      changes: {
+      entityType: 'Application',
+      entityId: applicationId,
+      details: {
         status: 'Rejected',
         reason: supervisorNotes,
       },

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import {
   PencilIcon,
   DocumentTextIcon,
@@ -20,9 +20,11 @@ interface SubmissionItem {
 }
 
 const router = useRouter();
+const route = useRoute();
 const submissions = ref<SubmissionItem[]>([]);
 const isLoading = ref(false);
 const errorMessage = ref('');
+const filterStudentId = ref<string | null>(null);
 
 const fetchSubmissions = async () => {
   try {
@@ -53,11 +55,34 @@ const fetchSubmissions = async () => {
 };
 
 onMounted(() => {
+  filterStudentId.value = (route.query.student as string) || null;
   fetchSubmissions();
 });
 
+// Watch for route query changes
+watch(() => route.query.student, (val) => {
+  filterStudentId.value = (val as string) || null;
+});
+
+const clearFilter = () => {
+  filterStudentId.value = null;
+  router.replace({ query: {} });
+};
+
+const filteredStudentName = computed(() => {
+  if (!filterStudentId.value) return null;
+  const sub = submissions.value.find(
+    s => s.student_id?._id === filterStudentId.value
+  );
+  return sub?.student_id?.fullName || null;
+});
+
 const feedbackItems = computed(() => {
-  return submissions.value.map(sub => ({
+  let subs = submissions.value;
+  if (filterStudentId.value) {
+    subs = subs.filter(s => s.student_id?._id === filterStudentId.value);
+  }
+  return subs.map(sub => ({
     id: sub._id,
     studentName: sub.student_id?.fullName || 'Unknown Student',
     studentEmail: sub.student_id?.email || '',
@@ -103,6 +128,19 @@ const getStatusColor = (status: string) => {
         Review and grade student submissions
       </p>
     </section>
+
+    <!-- Student filter banner -->
+    <div v-if="filterStudentId" class="mb-4 flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5">
+      <p class="text-sm text-blue-800">
+        Showing submissions for <span class="font-semibold">{{ filteredStudentName || 'selected student' }}</span>
+      </p>
+      <button
+        @click="clearFilter"
+        class="ml-auto inline-flex items-center rounded-full border border-blue-300 bg-white px-3 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
+      >
+        Show all students
+      </button>
+    </div>
 
     <!-- Error Message -->
     <div v-if="errorMessage" class="mb-4 rounded-lg border border-red-200 bg-red-50 p-4">

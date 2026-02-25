@@ -11,8 +11,10 @@ const items = [
   { id: 'dashboard', label: 'Dashboard', path: '/supervisor/dashboard' },
   { id: 'students', label: 'All Students', path: '/supervisor/students' },
   { id: 'topics', label: 'My Topics', path: '/supervisor/topics' },
+  { id: 'pending-approvals', label: 'Pending Approvals', path: '/supervisor/pending-approvals' },
   { id: 'feedback', label: 'Feedback & Grading', path: '/supervisor/feedback-grading' },
   { id: 'activity', label: 'Activity Logs', path: '/supervisor/activity-logs' },
+  { id: 'reminders', label: 'Reminders Queue', path: '/supervisor/reminders' },
 ]
 
 const navigate = (path: string) => {

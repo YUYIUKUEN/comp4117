@@ -187,9 +187,9 @@ exports.completeAssignment = async (req, res) => {
     await ActivityLog.create({
       user_id: supervisor_id,
       action: 'COMPLETE_ASSIGNMENT',
-      entity_type: 'Assignment',
-      entity_id: id,
-      changes: {
+      entityType: 'Assignment',
+      entityId: id,
+      details: {
         status: 'Completed',
       },
     });

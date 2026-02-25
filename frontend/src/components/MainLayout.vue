@@ -44,12 +44,15 @@ const currentRoute = computed(() => {
   if (path === '/archive') return 'archive';
   if (path === '/reminders') return 'reminders';
   // Supervisor routes
-  if (path === '/supervisor/dashboard') return 'sup-dashboard';
-  if (path === '/supervisor/topics') return 'sup-topics';
-  if (path === '/supervisor/feedback-grading') return 'feedback-grading';
-  if (path === '/supervisor/feedback-form') return 'feedback-grading';
+  if (path === '/supervisor/dashboard') return 'dashboard';
+  if (path === '/supervisor/students') return 'students';
+  if (path === '/supervisor/topics') return 'topics';
+  if (path === '/supervisor/pending-approvals') return 'pending-approvals';
+  if (path === '/supervisor/feedback-grading') return 'feedback';
+  if (path === '/supervisor/feedback-form') return 'feedback';
   if (path === '/supervisor/feedback') return 'feedback';
-  if (path === '/supervisor/activity') return 'activity';
+  if (path === '/supervisor/activity-logs') return 'activity';
+  if (path === '/supervisor/reminders') return 'reminders';
   // Admin routes
   if (path === '/admin') return 'admin';
   if (path === '/admin/students-cohorts') return 'admin-cohorts';
