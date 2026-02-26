@@ -8,6 +8,7 @@ import {
   EnvelopeIcon,
   Cog6ToothIcon,
   BoltIcon,
+  EyeIcon,
 } from '@heroicons/vue/24/outline';
 import httpClient from '@/services/httpClient';
 import { useAuthStore } from '@/stores/authStore';
@@ -32,13 +33,38 @@ interface ReminderItem {
   phase: string;
 }
 
+interface EmailTemplate {
+  subjectOverdue: string;
+  subjectPending: string;
+  greeting: string;
+  bodyOverdue: string;
+  bodyPending: string;
+  closingOverdue: string;
+  closingPending: string;
+  signOff: string;
+  teamName: string;
+}
+
 interface AutoReminderSettings {
   enabled: boolean;
   frequencyHours: number;
   maxRemindersPerStudent: number;
   targetStatuses: string[];
   customMessage: string;
+  emailTemplate: EmailTemplate;
 }
+
+const defaultTemplate: EmailTemplate = {
+  subjectOverdue: 'Reminder: {{phase}} Submission Overdue',
+  subjectPending: 'Reminder: {{phase}} Submission Pending',
+  greeting: 'Dear {{studentName}},',
+  bodyOverdue: 'This is a reminder that your submission for <strong>{{phase}}</strong> (Topic: <em>{{topicTitle}}</em>) is currently <strong>overdue</strong>.',
+  bodyPending: 'This is a reminder that your submission for <strong>{{phase}}</strong> (Topic: <em>{{topicTitle}}</em>) has <strong>not yet been submitted</strong>.',
+  closingOverdue: 'Please submit your work as soon as possible through the FYP Management Platform to avoid further penalties.',
+  closingPending: 'Please submit your work before the deadline through the FYP Management Platform.',
+  signOff: 'Best regards,',
+  teamName: 'FYP Management Team',
+};
 
 const reminders = ref<ReminderItem[]>([]);
 const isLoading = ref(false);
@@ -53,16 +79,48 @@ const customMessage = ref('');
 
 // Settings panel state
 const showSettings = ref(false);
+const settingsTab = ref<'general' | 'template'>('general');
 const settingsLoading = ref(false);
 const settingsSaving = ref(false);
 const autoSendRunning = ref(false);
+const previewMode = ref<'overdue' | 'pending'>('overdue');
 const autoSettings = ref<AutoReminderSettings>({
   enabled: false,
   frequencyHours: 24,
   maxRemindersPerStudent: 3,
   targetStatuses: ['Overdue', 'Not Submitted'],
   customMessage: '',
+  emailTemplate: { ...defaultTemplate },
 });
+
+/** Fill template variables with sample data for preview */
+const fillPreview = (str: string) => {
+  const sampleVars: Record<string, string> = {
+    studentName: 'John Doe',
+    phase: 'Progress Report 1',
+    topicTitle: 'AI-Powered Student Dashboard',
+    dueDate: 'April 15, 2026',
+  };
+  return (str || '').replace(/\{\{(\w+)\}\}/g, (_, k: string) => sampleVars[k] || `{{${k}}}`);
+};
+
+const templatePreview = computed(() => {
+  const t = autoSettings.value.emailTemplate || defaultTemplate;
+  const isOverdue = previewMode.value === 'overdue';
+  return {
+    subject: fillPreview(isOverdue ? t.subjectOverdue : t.subjectPending),
+    greeting: fillPreview(t.greeting),
+    body: fillPreview(isOverdue ? t.bodyOverdue : t.bodyPending),
+    closing: fillPreview(isOverdue ? t.closingOverdue : t.closingPending),
+    signOff: fillPreview(t.signOff),
+    teamName: fillPreview(t.teamName),
+  };
+});
+
+const resetTemplate = () => {
+  autoSettings.value.emailTemplate = { ...defaultTemplate };
+  showToast('Template reset to defaults.', 'success');
+};
 
 const showToast = (message: string, type: 'success' | 'error' = 'success') => {
   toast.value = { message, type };
@@ -101,7 +159,12 @@ const fetchSettings = async () => {
   settingsLoading.value = true;
   try {
     const res = await httpClient.get('/admin/reminders/settings');
-    autoSettings.value = { ...autoSettings.value, ...res.data.data };
+    const data = res.data.data;
+    autoSettings.value = {
+      ...autoSettings.value,
+      ...data,
+      emailTemplate: { ...defaultTemplate, ...(data.emailTemplate || {}) },
+    };
   } catch (error) {
     console.error('Failed to load settings:', error);
   } finally {
