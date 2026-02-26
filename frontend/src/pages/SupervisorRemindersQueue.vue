@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   ArrowLeftIcon,
@@ -119,7 +119,120 @@ const templatePreview = computed(() => {
 
 const resetTemplate = () => {
   autoSettings.value.emailTemplate = { ...defaultTemplate };
+  activePreset.value = null;
   showToast('Template reset to defaults.', 'success');
+};
+
+/* ---- Template presets ---- */
+const templatePresets: { key: string; label: string; icon: string; desc: string; template: EmailTemplate }[] = [
+  {
+    key: 'friendly',
+    label: 'Friendly Reminder',
+    icon: '😊',
+    desc: 'Warm, encouraging tone',
+    template: {
+      subjectOverdue: 'Gentle Reminder: Your {{phase}} Submission',
+      subjectPending: 'Quick Reminder: {{phase}} Submission',
+      greeting: 'Hi {{studentName}},',
+      bodyOverdue: 'Just a friendly reminder that your submission for <strong>{{phase}}</strong> (Topic: <em>{{topicTitle}}</em>) is now past the due date. We understand things can get busy!',
+      bodyPending: 'Just a quick heads-up — your submission for <strong>{{phase}}</strong> (Topic: <em>{{topicTitle}}</em>) hasn\'t been submitted yet.',
+      closingOverdue: 'Please try to submit as soon as you can. If you\'re having any difficulties, don\'t hesitate to reach out to your supervisor for support.',
+      closingPending: 'Please remember to submit before the deadline. If you need any help, feel free to reach out to your supervisor.',
+      signOff: 'Best wishes,',
+      teamName: 'FYP Management Team',
+    },
+  },
+  {
+    key: 'urgent',
+    label: 'Urgent Notice',
+    icon: '⚠️',
+    desc: 'Firm, action-oriented tone',
+    template: {
+      subjectOverdue: 'URGENT: {{phase}} Submission Overdue – Immediate Action Required',
+      subjectPending: 'Action Required: {{phase}} Submission Deadline Approaching',
+      greeting: 'Dear {{studentName}},',
+      bodyOverdue: 'This is an <strong>urgent notice</strong> that your submission for <strong>{{phase}}</strong> (Topic: <em>{{topicTitle}}</em>) is <strong>overdue</strong>. Failure to submit may result in academic penalties.',
+      bodyPending: 'This is an important reminder that your submission for <strong>{{phase}}</strong> (Topic: <em>{{topicTitle}}</em>) has <strong>not yet been received</strong>. Please take immediate action.',
+      closingOverdue: 'You must submit your work <strong>immediately</strong> through the FYP Management Platform. Contact your supervisor if you are facing any issues that prevent submission.',
+      closingPending: 'Please ensure your work is submitted before the deadline to avoid any penalties. Contact your supervisor immediately if you are unable to submit.',
+      signOff: 'Regards,',
+      teamName: 'FYP Management Team',
+    },
+  },
+  {
+    key: 'formal',
+    label: 'Formal Academic',
+    icon: '🎓',
+    desc: 'Professional, institutional tone',
+    template: {
+      subjectOverdue: 'Notice: Outstanding {{phase}} Submission',
+      subjectPending: 'Reminder: Pending {{phase}} Submission',
+      greeting: 'Dear {{studentName}},',
+      bodyOverdue: 'We wish to inform you that the submission for <strong>{{phase}}</strong> (Topic: <em>{{topicTitle}}</em>) remains outstanding as of the current date.',
+      bodyPending: 'This correspondence serves as a reminder that your submission for <strong>{{phase}}</strong> (Topic: <em>{{topicTitle}}</em>) has not yet been received by the department.',
+      closingOverdue: 'You are advised to complete and submit your work through the FYP Management Platform at your earliest convenience. Late submissions may be subject to the penalties outlined in the programme handbook.',
+      closingPending: 'Kindly ensure your submission is completed before the stipulated deadline via the FYP Management Platform.',
+      signOff: 'Yours sincerely,',
+      teamName: 'FYP Management Office',
+    },
+  },
+];
+
+const activePreset = ref<string | null>(null);
+
+const applyPreset = (preset: typeof templatePresets[number]) => {
+  autoSettings.value.emailTemplate = { ...preset.template };
+  activePreset.value = preset.key;
+  showToast(`Applied "${preset.label}" template.`, 'success');
+};
+
+/* ---- Template field helpers ---- */
+const lastFocusedField = ref<{ el: HTMLInputElement | HTMLTextAreaElement; key: keyof EmailTemplate } | null>(null);
+
+const handleFieldFocus = (event: FocusEvent, key: keyof EmailTemplate) => {
+  lastFocusedField.value = { el: event.target as HTMLInputElement | HTMLTextAreaElement, key };
+};
+
+/** Insert a variable placeholder at the cursor position in the last-focused field */
+const insertVariable = (varName: string) => {
+  if (!lastFocusedField.value) {
+    showToast('Click on a text field first, then click an Insert button.', 'error');
+    return;
+  }
+  const { el, key } = lastFocusedField.value;
+  const placeholder = `{{${varName}}}`;
+  const start = el.selectionStart ?? 0;
+  const end = el.selectionEnd ?? 0;
+  const cur = autoSettings.value.emailTemplate[key] || '';
+  autoSettings.value.emailTemplate[key] = cur.substring(0, start) + placeholder + cur.substring(end);
+  nextTick(() => {
+    el.focus();
+    const pos = start + placeholder.length;
+    el.setSelectionRange(pos, pos);
+  });
+};
+
+/** Wrap the selected text in the last-focused field with a formatting tag */
+const applyFormatting = (tag: 'strong' | 'em') => {
+  if (!lastFocusedField.value) {
+    showToast('Click on a text field and select some text first.', 'error');
+    return;
+  }
+  const { el, key } = lastFocusedField.value;
+  const start = el.selectionStart ?? 0;
+  const end = el.selectionEnd ?? 0;
+  if (start === end) {
+    showToast('Highlight some text first, then click Bold or Italic.', 'error');
+    return;
+  }
+  const cur = autoSettings.value.emailTemplate[key] || '';
+  const selected = cur.substring(start, end);
+  const wrapped = `<${tag}>${selected}</${tag}>`;
+  autoSettings.value.emailTemplate[key] = cur.substring(0, start) + wrapped + cur.substring(end);
+  nextTick(() => {
+    el.focus();
+    el.setSelectionRange(start + wrapped.length, start + wrapped.length);
+  });
 };
 
 const showToast = (message: string, type: 'success' | 'error' = 'success') => {
@@ -500,16 +613,57 @@ onMounted(() => {
 
             <!-- ============ Email Template tab ============ -->
             <div v-if="settingsTab === 'template'" class="space-y-4">
-              <!-- Variable guide -->
-              <div class="rounded-lg border border-blue-100 bg-blue-50/50 p-3">
-                <p class="text-xs font-medium text-blue-700 mb-1">Available Variables</p>
-                <div class="flex flex-wrap gap-1.5">
-                  <code class="rounded bg-white border border-blue-200 px-1.5 py-0.5 text-[11px] text-blue-800 font-mono">{<!-- -->{studentName}}</code>
-                  <code class="rounded bg-white border border-blue-200 px-1.5 py-0.5 text-[11px] text-blue-800 font-mono">{<!-- -->{phase}}</code>
-                  <code class="rounded bg-white border border-blue-200 px-1.5 py-0.5 text-[11px] text-blue-800 font-mono">{<!-- -->{topicTitle}}</code>
-                  <code class="rounded bg-white border border-blue-200 px-1.5 py-0.5 text-[11px] text-blue-800 font-mono">{<!-- -->{dueDate}}</code>
+              <!-- Preset picker -->
+              <div>
+                <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">Start from a preset</p>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="preset in templatePresets"
+                    :key="preset.key"
+                    @click="applyPreset(preset)"
+                    :class="[
+                      'group flex items-center gap-2 rounded-lg border px-3 py-2 text-left transition-all hover:shadow-sm',
+                      activePreset === preset.key
+                        ? 'border-blue-300 bg-blue-50 ring-1 ring-blue-200'
+                        : 'border-slate-200 bg-white hover:border-slate-300',
+                    ]"
+                  >
+                    <span class="text-base">{{ preset.icon }}</span>
+                    <div>
+                      <span class="block text-xs font-medium text-slate-800">{{ preset.label }}</span>
+                      <span class="block text-[10px] text-slate-500">{{ preset.desc }}</span>
+                    </div>
+                  </button>
                 </div>
-                <p class="text-[11px] text-blue-600 mt-1.5">You can use basic HTML like <code class="bg-white px-1 rounded">&lt;strong&gt;</code>, <code class="bg-white px-1 rounded">&lt;em&gt;</code> in body fields.</p>
+              </div>
+
+              <!-- Formatting & variable insertion toolbar -->
+              <div class="rounded-lg border border-slate-200 bg-slate-50/80 p-3 space-y-2">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Format:</span>
+                  <button
+                    @click="applyFormatting('strong')"
+                    class="inline-flex items-center justify-center h-7 w-7 rounded-md border border-slate-300 bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 hover:border-slate-400 shadow-sm transition-colors"
+                    title="Bold – select text in a field first"
+                  >B</button>
+                  <button
+                    @click="applyFormatting('em')"
+                    class="inline-flex items-center justify-center h-7 w-7 rounded-md border border-slate-300 bg-white text-xs italic text-slate-700 hover:bg-slate-100 hover:border-slate-400 shadow-sm transition-colors"
+                    title="Italic – select text in a field first"
+                  >I</button>
+
+                  <span class="h-5 border-l border-slate-300 mx-0.5"></span>
+
+                  <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Insert:</span>
+                  <button @click="insertVariable('studentName')" class="rounded-full bg-blue-50 border border-blue-200 text-blue-700 px-2.5 py-1 text-[11px] font-medium hover:bg-blue-100 transition-colors">+ Student Name</button>
+                  <button @click="insertVariable('phase')" class="rounded-full bg-violet-50 border border-violet-200 text-violet-700 px-2.5 py-1 text-[11px] font-medium hover:bg-violet-100 transition-colors">+ Phase</button>
+                  <button @click="insertVariable('topicTitle')" class="rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 px-2.5 py-1 text-[11px] font-medium hover:bg-emerald-100 transition-colors">+ Topic Title</button>
+                  <button @click="insertVariable('dueDate')" class="rounded-full bg-amber-50 border border-amber-200 text-amber-700 px-2.5 py-1 text-[11px] font-medium hover:bg-amber-100 transition-colors">+ Due Date</button>
+                </div>
+                <p class="text-[11px] text-slate-500 leading-relaxed">
+                  <strong>How to use:</strong> Click on any text field below, then click an <em>Insert</em> button to add dynamic content at your cursor.
+                  To <strong>bold</strong> or <em>italicise</em> text, highlight it first then click <strong>B</strong> or <strong>I</strong>.
+                </p>
               </div>
 
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -517,75 +671,108 @@ onMounted(() => {
                 <div class="space-y-3">
                   <h3 class="text-xs font-semibold text-slate-700 uppercase tracking-wide">Edit Template</h3>
 
+                  <!-- Subject lines -->
+                  <fieldset class="space-y-2 rounded-lg border border-slate-100 bg-white p-3">
+                    <legend class="text-[11px] font-semibold text-slate-500 px-1">📧 Subject Lines</legend>
+                    <div>
+                      <label class="block text-[11px] font-medium text-slate-600 mb-0.5">When submission is overdue</label>
+                      <input
+                        v-model="autoSettings.emailTemplate.subjectOverdue"
+                        @focus="handleFieldFocus($event, 'subjectOverdue')"
+                        class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-[11px] font-medium text-slate-600 mb-0.5">When submission is pending</label>
+                      <input
+                        v-model="autoSettings.emailTemplate.subjectPending"
+                        @focus="handleFieldFocus($event, 'subjectPending')"
+                        class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+                      />
+                    </div>
+                  </fieldset>
+
+                  <!-- Greeting -->
                   <div>
-                    <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Subject (Overdue)</label>
-                    <input
-                      v-model="autoSettings.emailTemplate.subjectOverdue"
-                      class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Subject (Pending)</label>
-                    <input
-                      v-model="autoSettings.emailTemplate.subjectPending"
-                      class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Greeting</label>
+                    <label class="block text-[11px] font-medium text-slate-600 mb-0.5">Greeting</label>
                     <input
                       v-model="autoSettings.emailTemplate.greeting"
-                      class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
+                      @focus="handleFieldFocus($event, 'greeting')"
+                      class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
                     />
+                    <p class="text-[10px] text-slate-400 mt-0.5">The opening line of every email, e.g. "Dear John Doe,"</p>
                   </div>
-                  <div>
-                    <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Body (Overdue)</label>
-                    <textarea
-                      v-model="autoSettings.emailTemplate.bodyOverdue"
-                      rows="2"
-                      class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none resize-none"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Body (Pending)</label>
-                    <textarea
-                      v-model="autoSettings.emailTemplate.bodyPending"
-                      rows="2"
-                      class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none resize-none"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Closing (Overdue)</label>
-                    <textarea
-                      v-model="autoSettings.emailTemplate.closingOverdue"
-                      rows="2"
-                      class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none resize-none"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Closing (Pending)</label>
-                    <textarea
-                      v-model="autoSettings.emailTemplate.closingPending"
-                      rows="2"
-                      class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none resize-none"
-                    />
-                  </div>
-                  <div class="grid grid-cols-2 gap-3">
+
+                  <!-- Body -->
+                  <fieldset class="space-y-2 rounded-lg border border-slate-100 bg-white p-3">
+                    <legend class="text-[11px] font-semibold text-slate-500 px-1">📝 Email Body</legend>
                     <div>
-                      <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Sign Off</label>
-                      <input
-                        v-model="autoSettings.emailTemplate.signOff"
-                        class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
+                      <label class="block text-[11px] font-medium text-slate-600 mb-0.5">Message for overdue submissions</label>
+                      <textarea
+                        v-model="autoSettings.emailTemplate.bodyOverdue"
+                        @focus="handleFieldFocus($event, 'bodyOverdue')"
+                        rows="2"
+                        class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none resize-none"
                       />
                     </div>
                     <div>
-                      <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Team Name</label>
-                      <input
-                        v-model="autoSettings.emailTemplate.teamName"
-                        class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
+                      <label class="block text-[11px] font-medium text-slate-600 mb-0.5">Message for pending submissions</label>
+                      <textarea
+                        v-model="autoSettings.emailTemplate.bodyPending"
+                        @focus="handleFieldFocus($event, 'bodyPending')"
+                        rows="2"
+                        class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none resize-none"
                       />
                     </div>
-                  </div>
+                  </fieldset>
+
+                  <!-- Closing -->
+                  <fieldset class="space-y-2 rounded-lg border border-slate-100 bg-white p-3">
+                    <legend class="text-[11px] font-semibold text-slate-500 px-1">✉️ Closing Message</legend>
+                    <div>
+                      <label class="block text-[11px] font-medium text-slate-600 mb-0.5">Closing for overdue submissions</label>
+                      <textarea
+                        v-model="autoSettings.emailTemplate.closingOverdue"
+                        @focus="handleFieldFocus($event, 'closingOverdue')"
+                        rows="2"
+                        class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none resize-none"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-[11px] font-medium text-slate-600 mb-0.5">Closing for pending submissions</label>
+                      <textarea
+                        v-model="autoSettings.emailTemplate.closingPending"
+                        @focus="handleFieldFocus($event, 'closingPending')"
+                        rows="2"
+                        class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none resize-none"
+                      />
+                    </div>
+                  </fieldset>
+
+                  <!-- Signature -->
+                  <fieldset class="space-y-2 rounded-lg border border-slate-100 bg-white p-3">
+                    <legend class="text-[11px] font-semibold text-slate-500 px-1">✍️ Signature</legend>
+                    <div class="grid grid-cols-2 gap-3">
+                      <div>
+                        <label class="block text-[11px] font-medium text-slate-600 mb-0.5">Sign Off</label>
+                        <input
+                          v-model="autoSettings.emailTemplate.signOff"
+                          @focus="handleFieldFocus($event, 'signOff')"
+                          class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+                        />
+                        <p class="text-[10px] text-slate-400 mt-0.5">e.g. "Best regards,"</p>
+                      </div>
+                      <div>
+                        <label class="block text-[11px] font-medium text-slate-600 mb-0.5">Team / Sender Name</label>
+                        <input
+                          v-model="autoSettings.emailTemplate.teamName"
+                          @focus="handleFieldFocus($event, 'teamName')"
+                          class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+                        />
+                        <p class="text-[10px] text-slate-400 mt-0.5">Shown as the sender</p>
+                      </div>
+                    </div>
+                  </fieldset>
                 </div>
 
                 <!-- Live preview (right column) -->
@@ -790,8 +977,8 @@ onMounted(() => {
               <p class="text-xs text-slate-500">
                 Phase: {{ messageTarget?.phase }} · Topic: {{ messageTarget?.topic }}
               </p>
-              <p class="text-xs mt-1" :class="messageTarget?.daysOverdue > 0 ? 'text-red-600 font-medium' : 'text-amber-600 font-medium'">
-                Status: {{ messageTarget?.daysOverdue > 0 ? 'Overdue by ' + messageTarget?.daysOverdue + ' day(s)' : 'Not yet submitted' }}
+              <p class="text-xs mt-1" :class="(messageTarget?.daysOverdue ?? 0) > 0 ? 'text-red-600 font-medium' : 'text-amber-600 font-medium'">
+                Status: {{ (messageTarget?.daysOverdue ?? 0) > 0 ? 'Overdue by ' + messageTarget?.daysOverdue + ' day(s)' : 'Not yet submitted' }}
               </p>
             </div>
             <div class="px-5 pb-3">
