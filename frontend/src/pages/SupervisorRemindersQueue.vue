@@ -84,6 +84,7 @@ const settingsLoading = ref(false);
 const settingsSaving = ref(false);
 const autoSendRunning = ref(false);
 const previewMode = ref<'overdue' | 'pending'>('overdue');
+const showPreview = ref(true);
 const autoSettings = ref<AutoReminderSettings>({
   enabled: false,
   frequencyHours: 24,
@@ -613,207 +614,221 @@ onMounted(() => {
 
             <!-- ============ Email Template tab ============ -->
             <div v-if="settingsTab === 'template'" class="space-y-4">
-              <!-- Preset picker -->
-              <div>
-                <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">Start from a preset</p>
-                <div class="flex flex-wrap gap-2">
+              <!-- Preset picker row -->
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="text-[11px] font-medium text-slate-500">Use a template:</span>
+                <button
+                  v-for="preset in templatePresets"
+                  :key="preset.key"
+                  @click="applyPreset(preset)"
+                  :class="[
+                    'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all',
+                    activePreset === preset.key
+                      ? 'border-blue-300 bg-blue-50 text-blue-700 ring-1 ring-blue-200'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50',
+                  ]"
+                >
+                  <span>{{ preset.icon }}</span>
+                  {{ preset.label }}
+                </button>
+              </div>
+
+              <!-- Gmail-like compose card -->
+              <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <!-- Overdue / Pending toggle — like switching email variants -->
+                <div class="flex items-center border-b border-slate-100 bg-slate-50/50">
                   <button
-                    v-for="preset in templatePresets"
-                    :key="preset.key"
-                    @click="applyPreset(preset)"
+                    @click="previewMode = 'overdue'"
                     :class="[
-                      'group flex items-center gap-2 rounded-lg border px-3 py-2 text-left transition-all hover:shadow-sm',
-                      activePreset === preset.key
-                        ? 'border-blue-300 bg-blue-50 ring-1 ring-blue-200'
-                        : 'border-slate-200 bg-white hover:border-slate-300',
+                      'flex-1 px-4 py-2.5 text-xs font-medium text-center transition-colors border-b-2',
+                      previewMode === 'overdue'
+                        ? 'border-red-500 text-red-700 bg-white'
+                        : 'border-transparent text-slate-500 hover:text-slate-700',
                     ]"
                   >
-                    <span class="text-base">{{ preset.icon }}</span>
-                    <div>
-                      <span class="block text-xs font-medium text-slate-800">{{ preset.label }}</span>
-                      <span class="block text-[10px] text-slate-500">{{ preset.desc }}</span>
+                    ⚠️ Overdue Email
+                  </button>
+                  <button
+                    @click="previewMode = 'pending'"
+                    :class="[
+                      'flex-1 px-4 py-2.5 text-xs font-medium text-center transition-colors border-b-2',
+                      previewMode === 'pending'
+                        ? 'border-amber-500 text-amber-700 bg-white'
+                        : 'border-transparent text-slate-500 hover:text-slate-700',
+                    ]"
+                  >
+                    📋 Pending Email
+                  </button>
+                </div>
+
+                <!-- Header rows — like Gmail's From / To / Subject -->
+                <div class="divide-y divide-slate-100">
+                  <!-- From row -->
+                  <div class="flex items-center px-4 py-2 gap-3">
+                    <span class="text-xs text-slate-400 w-14 shrink-0">From</span>
+                    <div class="flex items-center gap-2 flex-1">
+                      <input
+                        v-model="autoSettings.emailTemplate.teamName"
+                        @focus="handleFieldFocus($event, 'teamName')"
+                        placeholder="FYP Management Team"
+                        class="flex-1 text-sm text-slate-800 bg-transparent outline-none placeholder:text-slate-300"
+                      />
                     </div>
+                  </div>
+                  <!-- To row -->
+                  <div class="flex items-center px-4 py-2 gap-3">
+                    <span class="text-xs text-slate-400 w-14 shrink-0">To</span>
+                    <span class="text-sm text-slate-400 italic">Students with {{ previewMode === 'overdue' ? 'overdue' : 'pending' }} submissions</span>
+                  </div>
+                  <!-- Subject row -->
+                  <div class="flex items-center px-4 py-2 gap-3">
+                    <span class="text-xs text-slate-400 w-14 shrink-0">Subject</span>
+                    <input
+                      v-model="autoSettings.emailTemplate[previewMode === 'overdue' ? 'subjectOverdue' : 'subjectPending']"
+                      @focus="handleFieldFocus($event, previewMode === 'overdue' ? 'subjectOverdue' : 'subjectPending')"
+                      placeholder="Enter email subject…"
+                      class="flex-1 text-sm text-slate-800 bg-transparent outline-none placeholder:text-slate-300"
+                    />
+                  </div>
+                </div>
+
+                <!-- Email body — the compose area -->
+                <div class="border-t border-slate-100 px-4 pt-3 pb-1 space-y-3">
+                  <!-- Greeting -->
+                  <input
+                    v-model="autoSettings.emailTemplate.greeting"
+                    @focus="handleFieldFocus($event, 'greeting')"
+                    placeholder="Dear Student Name,"
+                    class="w-full text-sm text-slate-800 bg-transparent outline-none placeholder:text-slate-300"
+                  />
+
+                  <!-- Body -->
+                  <textarea
+                    v-model="autoSettings.emailTemplate[previewMode === 'overdue' ? 'bodyOverdue' : 'bodyPending']"
+                    @focus="handleFieldFocus($event, previewMode === 'overdue' ? 'bodyOverdue' : 'bodyPending')"
+                    rows="4"
+                    placeholder="Write your message here…"
+                    class="w-full text-sm text-slate-700 bg-transparent outline-none placeholder:text-slate-300 resize-none leading-relaxed"
+                  />
+
+                  <!-- Closing -->
+                  <textarea
+                    v-model="autoSettings.emailTemplate[previewMode === 'overdue' ? 'closingOverdue' : 'closingPending']"
+                    @focus="handleFieldFocus($event, previewMode === 'overdue' ? 'closingOverdue' : 'closingPending')"
+                    rows="2"
+                    placeholder="Closing message…"
+                    class="w-full text-sm text-slate-700 bg-transparent outline-none placeholder:text-slate-300 resize-none leading-relaxed"
+                  />
+
+                  <!-- Signature -->
+                  <div class="border-t border-dashed border-slate-200 pt-2 pb-2">
+                    <input
+                      v-model="autoSettings.emailTemplate.signOff"
+                      @focus="handleFieldFocus($event, 'signOff')"
+                      placeholder="Best regards,"
+                      class="w-full text-sm text-slate-600 bg-transparent outline-none placeholder:text-slate-300"
+                    />
+                    <input
+                      v-model="autoSettings.emailTemplate.teamName"
+                      @focus="handleFieldFocus($event, 'teamName')"
+                      placeholder="Your Team Name"
+                      class="w-full text-sm text-slate-600 bg-transparent outline-none placeholder:text-slate-300 mt-0.5"
+                    />
+                  </div>
+                </div>
+
+                <!-- Bottom toolbar — like Gmail's compose toolbar -->
+                <div class="flex items-center gap-1 px-3 py-2.5 bg-slate-50 border-t border-slate-100">
+                  <!-- Save button (primary) -->
+                  <button
+                    @click="saveSettings"
+                    :disabled="settingsSaving"
+                    class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 shadow-sm"
+                  >
+                    {{ settingsSaving ? 'Saving...' : 'Save Template' }}
+                  </button>
+
+                  <span class="w-px h-5 bg-slate-200 mx-1"></span>
+
+                  <!-- Formatting buttons -->
+                  <button
+                    @click="applyFormatting('strong')"
+                    class="inline-flex items-center justify-center h-8 w-8 rounded-md text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors"
+                    title="Bold — select text first"
+                  >
+                    <span class="text-sm font-bold">B</span>
+                  </button>
+                  <button
+                    @click="applyFormatting('em')"
+                    class="inline-flex items-center justify-center h-8 w-8 rounded-md text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors"
+                    title="Italic — select text first"
+                  >
+                    <span class="text-sm italic">I</span>
+                  </button>
+
+                  <span class="w-px h-5 bg-slate-200 mx-1"></span>
+
+                  <!-- Insert variable pills -->
+                  <button @click="insertVariable('studentName')" class="rounded-full bg-blue-50 text-blue-600 px-2 py-1 text-[11px] font-medium hover:bg-blue-100 transition-colors" title="Insert student's name">+ Name</button>
+                  <button @click="insertVariable('phase')" class="rounded-full bg-violet-50 text-violet-600 px-2 py-1 text-[11px] font-medium hover:bg-violet-100 transition-colors" title="Insert assignment phase">+ Phase</button>
+                  <button @click="insertVariable('topicTitle')" class="rounded-full bg-emerald-50 text-emerald-600 px-2 py-1 text-[11px] font-medium hover:bg-emerald-100 transition-colors" title="Insert topic title">+ Topic</button>
+                  <button @click="insertVariable('dueDate')" class="rounded-full bg-amber-50 text-amber-600 px-2 py-1 text-[11px] font-medium hover:bg-amber-100 transition-colors" title="Insert due date">+ Date</button>
+
+                  <!-- Spacer -->
+                  <div class="flex-1"></div>
+
+                  <!-- Reset & Preview toggle -->
+                  <button
+                    @click="resetTemplate"
+                    class="text-xs text-slate-400 hover:text-slate-600 transition-colors px-2 py-1"
+                    title="Reset to default template"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    @click="showPreview = !showPreview"
+                    :class="[
+                      'inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors',
+                      showPreview
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700',
+                    ]"
+                  >
+                    <EyeIcon class="h-3.5 w-3.5" />
+                    Preview
                   </button>
                 </div>
               </div>
 
-              <!-- Formatting & variable insertion toolbar -->
-              <div class="rounded-lg border border-slate-200 bg-slate-50/80 p-3 space-y-2">
-                <div class="flex flex-wrap items-center gap-2">
-                  <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Format:</span>
-                  <button
-                    @click="applyFormatting('strong')"
-                    class="inline-flex items-center justify-center h-7 w-7 rounded-md border border-slate-300 bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 hover:border-slate-400 shadow-sm transition-colors"
-                    title="Bold – select text in a field first"
-                  >B</button>
-                  <button
-                    @click="applyFormatting('em')"
-                    class="inline-flex items-center justify-center h-7 w-7 rounded-md border border-slate-300 bg-white text-xs italic text-slate-700 hover:bg-slate-100 hover:border-slate-400 shadow-sm transition-colors"
-                    title="Italic – select text in a field first"
-                  >I</button>
+              <!-- Info note about template usage -->
+              <p class="text-[11px] text-slate-400 leading-relaxed">
+                💡 This template is used for <strong>all</strong> reminder emails — both individually sent and auto-sent.
+                Switch between <em>Overdue</em> and <em>Pending</em> tabs above to edit each version.
+                Click a field, then use the toolbar buttons to insert dynamic content or format text.
+              </p>
 
-                  <span class="h-5 border-l border-slate-300 mx-0.5"></span>
-
-                  <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Insert:</span>
-                  <button @click="insertVariable('studentName')" class="rounded-full bg-blue-50 border border-blue-200 text-blue-700 px-2.5 py-1 text-[11px] font-medium hover:bg-blue-100 transition-colors">+ Student Name</button>
-                  <button @click="insertVariable('phase')" class="rounded-full bg-violet-50 border border-violet-200 text-violet-700 px-2.5 py-1 text-[11px] font-medium hover:bg-violet-100 transition-colors">+ Phase</button>
-                  <button @click="insertVariable('topicTitle')" class="rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 px-2.5 py-1 text-[11px] font-medium hover:bg-emerald-100 transition-colors">+ Topic Title</button>
-                  <button @click="insertVariable('dueDate')" class="rounded-full bg-amber-50 border border-amber-200 text-amber-700 px-2.5 py-1 text-[11px] font-medium hover:bg-amber-100 transition-colors">+ Due Date</button>
-                </div>
-                <p class="text-[11px] text-slate-500 leading-relaxed">
-                  <strong>How to use:</strong> Click on any text field below, then click an <em>Insert</em> button to add dynamic content at your cursor.
-                  To <strong>bold</strong> or <em>italicise</em> text, highlight it first then click <strong>B</strong> or <strong>I</strong>.
-                </p>
-              </div>
-
-              <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <!-- Template editor (left column) -->
-                <div class="space-y-3">
-                  <h3 class="text-xs font-semibold text-slate-700 uppercase tracking-wide">Edit Template</h3>
-
-                  <!-- Subject lines -->
-                  <fieldset class="space-y-2 rounded-lg border border-slate-100 bg-white p-3">
-                    <legend class="text-[11px] font-semibold text-slate-500 px-1">📧 Subject Lines</legend>
-                    <div>
-                      <label class="block text-[11px] font-medium text-slate-600 mb-0.5">When submission is overdue</label>
-                      <input
-                        v-model="autoSettings.emailTemplate.subjectOverdue"
-                        @focus="handleFieldFocus($event, 'subjectOverdue')"
-                        class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-[11px] font-medium text-slate-600 mb-0.5">When submission is pending</label>
-                      <input
-                        v-model="autoSettings.emailTemplate.subjectPending"
-                        @focus="handleFieldFocus($event, 'subjectPending')"
-                        class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                      />
-                    </div>
-                  </fieldset>
-
-                  <!-- Greeting -->
-                  <div>
-                    <label class="block text-[11px] font-medium text-slate-600 mb-0.5">Greeting</label>
-                    <input
-                      v-model="autoSettings.emailTemplate.greeting"
-                      @focus="handleFieldFocus($event, 'greeting')"
-                      class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                    />
-                    <p class="text-[10px] text-slate-400 mt-0.5">The opening line of every email, e.g. "Dear John Doe,"</p>
-                  </div>
-
-                  <!-- Body -->
-                  <fieldset class="space-y-2 rounded-lg border border-slate-100 bg-white p-3">
-                    <legend class="text-[11px] font-semibold text-slate-500 px-1">📝 Email Body</legend>
-                    <div>
-                      <label class="block text-[11px] font-medium text-slate-600 mb-0.5">Message for overdue submissions</label>
-                      <textarea
-                        v-model="autoSettings.emailTemplate.bodyOverdue"
-                        @focus="handleFieldFocus($event, 'bodyOverdue')"
-                        rows="2"
-                        class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none resize-none"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-[11px] font-medium text-slate-600 mb-0.5">Message for pending submissions</label>
-                      <textarea
-                        v-model="autoSettings.emailTemplate.bodyPending"
-                        @focus="handleFieldFocus($event, 'bodyPending')"
-                        rows="2"
-                        class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none resize-none"
-                      />
-                    </div>
-                  </fieldset>
-
-                  <!-- Closing -->
-                  <fieldset class="space-y-2 rounded-lg border border-slate-100 bg-white p-3">
-                    <legend class="text-[11px] font-semibold text-slate-500 px-1">✉️ Closing Message</legend>
-                    <div>
-                      <label class="block text-[11px] font-medium text-slate-600 mb-0.5">Closing for overdue submissions</label>
-                      <textarea
-                        v-model="autoSettings.emailTemplate.closingOverdue"
-                        @focus="handleFieldFocus($event, 'closingOverdue')"
-                        rows="2"
-                        class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none resize-none"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-[11px] font-medium text-slate-600 mb-0.5">Closing for pending submissions</label>
-                      <textarea
-                        v-model="autoSettings.emailTemplate.closingPending"
-                        @focus="handleFieldFocus($event, 'closingPending')"
-                        rows="2"
-                        class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none resize-none"
-                      />
-                    </div>
-                  </fieldset>
-
-                  <!-- Signature -->
-                  <fieldset class="space-y-2 rounded-lg border border-slate-100 bg-white p-3">
-                    <legend class="text-[11px] font-semibold text-slate-500 px-1">✍️ Signature</legend>
-                    <div class="grid grid-cols-2 gap-3">
-                      <div>
-                        <label class="block text-[11px] font-medium text-slate-600 mb-0.5">Sign Off</label>
-                        <input
-                          v-model="autoSettings.emailTemplate.signOff"
-                          @focus="handleFieldFocus($event, 'signOff')"
-                          class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                        />
-                        <p class="text-[10px] text-slate-400 mt-0.5">e.g. "Best regards,"</p>
-                      </div>
-                      <div>
-                        <label class="block text-[11px] font-medium text-slate-600 mb-0.5">Team / Sender Name</label>
-                        <input
-                          v-model="autoSettings.emailTemplate.teamName"
-                          @focus="handleFieldFocus($event, 'teamName')"
-                          class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                        />
-                        <p class="text-[10px] text-slate-400 mt-0.5">Shown as the sender</p>
-                      </div>
-                    </div>
-                  </fieldset>
-                </div>
-
-                <!-- Live preview (right column) -->
-                <div class="space-y-2">
-                  <div class="flex items-center justify-between">
-                    <h3 class="text-xs font-semibold text-slate-700 uppercase tracking-wide">
+              <!-- Collapsible preview panel -->
+              <transition
+                enter-active-class="transition duration-200 ease-out"
+                enter-from-class="opacity-0 -translate-y-2"
+                enter-to-class="opacity-100 translate-y-0"
+                leave-active-class="transition duration-150 ease-in"
+                leave-from-class="opacity-100 translate-y-0"
+                leave-to-class="opacity-0 -translate-y-2"
+              >
+                <div v-if="showPreview" class="rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                  <div class="flex items-center justify-between px-4 py-2 bg-slate-50 border-b border-slate-200">
+                    <h3 class="text-xs font-semibold text-slate-700">
                       <EyeIcon class="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
-                      Live Preview
+                      Email Preview — {{ previewMode === 'overdue' ? 'Overdue Version' : 'Pending Version' }}
                     </h3>
-                    <div class="flex rounded-lg border border-slate-200 overflow-hidden">
-                      <button
-                        @click="previewMode = 'overdue'"
-                        :class="[
-                          'px-2.5 py-1 text-[11px] font-medium transition-colors',
-                          previewMode === 'overdue'
-                            ? 'bg-red-50 text-red-700'
-                            : 'bg-white text-slate-500 hover:bg-slate-50',
-                        ]"
-                      >
-                        Overdue
-                      </button>
-                      <button
-                        @click="previewMode = 'pending'"
-                        :class="[
-                          'px-2.5 py-1 text-[11px] font-medium border-l border-slate-200 transition-colors',
-                          previewMode === 'pending'
-                            ? 'bg-amber-50 text-amber-700'
-                            : 'bg-white text-slate-500 hover:bg-slate-50',
-                        ]"
-                      >
-                        Pending
-                      </button>
-                    </div>
+                    <button @click="showPreview = false" class="text-slate-400 hover:text-slate-600 text-xs">&times; Close</button>
                   </div>
-
-                  <!-- Rendered email preview -->
-                  <div class="rounded-lg border border-slate-200 overflow-hidden text-sm">
-                    <div class="bg-slate-100 px-3 py-1.5 text-[11px] text-slate-500 border-b border-slate-200 truncate">
+                  <div class="text-sm">
+                    <div class="bg-slate-100 px-4 py-2 text-[11px] text-slate-500 border-b border-slate-200 truncate">
                       <strong>Subject:</strong> {{ templatePreview.subject }}
                     </div>
-                    <div class="overflow-hidden" style="max-height: 420px; overflow-y: auto;">
+                    <div style="max-height: 400px; overflow-y: auto;">
                       <div :style="{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }" class="text-white text-center py-5 px-4">
                         <div class="text-3xl mb-1">{{ previewMode === 'overdue' ? '⚠️' : '📋' }}</div>
                         <p class="font-semibold text-sm">{{ previewMode === 'overdue' ? 'Submission Reminder – Overdue' : 'Submission Reminder' }}</p>
@@ -835,24 +850,7 @@ onMounted(() => {
                     </div>
                   </div>
                 </div>
-              </div>
-
-              <!-- Template action buttons -->
-              <div class="flex items-center gap-2 pt-1">
-                <button
-                  @click="saveSettings"
-                  :disabled="settingsSaving"
-                  class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {{ settingsSaving ? 'Saving...' : 'Save Template' }}
-                </button>
-                <button
-                  @click="resetTemplate"
-                  class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
-                >
-                  Reset to Default
-                </button>
-              </div>
+              </transition>
             </div>
           </div>
         </div>
