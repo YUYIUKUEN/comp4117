@@ -15,13 +15,13 @@ const router = express.Router();
 router.get('/', authenticate, requireRole('Admin', 'Supervisor'), getAdminReminders);
 
 // GET  /api/v1/admin/reminders/settings — get auto-reminder settings
-router.get('/settings', authenticate, requireRole('Admin'), getReminderSettings);
+router.get('/settings', authenticate, requireRole('Admin', 'Supervisor'), getReminderSettings);
 
 // PUT  /api/v1/admin/reminders/settings — update auto-reminder settings
-router.put('/settings', authenticate, requireRole('Admin'), updateReminderSettings);
+router.put('/settings', authenticate, requireRole('Admin', 'Supervisor'), updateReminderSettings);
 
 // POST /api/v1/admin/reminders/auto-send — trigger auto-send (can also be called by cron)
-router.post('/auto-send', authenticate, requireRole('Admin'), runAutoReminders);
+router.post('/auto-send', authenticate, requireRole('Admin', 'Supervisor'), runAutoReminders);
 
 // POST /api/v1/admin/reminders/:submissionId/send  — send reminder email to one student
 router.post('/:submissionId/send', authenticate, requireRole('Admin', 'Supervisor'), sendAdminReminder);

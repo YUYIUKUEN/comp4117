@@ -281,7 +281,7 @@ onMounted(() => {
         leave-from-class="opacity-100 translate-y-0"
         leave-to-class="opacity-0 -translate-y-2"
       >
-        <div v-if="isAdminOrSupervisorOrSupervisor && showSettings" class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm mb-4">
+        <div v-if="isAdminOrSupervisor && showSettings" class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm mb-4">
           <div class="flex items-center justify-between mb-4">
             <div>
               <h2 class="text-sm font-semibold text-slate-900">Auto-Send Settings</h2>
