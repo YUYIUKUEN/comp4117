@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   ArrowLeftIcon,
   BellIcon,
   CheckIcon,
   EnvelopeIcon,
+  Cog6ToothIcon,
+  BoltIcon,
 } from '@heroicons/vue/24/outline';
 import httpClient from '@/services/httpClient';
 import { useAuthStore } from '@/stores/authStore';
@@ -13,7 +15,8 @@ import { useAuthStore } from '@/stores/authStore';
 const router = useRouter();
 const authStore = useAuthStore();
 authStore.loadAuthFromStorage();
-const isAdmin = computed(() => authStore.userRole === 'Admin');
+const isAdmin = computed(() => authStore.userRole?.toLowerCase() === 'admin');
+const isAdminOrSupervisor = computed(() => ['admin', 'supervisor'].includes(authStore.userRole?.toLowerCase() ?? ''));
 
 interface ReminderItem {
   id: string;
@@ -29,6 +32,14 @@ interface ReminderItem {
   phase: string;
 }
 
+interface AutoReminderSettings {
+  enabled: boolean;
+  frequencyHours: number;
+  maxRemindersPerStudent: number;
+  targetStatuses: string[];
+  customMessage: string;
+}
+
 const reminders = ref<ReminderItem[]>([]);
 const isLoading = ref(false);
 const completedIds = ref<Set<string>>(new Set());
@@ -39,6 +50,19 @@ const actionLoading = ref<Record<string, boolean>>({});
 const showMessageModal = ref(false);
 const messageTarget = ref<ReminderItem | null>(null);
 const customMessage = ref('');
+
+// Settings panel state
+const showSettings = ref(false);
+const settingsLoading = ref(false);
+const settingsSaving = ref(false);
+const autoSendRunning = ref(false);
+const autoSettings = ref<AutoReminderSettings>({
+  enabled: false,
+  frequencyHours: 24,
+  maxRemindersPerStudent: 3,
+  targetStatuses: ['Overdue', 'Not Submitted'],
+  customMessage: '',
+});
 
 const showToast = (message: string, type: 'success' | 'error' = 'success') => {
   toast.value = { message, type };
@@ -69,6 +93,61 @@ const fetchReminders = async () => {
     showToast('Failed to load reminders.', 'error');
   } finally {
     isLoading.value = false;
+  }
+};
+
+/** Fetch auto-reminder settings */
+const fetchSettings = async () => {
+  settingsLoading.value = true;
+  try {
+    const res = await httpClient.get('/admin/reminders/settings');
+    autoSettings.value = { ...autoSettings.value, ...res.data.data };
+  } catch (error) {
+    console.error('Failed to load settings:', error);
+  } finally {
+    settingsLoading.value = false;
+  }
+};
+
+/** Save auto-reminder settings */
+const saveSettings = async () => {
+  settingsSaving.value = true;
+  try {
+    await httpClient.put('/admin/reminders/settings', autoSettings.value);
+    showToast('Auto-reminder settings saved.', 'success');
+  } catch (error) {
+    console.error('Failed to save settings:', error);
+    showToast('Failed to save settings.', 'error');
+  } finally {
+    settingsSaving.value = false;
+  }
+};
+
+/** Trigger auto-send now */
+const triggerAutoSendNow = async () => {
+  autoSendRunning.value = true;
+  try {
+    const res = await httpClient.post('/admin/reminders/auto-send');
+    const data = res.data.data;
+    showToast(`Auto-send complete: ${data.sent} sent, ${data.failed || 0} failed.`, 'success');
+    await fetchReminders();
+  } catch (error: any) {
+    const msg = error?.response?.data?.error || 'Auto-send failed.';
+    showToast(msg, 'error');
+  } finally {
+    autoSendRunning.value = false;
+  }
+};
+
+const toggleStatus = (status: string) => {
+  const idx = autoSettings.value.targetStatuses.indexOf(status);
+  if (idx > -1) {
+    // Don't allow removing the last status
+    if (autoSettings.value.targetStatuses.length > 1) {
+      autoSettings.value.targetStatuses.splice(idx, 1);
+    }
+  } else {
+    autoSettings.value.targetStatuses.push(status);
   }
 };
 
@@ -123,7 +202,10 @@ const getPriorityColor = (priority: string) => {
   }
 };
 
-onMounted(fetchReminders);
+onMounted(() => {
+  fetchReminders();
+  if (isAdminOrSupervisor.value) fetchSettings();
+});
 </script>
 
 <template>
@@ -159,13 +241,180 @@ onMounted(fetchReminders);
       >
         <ArrowLeftIcon class="h-6 w-6" />
       </button>
-      <div>
+      <div class="flex-1">
         <p class="text-[11px] uppercase tracking-[0.2em] text-slate-500">{{ isAdmin ? 'Admin' : 'Supervision' }}</p>
         <p class="text-sm font-semibold text-slate-900">Reminders Queue</p>
       </div>
+      <!-- Auto-send indicator + settings button (Admin & Supervisor) -->
+      <template v-if="isAdminOrSupervisor">
+        <span
+          v-if="autoSettings.enabled"
+          class="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700"
+        >
+          <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          Auto-Send On
+        </span>
+        <span
+          v-else
+          class="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-500"
+        >
+          Auto-Send Off
+        </span>
+        <button
+          type="button"
+          class="inline-flex items-center justify-center rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+          @click="showSettings = !showSettings"
+          title="Auto-Send Settings"
+        >
+          <Cog6ToothIcon class="h-5 w-5" />
+        </button>
+      </template>
     </header>
 
     <main class="px-4 sm:px-6 pb-6 pt-4 sm:pt-5">
+      <!-- Auto-Send Settings Panel (Admin only) -->
+      <transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="opacity-0 -translate-y-2"
+        enter-to-class="opacity-100 translate-y-0"
+        leave-active-class="transition duration-150 ease-in"
+        leave-from-class="opacity-100 translate-y-0"
+        leave-to-class="opacity-0 -translate-y-2"
+      >
+        <div v-if="isAdminOrSupervisorOrSupervisor && showSettings" class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm mb-4">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="text-sm font-semibold text-slate-900">Auto-Send Settings</h2>
+              <p class="text-xs text-slate-500 mt-0.5">Configure automatic reminder emails or send them manually one by one.</p>
+            </div>
+            <!-- Toggle switch -->
+            <button
+              @click="autoSettings.enabled = !autoSettings.enabled"
+              :class="[
+                'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
+                autoSettings.enabled ? 'bg-emerald-500' : 'bg-slate-300',
+              ]"
+            >
+              <span
+                :class="[
+                  'inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform',
+                  autoSettings.enabled ? 'translate-x-6' : 'translate-x-1',
+                ]"
+              />
+            </button>
+          </div>
+
+          <div v-if="settingsLoading" class="flex items-center gap-2 py-4">
+            <div class="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600"></div>
+            <p class="text-xs text-slate-500">Loading settings...</p>
+          </div>
+
+          <div v-else class="space-y-4">
+            <!-- Frequency -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Send Frequency</label>
+                <select
+                  v-model.number="autoSettings.frequencyHours"
+                  class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
+                >
+                  <option :value="6">Every 6 hours</option>
+                  <option :value="12">Every 12 hours</option>
+                  <option :value="24">Every 24 hours (daily)</option>
+                  <option :value="48">Every 48 hours</option>
+                  <option :value="72">Every 72 hours</option>
+                  <option :value="168">Every 7 days (weekly)</option>
+                </select>
+              </div>
+
+              <!-- Max reminders per student -->
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Max Reminders per Student</label>
+                <select
+                  v-model.number="autoSettings.maxRemindersPerStudent"
+                  class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
+                >
+                  <option :value="1">1 reminder</option>
+                  <option :value="2">2 reminders</option>
+                  <option :value="3">3 reminders</option>
+                  <option :value="5">5 reminders</option>
+                  <option :value="10">10 reminders</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Target statuses -->
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1.5">Send To</label>
+              <div class="flex gap-2">
+                <button
+                  @click="toggleStatus('Overdue')"
+                  :class="[
+                    'rounded-lg px-3 py-1.5 text-xs font-medium border transition-colors',
+                    autoSettings.targetStatuses.includes('Overdue')
+                      ? 'bg-red-50 text-red-700 border-red-200'
+                      : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300',
+                  ]"
+                >
+                  ✓ Overdue Submissions
+                </button>
+                <button
+                  @click="toggleStatus('Not Submitted')"
+                  :class="[
+                    'rounded-lg px-3 py-1.5 text-xs font-medium border transition-colors',
+                    autoSettings.targetStatuses.includes('Not Submitted')
+                      ? 'bg-amber-50 text-amber-700 border-amber-200'
+                      : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300',
+                  ]"
+                >
+                  ✓ Not Submitted
+                </button>
+              </div>
+            </div>
+
+            <!-- Default custom message -->
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Default Message (optional)</label>
+              <textarea
+                v-model="autoSettings.customMessage"
+                rows="2"
+                placeholder="A default note included in all auto-sent emails…"
+                class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none resize-none"
+              />
+            </div>
+
+            <!-- Action buttons -->
+            <div class="flex items-center gap-2 pt-1">
+              <button
+                @click="saveSettings"
+                :disabled="settingsSaving"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {{ settingsSaving ? 'Saving...' : 'Save Settings' }}
+              </button>
+              <button
+                @click="triggerAutoSendNow"
+                :disabled="autoSendRunning || !autoSettings.enabled"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50"
+                :title="!autoSettings.enabled ? 'Enable auto-send first' : 'Send reminders to all qualifying students now'"
+              >
+                <BoltIcon class="h-4 w-4" />
+                {{ autoSendRunning ? 'Sending...' : 'Run Auto-Send Now' }}
+              </button>
+            </div>
+
+            <p v-if="autoSettings.enabled" class="text-[11px] text-emerald-600">
+              ✓ Auto-send is <strong>enabled</strong>. The system will automatically send reminders every
+              {{ autoSettings.frequencyHours }} hour{{ autoSettings.frequencyHours !== 1 ? 's' : '' }},
+              up to {{ autoSettings.maxRemindersPerStudent }} per student.
+            </p>
+            <p v-else class="text-[11px] text-slate-400">
+              Auto-send is <strong>disabled</strong>. You can send reminders manually using the buttons on each card below.
+            </p>
+          </div>
+        </div>
+      </transition>
+
       <!-- Loading -->
       <div v-if="isLoading" class="rounded-xl border border-slate-200 bg-white p-8 shadow-sm flex items-center justify-center gap-3">
         <div class="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600"></div>
@@ -284,6 +533,9 @@ onMounted(fetchReminders);
               </p>
               <p class="text-xs text-slate-500">
                 Phase: {{ messageTarget?.phase }} · Topic: {{ messageTarget?.topic }}
+              </p>
+              <p class="text-xs mt-1" :class="messageTarget?.daysOverdue > 0 ? 'text-red-600 font-medium' : 'text-amber-600 font-medium'">
+                Status: {{ messageTarget?.daysOverdue > 0 ? 'Overdue by ' + messageTarget?.daysOverdue + ' day(s)' : 'Not yet submitted' }}
               </p>
             </div>
             <div class="px-5 pb-3">

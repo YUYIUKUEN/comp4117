@@ -2,6 +2,7 @@ const Submission = require('../models/Submission');
 const User = require('../models/User');
 const Assignment = require('../models/Assignment');
 const ActivityLog = require('../models/ActivityLog');
+const SystemSetting = require('../models/SystemSetting');
 const { sendEmail } = require('../utils/email');
 
 /**
@@ -135,24 +136,48 @@ const sendAdminReminder = async (req, res, next) => {
         })
       : 'N/A';
 
-    const subject = `Reminder: ${phase} Submission Overdue`;
+    // Determine if submission is actually overdue or just not yet submitted
+    const isOverdue = submission.status === 'Overdue' ||
+      (submission.dueDate && new Date(submission.dueDate) < new Date());
+
+    const subject = isOverdue
+      ? `Reminder: ${phase} Submission Overdue`
+      : `Reminder: ${phase} Submission Pending`;
+
+    const statusDescription = isOverdue
+      ? `is currently <strong>overdue</strong>`
+      : `has <strong>not yet been submitted</strong>`;
+
+    const statusDescriptionPlain = isOverdue
+      ? 'is overdue'
+      : 'has not yet been submitted';
+
+    const urgencyNote = isOverdue
+      ? 'Please submit your work as soon as possible through the FYP Management Platform to avoid further penalties.'
+      : 'Please submit your work before the deadline through the FYP Management Platform.';
+
+    const dueDateLabel = isOverdue ? 'Original Due Date' : 'Due Date';
 
     const plainText = [
       `Dear ${student.fullName},`,
       '',
-      `This is a reminder that your submission for "${phase}" (Topic: ${topicTitle}) is overdue.`,
+      `This is a reminder that your submission for "${phase}" (Topic: ${topicTitle}) ${statusDescriptionPlain}.`,
       '',
-      `Original Due Date: ${dueDateStr}`,
+      `${dueDateLabel}: ${dueDateStr}`,
       '',
       customMessage ? `Note from administrator: ${customMessage}` : '',
       '',
-      'Please submit your work as soon as possible through the FYP Management Platform.',
+      urgencyNote,
       '',
       'Best regards,',
       'FYP Management Team',
     ]
       .filter(Boolean)
       .join('\n');
+
+    const headerIcon = isOverdue ? '⚠️' : '📋';
+    const headerTitle = isOverdue ? 'Submission Reminder – Overdue' : 'Submission Reminder';
+    const dueDateColor = isOverdue ? '#d9534f' : '#333';
 
     const htmlContent = `
 <!DOCTYPE html>
@@ -161,17 +186,17 @@ const sendAdminReminder = async (req, res, next) => {
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #333; margin: 0; padding: 0; background: #f5f5f5;">
   <div style="max-width: 600px; margin: 20px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow: hidden;">
     <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center;">
-      <div style="font-size: 48px; margin-bottom: 10px;">⚠️</div>
-      <h1 style="margin: 0; font-size: 22px;">Submission Reminder</h1>
+      <div style="font-size: 48px; margin-bottom: 10px;">${headerIcon}</div>
+      <h1 style="margin: 0; font-size: 22px;">${headerTitle}</h1>
     </div>
     <div style="padding: 30px 40px;">
       <p>Dear <strong>${student.fullName}</strong>,</p>
-      <p>This is a reminder that your submission for <strong>${phase}</strong> (Topic: <em>${topicTitle}</em>) is currently <strong>overdue</strong>.</p>
+      <p>This is a reminder that your submission for <strong>${phase}</strong> (Topic: <em>${topicTitle}</em>) ${statusDescription}.</p>
       <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px 20px; margin: 20px 0; border-radius: 4px;">
-        <strong style="color: #856404;">Original Due Date:</strong> <span style="color: #d9534f; font-weight: 600;">${dueDateStr}</span>
+        <strong style="color: #856404;">${dueDateLabel}:</strong> <span style="color: ${dueDateColor}; font-weight: 600;">${dueDateStr}</span>
       </div>
       ${customMessage ? `<div style="background: #e8f4fd; border-left: 4px solid #2196f3; padding: 15px 20px; margin: 20px 0; border-radius: 4px;"><strong>Note from administrator:</strong> ${customMessage}</div>` : ''}
-      <p>Please submit your work as soon as possible through the FYP Management Platform to avoid further penalties.</p>
+      <p>${urgencyNote}</p>
     </div>
     <div style="background: #f8f9fa; padding: 20px 40px; border-top: 1px solid #e9ecef; font-size: 14px; color: #6c757d;">
       <p style="margin: 5px 0;"><strong>Best regards,</strong></p>
@@ -263,8 +288,18 @@ const sendBulkReminders = async (req, res, next) => {
           })
         : 'N/A';
 
-      const subject = `Reminder: ${phase} Submission Overdue`;
-      const plainText = `Dear ${student.fullName},\n\nThis is a reminder that your submission for "${phase}" (Topic: ${topicTitle}) is overdue.\n\nOriginal Due Date: ${dueDateStr}\n${customMessage ? `\nNote from administrator: ${customMessage}\n` : ''}\nPlease submit your work as soon as possible.\n\nBest regards,\nFYP Management Team`;
+      const isOverdue = submission.status === 'Overdue' ||
+        (submission.dueDate && new Date(submission.dueDate) < new Date());
+
+      const subject = isOverdue
+        ? `Reminder: ${phase} Submission Overdue`
+        : `Reminder: ${phase} Submission Pending`;
+      const statusText = isOverdue ? 'is overdue' : 'has not yet been submitted';
+      const urgencyNote = isOverdue
+        ? 'Please submit your work as soon as possible.'
+        : 'Please submit your work before the deadline.';
+      const dueDateLabel = isOverdue ? 'Original Due Date' : 'Due Date';
+      const plainText = `Dear ${student.fullName},\n\nThis is a reminder that your submission for "${phase}" (Topic: ${topicTitle}) ${statusText}.\n\n${dueDateLabel}: ${dueDateStr}\n${customMessage ? `\nNote from administrator: ${customMessage}\n` : ''}\n${urgencyNote}\n\nBest regards,\nFYP Management Team`;
 
       try {
         await sendEmail(student.email, student.fullName, subject, plainText);
@@ -300,8 +335,208 @@ const sendBulkReminders = async (req, res, next) => {
   }
 };
 
+// ─── Auto-Reminder Settings ─────────────────────────────────────────────────
+
+const AUTO_REMINDER_SETTINGS_KEY = 'autoReminderSettings';
+
+const DEFAULT_SETTINGS = {
+  enabled: false,
+  frequencyHours: 24,        // how often the auto-send job runs
+  maxRemindersPerStudent: 3, // stop auto-sending after N reminders
+  targetStatuses: ['Overdue', 'Not Submitted'], // which statuses to auto-remind
+  customMessage: '',         // optional default custom message for auto emails
+};
+
+/**
+ * GET /api/v1/admin/reminders/settings
+ */
+const getReminderSettings = async (req, res, next) => {
+  try {
+    const settings = await SystemSetting.get(AUTO_REMINDER_SETTINGS_KEY, DEFAULT_SETTINGS);
+    res.json({ data: { ...DEFAULT_SETTINGS, ...settings }, status: 200 });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PUT /api/v1/admin/reminders/settings
+ */
+const updateReminderSettings = async (req, res, next) => {
+  try {
+    const {
+      enabled,
+      frequencyHours,
+      maxRemindersPerStudent,
+      targetStatuses,
+      customMessage,
+    } = req.body;
+
+    const current = await SystemSetting.get(AUTO_REMINDER_SETTINGS_KEY, DEFAULT_SETTINGS);
+    const updated = { ...DEFAULT_SETTINGS, ...current };
+
+    if (typeof enabled === 'boolean') updated.enabled = enabled;
+    if (typeof frequencyHours === 'number' && frequencyHours >= 1) updated.frequencyHours = frequencyHours;
+    if (typeof maxRemindersPerStudent === 'number' && maxRemindersPerStudent >= 1) updated.maxRemindersPerStudent = maxRemindersPerStudent;
+    if (Array.isArray(targetStatuses)) {
+      updated.targetStatuses = targetStatuses.filter(s => ['Overdue', 'Not Submitted'].includes(s));
+      if (updated.targetStatuses.length === 0) updated.targetStatuses = ['Overdue', 'Not Submitted'];
+    }
+    if (typeof customMessage === 'string') updated.customMessage = customMessage.trim();
+
+    await SystemSetting.set(AUTO_REMINDER_SETTINGS_KEY, updated, req.auth?.userId);
+
+    await ActivityLog.create({
+      user_id: req.auth.userId,
+      action: 'auto_reminder_settings_updated',
+      entityType: 'SystemSetting',
+      details: updated,
+    });
+
+    res.json({ message: 'Auto-reminder settings updated.', data: updated, status: 200 });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/v1/admin/reminders/auto-send  (called by cron or manually)
+ * Sends reminders to all qualifying submissions based on saved settings.
+ */
+const runAutoReminders = async (req, res, next) => {
+  try {
+    const settings = await SystemSetting.get(AUTO_REMINDER_SETTINGS_KEY, DEFAULT_SETTINGS);
+
+    if (!settings.enabled) {
+      return res.json({ message: 'Auto-reminders are disabled.', data: { sent: 0 }, status: 200 });
+    }
+
+    const filter = {
+      status: { $in: settings.targetStatuses },
+      reminderCount: { $lt: settings.maxRemindersPerStudent },
+    };
+
+    // Only resend if enough time has passed since last reminder
+    const cooldownMs = (settings.frequencyHours || 24) * 60 * 60 * 1000;
+    const cooldownDate = new Date(Date.now() - cooldownMs);
+    filter.$or = [
+      { reminderSentAt: { $exists: false } },
+      { reminderSentAt: null },
+      { reminderSentAt: { $lt: cooldownDate } },
+    ];
+
+    const submissions = await Submission.find(filter)
+      .populate('student_id', 'fullName email')
+      .populate('topic_id', 'title');
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const submission of submissions) {
+      const student = submission.student_id;
+      if (!student || !student.email) { failCount++; continue; }
+
+      const topicTitle = submission.topic_id?.title || 'your FYP topic';
+      const phase = submission.phase || 'Unknown Phase';
+      const dueDateStr = submission.dueDate
+        ? new Date(submission.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+        : 'N/A';
+
+      const isOverdue = submission.status === 'Overdue' ||
+        (submission.dueDate && new Date(submission.dueDate) < new Date());
+
+      const subject = isOverdue
+        ? `Reminder: ${phase} Submission Overdue`
+        : `Reminder: ${phase} Submission Pending`;
+
+      const statusText = isOverdue ? 'is overdue' : 'has not yet been submitted';
+      const urgencyNote = isOverdue
+        ? 'Please submit your work as soon as possible through the FYP Management Platform to avoid further penalties.'
+        : 'Please submit your work before the deadline through the FYP Management Platform.';
+      const dueDateLabel = isOverdue ? 'Original Due Date' : 'Due Date';
+      const headerIcon = isOverdue ? '⚠️' : '📋';
+      const headerTitle = isOverdue ? 'Submission Reminder – Overdue' : 'Submission Reminder';
+      const dueDateColor = isOverdue ? '#d9534f' : '#333';
+      const statusDescription = isOverdue ? 'is currently <strong>overdue</strong>' : 'has <strong>not yet been submitted</strong>';
+
+      const adminNote = settings.customMessage || '';
+
+      const plainText = [
+        `Dear ${student.fullName},`,
+        '',
+        `This is a reminder that your submission for "${phase}" (Topic: ${topicTitle}) ${statusText}.`,
+        '',
+        `${dueDateLabel}: ${dueDateStr}`,
+        '',
+        adminNote ? `Note: ${adminNote}` : '',
+        '',
+        urgencyNote,
+        '',
+        'Best regards,',
+        'FYP Management Team',
+      ].filter(Boolean).join('\n');
+
+      const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #333; margin: 0; padding: 0; background: #f5f5f5;">
+  <div style="max-width: 600px; margin: 20px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow: hidden;">
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center;">
+      <div style="font-size: 48px; margin-bottom: 10px;">${headerIcon}</div>
+      <h1 style="margin: 0; font-size: 22px;">${headerTitle}</h1>
+    </div>
+    <div style="padding: 30px 40px;">
+      <p>Dear <strong>${student.fullName}</strong>,</p>
+      <p>This is a reminder that your submission for <strong>${phase}</strong> (Topic: <em>${topicTitle}</em>) ${statusDescription}.</p>
+      <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px 20px; margin: 20px 0; border-radius: 4px;">
+        <strong style="color: #856404;">${dueDateLabel}:</strong> <span style="color: ${dueDateColor}; font-weight: 600;">${dueDateStr}</span>
+      </div>
+      ${adminNote ? `<div style="background: #e8f4fd; border-left: 4px solid #2196f3; padding: 15px 20px; margin: 20px 0; border-radius: 4px;"><strong>Note:</strong> ${adminNote}</div>` : ''}
+      <p>${urgencyNote}</p>
+    </div>
+    <div style="background: #f8f9fa; padding: 20px 40px; border-top: 1px solid #e9ecef; font-size: 14px; color: #6c757d;">
+      <p style="margin: 5px 0;"><strong>Best regards,</strong></p>
+      <p style="margin: 5px 0;">FYP Management Team</p>
+      <p style="margin-top: 15px; font-size: 12px;">This is an automated message. Please do not reply to this email.</p>
+    </div>
+  </div>
+</body>
+</html>`.trim();
+
+      try {
+        await sendEmail(student.email, student.fullName, subject, plainText, htmlContent);
+        submission.reminderSentAt = new Date();
+        submission.reminderCount = (submission.reminderCount || 0) + 1;
+        submission.updatedAt = new Date();
+        await submission.save();
+        successCount++;
+      } catch (err) {
+        failCount++;
+        console.error(`Auto-reminder failed for ${student.email}:`, err.message);
+      }
+    }
+
+    console.log(`[AutoReminder] Sent ${successCount}, failed ${failCount}`);
+
+    if (res) {
+      res.json({
+        message: `Auto-reminders: ${successCount} sent, ${failCount} failed`,
+        data: { sent: successCount, failed: failCount, total: submissions.length },
+        status: 200,
+      });
+    }
+  } catch (error) {
+    if (next) next(error);
+    else console.error('[AutoReminder] Error:', error);
+  }
+};
+
 module.exports = {
   getAdminReminders,
   sendAdminReminder,
   sendBulkReminders,
+  getReminderSettings,
+  updateReminderSettings,
+  runAutoReminders,
 };
