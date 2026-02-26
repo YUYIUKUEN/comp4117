@@ -136,76 +136,22 @@ const sendAdminReminder = async (req, res, next) => {
         })
       : 'N/A';
 
-    // Determine if submission is actually overdue or just not yet submitted
     const isOverdue = submission.status === 'Overdue' ||
       (submission.dueDate && new Date(submission.dueDate) < new Date());
 
-    const subject = isOverdue
-      ? `Reminder: ${phase} Submission Overdue`
-      : `Reminder: ${phase} Submission Pending`;
+    // Load saved template from settings
+    const settings = await SystemSetting.get(AUTO_REMINDER_SETTINGS_KEY, DEFAULT_SETTINGS);
+    const template = settings?.emailTemplate || DEFAULT_SETTINGS.emailTemplate;
 
-    const statusDescription = isOverdue
-      ? `is currently <strong>overdue</strong>`
-      : `has <strong>not yet been submitted</strong>`;
-
-    const statusDescriptionPlain = isOverdue
-      ? 'is overdue'
-      : 'has not yet been submitted';
-
-    const urgencyNote = isOverdue
-      ? 'Please submit your work as soon as possible through the FYP Management Platform to avoid further penalties.'
-      : 'Please submit your work before the deadline through the FYP Management Platform.';
-
-    const dueDateLabel = isOverdue ? 'Original Due Date' : 'Due Date';
-
-    const plainText = [
-      `Dear ${student.fullName},`,
-      '',
-      `This is a reminder that your submission for "${phase}" (Topic: ${topicTitle}) ${statusDescriptionPlain}.`,
-      '',
-      `${dueDateLabel}: ${dueDateStr}`,
-      '',
-      customMessage ? `Note from administrator: ${customMessage}` : '',
-      '',
-      urgencyNote,
-      '',
-      'Best regards,',
-      'FYP Management Team',
-    ]
-      .filter(Boolean)
-      .join('\n');
-
-    const headerIcon = isOverdue ? '⚠️' : '📋';
-    const headerTitle = isOverdue ? 'Submission Reminder – Overdue' : 'Submission Reminder';
-    const dueDateColor = isOverdue ? '#d9534f' : '#333';
-
-    const htmlContent = `
-<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="UTF-8"></head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #333; margin: 0; padding: 0; background: #f5f5f5;">
-  <div style="max-width: 600px; margin: 20px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow: hidden;">
-    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center;">
-      <div style="font-size: 48px; margin-bottom: 10px;">${headerIcon}</div>
-      <h1 style="margin: 0; font-size: 22px;">${headerTitle}</h1>
-    </div>
-    <div style="padding: 30px 40px;">
-      <p>Dear <strong>${student.fullName}</strong>,</p>
-      <p>This is a reminder that your submission for <strong>${phase}</strong> (Topic: <em>${topicTitle}</em>) ${statusDescription}.</p>
-      <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px 20px; margin: 20px 0; border-radius: 4px;">
-        <strong style="color: #856404;">${dueDateLabel}:</strong> <span style="color: ${dueDateColor}; font-weight: 600;">${dueDateStr}</span>
-      </div>
-      ${customMessage ? `<div style="background: #e8f4fd; border-left: 4px solid #2196f3; padding: 15px 20px; margin: 20px 0; border-radius: 4px;"><strong>Note from administrator:</strong> ${customMessage}</div>` : ''}
-      <p>${urgencyNote}</p>
-    </div>
-    <div style="background: #f8f9fa; padding: 20px 40px; border-top: 1px solid #e9ecef; font-size: 14px; color: #6c757d;">
-      <p style="margin: 5px 0;"><strong>Best regards,</strong></p>
-      <p style="margin: 5px 0;">FYP Management Team</p>
-      <p style="margin-top: 15px; font-size: 12px;">This is an automated message. Please do not reply to this email.</p>
-    </div>
-  </div>
-</body>
-</html>`.trim();
+    const { subject, plainText, htmlContent } = buildReminderEmail({
+      template,
+      studentName: student.fullName,
+      phase,
+      topicTitle,
+      dueDateStr,
+      isOverdue,
+      customMessage,
+    });
 
     // Send email
     await sendEmail(student.email, student.fullName, subject, plainText, htmlContent);
@@ -270,6 +216,10 @@ const sendBulkReminders = async (req, res, next) => {
     let failCount = 0;
     const results = [];
 
+    // Load saved template from settings
+    const settings = await SystemSetting.get(AUTO_REMINDER_SETTINGS_KEY, DEFAULT_SETTINGS);
+    const template = settings?.emailTemplate || DEFAULT_SETTINGS.emailTemplate;
+
     for (const submission of submissions) {
       const student = submission.student_id;
       if (!student || !student.email) {
@@ -291,18 +241,18 @@ const sendBulkReminders = async (req, res, next) => {
       const isOverdue = submission.status === 'Overdue' ||
         (submission.dueDate && new Date(submission.dueDate) < new Date());
 
-      const subject = isOverdue
-        ? `Reminder: ${phase} Submission Overdue`
-        : `Reminder: ${phase} Submission Pending`;
-      const statusText = isOverdue ? 'is overdue' : 'has not yet been submitted';
-      const urgencyNote = isOverdue
-        ? 'Please submit your work as soon as possible.'
-        : 'Please submit your work before the deadline.';
-      const dueDateLabel = isOverdue ? 'Original Due Date' : 'Due Date';
-      const plainText = `Dear ${student.fullName},\n\nThis is a reminder that your submission for "${phase}" (Topic: ${topicTitle}) ${statusText}.\n\n${dueDateLabel}: ${dueDateStr}\n${customMessage ? `\nNote from administrator: ${customMessage}\n` : ''}\n${urgencyNote}\n\nBest regards,\nFYP Management Team`;
+      const { subject, plainText, htmlContent } = buildReminderEmail({
+        template,
+        studentName: student.fullName,
+        phase,
+        topicTitle,
+        dueDateStr,
+        isOverdue,
+        customMessage,
+      });
 
       try {
-        await sendEmail(student.email, student.fullName, subject, plainText);
+        await sendEmail(student.email, student.fullName, subject, plainText, htmlContent);
 
         submission.reminderSentAt = new Date();
         submission.reminderCount = (submission.reminderCount || 0) + 1;
@@ -341,11 +291,93 @@ const AUTO_REMINDER_SETTINGS_KEY = 'autoReminderSettings';
 
 const DEFAULT_SETTINGS = {
   enabled: false,
-  frequencyHours: 24,        // how often the auto-send job runs
-  maxRemindersPerStudent: 3, // stop auto-sending after N reminders
-  targetStatuses: ['Overdue', 'Not Submitted'], // which statuses to auto-remind
-  customMessage: '',         // optional default custom message for auto emails
+  frequencyHours: 24,
+  maxRemindersPerStudent: 3,
+  targetStatuses: ['Overdue', 'Not Submitted'],
+  customMessage: '',
+  // Editable email template fields
+  emailTemplate: {
+    subjectOverdue: 'Reminder: {{phase}} Submission Overdue',
+    subjectPending: 'Reminder: {{phase}} Submission Pending',
+    greeting: 'Dear {{studentName}},',
+    bodyOverdue: 'This is a reminder that your submission for <strong>{{phase}}</strong> (Topic: <em>{{topicTitle}}</em>) is currently <strong>overdue</strong>.',
+    bodyPending: 'This is a reminder that your submission for <strong>{{phase}}</strong> (Topic: <em>{{topicTitle}}</em>) has <strong>not yet been submitted</strong>.',
+    closingOverdue: 'Please submit your work as soon as possible through the FYP Management Platform to avoid further penalties.',
+    closingPending: 'Please submit your work before the deadline through the FYP Management Platform.',
+    signOff: 'Best regards,',
+    teamName: 'FYP Management Team',
+  },
 };
+
+/**
+ * Build email subject, plainText, and htmlContent from template settings.
+ * Accepts a template object (from settings) plus context variables.
+ */
+function buildReminderEmail({ template, studentName, phase, topicTitle, dueDateStr, isOverdue, customMessage }) {
+  const t = { ...DEFAULT_SETTINGS.emailTemplate, ...template };
+
+  const vars = { studentName, phase, topicTitle, dueDate: dueDateStr };
+  const fill = (str) => (str || '').replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || '');
+
+  const subject = fill(isOverdue ? t.subjectOverdue : t.subjectPending);
+  const greeting = fill(t.greeting);
+  const body = fill(isOverdue ? t.bodyOverdue : t.bodyPending);
+  const closing = fill(isOverdue ? t.closingOverdue : t.closingPending);
+  const signOff = fill(t.signOff);
+  const teamName = fill(t.teamName);
+  const dueDateLabel = isOverdue ? 'Original Due Date' : 'Due Date';
+  const dueDateColor = isOverdue ? '#d9534f' : '#333';
+  const headerIcon = isOverdue ? '⚠️' : '📋';
+  const headerTitle = isOverdue ? 'Submission Reminder – Overdue' : 'Submission Reminder';
+
+  // Plain text version
+  const plainTextParts = [
+    greeting,
+    '',
+    body.replace(/<[^>]+>/g, ''),
+    '',
+    `${dueDateLabel}: ${dueDateStr}`,
+    '',
+    customMessage ? `Note from administrator: ${customMessage}` : '',
+    '',
+    closing,
+    '',
+    signOff,
+    teamName,
+  ];
+  const plainText = plainTextParts.filter(Boolean).join('\n');
+
+  // HTML version
+  const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #333; margin: 0; padding: 0; background: #f5f5f5;">
+  <div style="max-width: 600px; margin: 20px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow: hidden;">
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center;">
+      <div style="font-size: 48px; margin-bottom: 10px;">${headerIcon}</div>
+      <h1 style="margin: 0; font-size: 22px;">${headerTitle}</h1>
+    </div>
+    <div style="padding: 30px 40px;">
+      <p>${greeting}</p>
+      <p>${body}</p>
+      <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px 20px; margin: 20px 0; border-radius: 4px;">
+        <strong style="color: #856404;">${dueDateLabel}:</strong> <span style="color: ${dueDateColor}; font-weight: 600;">${dueDateStr}</span>
+      </div>
+      ${customMessage ? `<div style="background: #e8f4fd; border-left: 4px solid #2196f3; padding: 15px 20px; margin: 20px 0; border-radius: 4px;"><strong>Note from administrator:</strong> ${customMessage}</div>` : ''}
+      <p>${closing}</p>
+    </div>
+    <div style="background: #f8f9fa; padding: 20px 40px; border-top: 1px solid #e9ecef; font-size: 14px; color: #6c757d;">
+      <p style="margin: 5px 0;"><strong>${signOff}</strong></p>
+      <p style="margin: 5px 0;">${teamName}</p>
+      <p style="margin-top: 15px; font-size: 12px;">This is an automated message. Please do not reply to this email.</p>
+    </div>
+  </div>
+</body>
+</html>`.trim();
+
+  return { subject, plainText, htmlContent };
+}
 
 /**
  * GET /api/v1/admin/reminders/settings
@@ -370,10 +402,12 @@ const updateReminderSettings = async (req, res, next) => {
       maxRemindersPerStudent,
       targetStatuses,
       customMessage,
+      emailTemplate,
     } = req.body;
 
     const current = await SystemSetting.get(AUTO_REMINDER_SETTINGS_KEY, DEFAULT_SETTINGS);
     const updated = { ...DEFAULT_SETTINGS, ...current };
+    if (!updated.emailTemplate) updated.emailTemplate = { ...DEFAULT_SETTINGS.emailTemplate };
 
     if (typeof enabled === 'boolean') updated.enabled = enabled;
     if (typeof frequencyHours === 'number' && frequencyHours >= 1) updated.frequencyHours = frequencyHours;
@@ -383,6 +417,14 @@ const updateReminderSettings = async (req, res, next) => {
       if (updated.targetStatuses.length === 0) updated.targetStatuses = ['Overdue', 'Not Submitted'];
     }
     if (typeof customMessage === 'string') updated.customMessage = customMessage.trim();
+    if (emailTemplate && typeof emailTemplate === 'object') {
+      const allowedKeys = Object.keys(DEFAULT_SETTINGS.emailTemplate);
+      for (const key of allowedKeys) {
+        if (typeof emailTemplate[key] === 'string') {
+          updated.emailTemplate[key] = emailTemplate[key];
+        }
+      }
+    }
 
     await SystemSetting.set(AUTO_REMINDER_SETTINGS_KEY, updated, req.auth?.userId);
 
@@ -445,64 +487,18 @@ const runAutoReminders = async (req, res, next) => {
       const isOverdue = submission.status === 'Overdue' ||
         (submission.dueDate && new Date(submission.dueDate) < new Date());
 
-      const subject = isOverdue
-        ? `Reminder: ${phase} Submission Overdue`
-        : `Reminder: ${phase} Submission Pending`;
-
-      const statusText = isOverdue ? 'is overdue' : 'has not yet been submitted';
-      const urgencyNote = isOverdue
-        ? 'Please submit your work as soon as possible through the FYP Management Platform to avoid further penalties.'
-        : 'Please submit your work before the deadline through the FYP Management Platform.';
-      const dueDateLabel = isOverdue ? 'Original Due Date' : 'Due Date';
-      const headerIcon = isOverdue ? '⚠️' : '📋';
-      const headerTitle = isOverdue ? 'Submission Reminder – Overdue' : 'Submission Reminder';
-      const dueDateColor = isOverdue ? '#d9534f' : '#333';
-      const statusDescription = isOverdue ? 'is currently <strong>overdue</strong>' : 'has <strong>not yet been submitted</strong>';
-
+      const template = settings.emailTemplate || DEFAULT_SETTINGS.emailTemplate;
       const adminNote = settings.customMessage || '';
 
-      const plainText = [
-        `Dear ${student.fullName},`,
-        '',
-        `This is a reminder that your submission for "${phase}" (Topic: ${topicTitle}) ${statusText}.`,
-        '',
-        `${dueDateLabel}: ${dueDateStr}`,
-        '',
-        adminNote ? `Note: ${adminNote}` : '',
-        '',
-        urgencyNote,
-        '',
-        'Best regards,',
-        'FYP Management Team',
-      ].filter(Boolean).join('\n');
-
-      const htmlContent = `
-<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="UTF-8"></head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #333; margin: 0; padding: 0; background: #f5f5f5;">
-  <div style="max-width: 600px; margin: 20px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow: hidden;">
-    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center;">
-      <div style="font-size: 48px; margin-bottom: 10px;">${headerIcon}</div>
-      <h1 style="margin: 0; font-size: 22px;">${headerTitle}</h1>
-    </div>
-    <div style="padding: 30px 40px;">
-      <p>Dear <strong>${student.fullName}</strong>,</p>
-      <p>This is a reminder that your submission for <strong>${phase}</strong> (Topic: <em>${topicTitle}</em>) ${statusDescription}.</p>
-      <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px 20px; margin: 20px 0; border-radius: 4px;">
-        <strong style="color: #856404;">${dueDateLabel}:</strong> <span style="color: ${dueDateColor}; font-weight: 600;">${dueDateStr}</span>
-      </div>
-      ${adminNote ? `<div style="background: #e8f4fd; border-left: 4px solid #2196f3; padding: 15px 20px; margin: 20px 0; border-radius: 4px;"><strong>Note:</strong> ${adminNote}</div>` : ''}
-      <p>${urgencyNote}</p>
-    </div>
-    <div style="background: #f8f9fa; padding: 20px 40px; border-top: 1px solid #e9ecef; font-size: 14px; color: #6c757d;">
-      <p style="margin: 5px 0;"><strong>Best regards,</strong></p>
-      <p style="margin: 5px 0;">FYP Management Team</p>
-      <p style="margin-top: 15px; font-size: 12px;">This is an automated message. Please do not reply to this email.</p>
-    </div>
-  </div>
-</body>
-</html>`.trim();
+      const { subject, plainText, htmlContent } = buildReminderEmail({
+        template,
+        studentName: student.fullName,
+        phase,
+        topicTitle,
+        dueDateStr,
+        isOverdue,
+        customMessage: adminNote,
+      });
 
       try {
         await sendEmail(student.email, student.fullName, subject, plainText, htmlContent);
