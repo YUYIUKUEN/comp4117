@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import {
   Bars3Icon,
   ArrowLeftIcon,
@@ -97,6 +97,17 @@ const fetchStudents = async () => {
 
 onMounted(() => {
   fetchStudents();
+});
+
+const filteredStudents = computed(() => {
+  if (!searchQuery.value.trim()) return students.value;
+  const q = searchQuery.value.toLowerCase();
+  return students.value.filter(s =>
+    s.name.toLowerCase().includes(q) ||
+    s.email.toLowerCase().includes(q) ||
+    s.programme.toLowerCase().includes(q) ||
+    s.cohort.toLowerCase().includes(q)
+  );
 });
 
 const handleBack = () => {
@@ -278,6 +289,7 @@ const handleDeleteCohort = (cohortId: number) => {
               aria-hidden="true"
             />
             <input
+              v-model="searchQuery"
               type="search"
               class="block w-full rounded-lg border border-slate-300 bg-white px-9 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
               placeholder="Search students..."
@@ -310,7 +322,7 @@ const handleDeleteCohort = (cohortId: number) => {
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-200">
-              <tr v-for="student in students" :key="student.id" class="hover:bg-slate-50">
+              <tr v-for="student in filteredStudents" :key="student.id" class="hover:bg-slate-50">
                 <td class="px-4 py-3">
                   <p class="font-medium text-slate-900">{{ student.name }}</p>
                 </td>
