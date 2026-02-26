@@ -19,6 +19,19 @@ const stats = ref({
 });
 
 const rows = ref<any[]>([]);
+const searchQuery = ref('');
+
+const filteredRows = computed(() => {
+  if (!searchQuery.value.trim()) return rows.value;
+  const q = searchQuery.value.toLowerCase();
+  return rows.value.filter(r =>
+    r.student.toLowerCase().includes(q) ||
+    r.email.toLowerCase().includes(q) ||
+    r.programme.toLowerCase().includes(q) ||
+    r.supervisor.toLowerCase().includes(q) ||
+    r.topic.toLowerCase().includes(q)
+  );
+});
 
 // Fetch real data from API
 onMounted(async () => {
@@ -269,6 +282,7 @@ const getLogType = (action: string) => {
                 aria-hidden="true"
               />
               <input
+                v-model="searchQuery"
                 type="search"
                 class="block w-full rounded-lg border border-slate-300 bg-white px-9 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
                 placeholder="Search by student, topic, or supervisor"
@@ -326,7 +340,7 @@ const getLogType = (action: string) => {
               </thead>
               <tbody class="divide-y divide-slate-800">
                 <tr
-                  v-for="row in rows"
+                  v-for="row in filteredRows"
                   :key="row.id"
                   class="hover:bg-slate-900/80"
                 >
