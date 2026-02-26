@@ -1,6 +1,13 @@
 {
   "devDependencies": {
+    "@types/node": "^25.3.1",
     "jsdom": "^28.0.0",
     "vitest": "^4.0.18"
+  },
+  "dependencies": {
+    "@azure/communication-email": "^1.1.0",
+    "dotenv": "^17.3.1",
+    "node-cron": "^4.2.1",
+    "tsx": "^4.21.0"
   }
 }
