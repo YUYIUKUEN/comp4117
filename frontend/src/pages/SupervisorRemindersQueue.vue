@@ -344,13 +344,13 @@ onMounted(() => {
         leave-from-class="opacity-100 translate-y-0"
         leave-to-class="opacity-0 -translate-y-2"
       >
-        <div v-if="isAdminOrSupervisor && showSettings" class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm mb-4">
-          <div class="flex items-center justify-between mb-4">
+        <div v-if="isAdminOrSupervisor && showSettings" class="rounded-xl border border-slate-200 bg-white shadow-sm mb-4">
+          <!-- Settings header -->
+          <div class="flex items-center justify-between px-4 sm:px-5 pt-4 sm:pt-5 pb-3">
             <div>
-              <h2 class="text-sm font-semibold text-slate-900">Auto-Send Settings</h2>
-              <p class="text-xs text-slate-500 mt-0.5">Configure automatic reminder emails or send them manually one by one.</p>
+              <h2 class="text-sm font-semibold text-slate-900">Reminder Settings</h2>
+              <p class="text-xs text-slate-500 mt-0.5">Configure auto-send and customise the email template.</p>
             </div>
-            <!-- Toggle switch -->
             <button
               @click="autoSettings.enabled = !autoSettings.enabled"
               :class="[
@@ -367,113 +367,306 @@ onMounted(() => {
             </button>
           </div>
 
-          <div v-if="settingsLoading" class="flex items-center gap-2 py-4">
+          <!-- Tab bar -->
+          <div class="flex border-b border-slate-200 px-4 sm:px-5 gap-4">
+            <button
+              @click="settingsTab = 'general'"
+              :class="[
+                'pb-2 text-xs font-medium border-b-2 transition-colors -mb-px',
+                settingsTab === 'general'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700',
+              ]"
+            >
+              General
+            </button>
+            <button
+              @click="settingsTab = 'template'"
+              :class="[
+                'pb-2 text-xs font-medium border-b-2 transition-colors -mb-px',
+                settingsTab === 'template'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700',
+              ]"
+            >
+              Email Template
+            </button>
+          </div>
+
+          <div v-if="settingsLoading" class="flex items-center gap-2 py-8 justify-center">
             <div class="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600"></div>
             <p class="text-xs text-slate-500">Loading settings...</p>
           </div>
 
-          <div v-else class="space-y-4">
-            <!-- Frequency -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">Send Frequency</label>
-                <select
-                  v-model.number="autoSettings.frequencyHours"
-                  class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
-                >
-                  <option :value="6">Every 6 hours</option>
-                  <option :value="12">Every 12 hours</option>
-                  <option :value="24">Every 24 hours (daily)</option>
-                  <option :value="48">Every 48 hours</option>
-                  <option :value="72">Every 72 hours</option>
-                  <option :value="168">Every 7 days (weekly)</option>
-                </select>
+          <div v-else class="px-4 sm:px-5 pb-4 sm:pb-5 pt-4">
+            <!-- ============ General tab ============ -->
+            <div v-if="settingsTab === 'general'" class="space-y-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-medium text-slate-600 mb-1">Send Frequency</label>
+                  <select
+                    v-model.number="autoSettings.frequencyHours"
+                    class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
+                  >
+                    <option :value="6">Every 6 hours</option>
+                    <option :value="12">Every 12 hours</option>
+                    <option :value="24">Every 24 hours (daily)</option>
+                    <option :value="48">Every 48 hours</option>
+                    <option :value="72">Every 72 hours</option>
+                    <option :value="168">Every 7 days (weekly)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-600 mb-1">Max Reminders per Student</label>
+                  <select
+                    v-model.number="autoSettings.maxRemindersPerStudent"
+                    class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
+                  >
+                    <option :value="1">1 reminder</option>
+                    <option :value="2">2 reminders</option>
+                    <option :value="3">3 reminders</option>
+                    <option :value="5">5 reminders</option>
+                    <option :value="10">10 reminders</option>
+                  </select>
+                </div>
               </div>
 
-              <!-- Max reminders per student -->
               <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">Max Reminders per Student</label>
-                <select
-                  v-model.number="autoSettings.maxRemindersPerStudent"
-                  class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
-                >
-                  <option :value="1">1 reminder</option>
-                  <option :value="2">2 reminders</option>
-                  <option :value="3">3 reminders</option>
-                  <option :value="5">5 reminders</option>
-                  <option :value="10">10 reminders</option>
-                </select>
+                <label class="block text-xs font-medium text-slate-600 mb-1.5">Send To</label>
+                <div class="flex gap-2">
+                  <button
+                    @click="toggleStatus('Overdue')"
+                    :class="[
+                      'rounded-lg px-3 py-1.5 text-xs font-medium border transition-colors',
+                      autoSettings.targetStatuses.includes('Overdue')
+                        ? 'bg-red-50 text-red-700 border-red-200'
+                        : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300',
+                    ]"
+                  >
+                    ✓ Overdue Submissions
+                  </button>
+                  <button
+                    @click="toggleStatus('Not Submitted')"
+                    :class="[
+                      'rounded-lg px-3 py-1.5 text-xs font-medium border transition-colors',
+                      autoSettings.targetStatuses.includes('Not Submitted')
+                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                        : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300',
+                    ]"
+                  >
+                    ✓ Not Submitted
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <!-- Target statuses -->
-            <div>
-              <label class="block text-xs font-medium text-slate-600 mb-1.5">Send To</label>
-              <div class="flex gap-2">
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Default Message (optional)</label>
+                <textarea
+                  v-model="autoSettings.customMessage"
+                  rows="2"
+                  placeholder="A default note included in all auto-sent emails…"
+                  class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none resize-none"
+                />
+              </div>
+
+              <div class="flex items-center gap-2 pt-1">
                 <button
-                  @click="toggleStatus('Overdue')"
-                  :class="[
-                    'rounded-lg px-3 py-1.5 text-xs font-medium border transition-colors',
-                    autoSettings.targetStatuses.includes('Overdue')
-                      ? 'bg-red-50 text-red-700 border-red-200'
-                      : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300',
-                  ]"
+                  @click="saveSettings"
+                  :disabled="settingsSaving"
+                  class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
                 >
-                  ✓ Overdue Submissions
+                  {{ settingsSaving ? 'Saving...' : 'Save Settings' }}
                 </button>
                 <button
-                  @click="toggleStatus('Not Submitted')"
-                  :class="[
-                    'rounded-lg px-3 py-1.5 text-xs font-medium border transition-colors',
-                    autoSettings.targetStatuses.includes('Not Submitted')
-                      ? 'bg-amber-50 text-amber-700 border-amber-200'
-                      : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300',
-                  ]"
+                  @click="triggerAutoSendNow"
+                  :disabled="autoSendRunning || !autoSettings.enabled"
+                  class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50"
+                  :title="!autoSettings.enabled ? 'Enable auto-send first' : 'Send reminders to all qualifying students now'"
                 >
-                  ✓ Not Submitted
+                  <BoltIcon class="h-4 w-4" />
+                  {{ autoSendRunning ? 'Sending...' : 'Run Auto-Send Now' }}
+                </button>
+              </div>
+
+              <p v-if="autoSettings.enabled" class="text-[11px] text-emerald-600">
+                ✓ Auto-send is <strong>enabled</strong>. The system will automatically send reminders every
+                {{ autoSettings.frequencyHours }} hour{{ autoSettings.frequencyHours !== 1 ? 's' : '' }},
+                up to {{ autoSettings.maxRemindersPerStudent }} per student.
+              </p>
+              <p v-else class="text-[11px] text-slate-400">
+                Auto-send is <strong>disabled</strong>. You can send reminders manually using the buttons on each card below.
+              </p>
+            </div>
+
+            <!-- ============ Email Template tab ============ -->
+            <div v-if="settingsTab === 'template'" class="space-y-4">
+              <!-- Variable guide -->
+              <div class="rounded-lg border border-blue-100 bg-blue-50/50 p-3">
+                <p class="text-xs font-medium text-blue-700 mb-1">Available Variables</p>
+                <div class="flex flex-wrap gap-1.5">
+                  <code class="rounded bg-white border border-blue-200 px-1.5 py-0.5 text-[11px] text-blue-800 font-mono">{<!-- -->{studentName}}</code>
+                  <code class="rounded bg-white border border-blue-200 px-1.5 py-0.5 text-[11px] text-blue-800 font-mono">{<!-- -->{phase}}</code>
+                  <code class="rounded bg-white border border-blue-200 px-1.5 py-0.5 text-[11px] text-blue-800 font-mono">{<!-- -->{topicTitle}}</code>
+                  <code class="rounded bg-white border border-blue-200 px-1.5 py-0.5 text-[11px] text-blue-800 font-mono">{<!-- -->{dueDate}}</code>
+                </div>
+                <p class="text-[11px] text-blue-600 mt-1.5">You can use basic HTML like <code class="bg-white px-1 rounded">&lt;strong&gt;</code>, <code class="bg-white px-1 rounded">&lt;em&gt;</code> in body fields.</p>
+              </div>
+
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <!-- Template editor (left column) -->
+                <div class="space-y-3">
+                  <h3 class="text-xs font-semibold text-slate-700 uppercase tracking-wide">Edit Template</h3>
+
+                  <div>
+                    <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Subject (Overdue)</label>
+                    <input
+                      v-model="autoSettings.emailTemplate.subjectOverdue"
+                      class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Subject (Pending)</label>
+                    <input
+                      v-model="autoSettings.emailTemplate.subjectPending"
+                      class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Greeting</label>
+                    <input
+                      v-model="autoSettings.emailTemplate.greeting"
+                      class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Body (Overdue)</label>
+                    <textarea
+                      v-model="autoSettings.emailTemplate.bodyOverdue"
+                      rows="2"
+                      class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none resize-none"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Body (Pending)</label>
+                    <textarea
+                      v-model="autoSettings.emailTemplate.bodyPending"
+                      rows="2"
+                      class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none resize-none"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Closing (Overdue)</label>
+                    <textarea
+                      v-model="autoSettings.emailTemplate.closingOverdue"
+                      rows="2"
+                      class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none resize-none"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Closing (Pending)</label>
+                    <textarea
+                      v-model="autoSettings.emailTemplate.closingPending"
+                      rows="2"
+                      class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none resize-none"
+                    />
+                  </div>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Sign Off</label>
+                      <input
+                        v-model="autoSettings.emailTemplate.signOff"
+                        class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Team Name</label>
+                      <input
+                        v-model="autoSettings.emailTemplate.teamName"
+                        class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Live preview (right column) -->
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-semibold text-slate-700 uppercase tracking-wide">
+                      <EyeIcon class="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
+                      Live Preview
+                    </h3>
+                    <div class="flex rounded-lg border border-slate-200 overflow-hidden">
+                      <button
+                        @click="previewMode = 'overdue'"
+                        :class="[
+                          'px-2.5 py-1 text-[11px] font-medium transition-colors',
+                          previewMode === 'overdue'
+                            ? 'bg-red-50 text-red-700'
+                            : 'bg-white text-slate-500 hover:bg-slate-50',
+                        ]"
+                      >
+                        Overdue
+                      </button>
+                      <button
+                        @click="previewMode = 'pending'"
+                        :class="[
+                          'px-2.5 py-1 text-[11px] font-medium border-l border-slate-200 transition-colors',
+                          previewMode === 'pending'
+                            ? 'bg-amber-50 text-amber-700'
+                            : 'bg-white text-slate-500 hover:bg-slate-50',
+                        ]"
+                      >
+                        Pending
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Rendered email preview -->
+                  <div class="rounded-lg border border-slate-200 overflow-hidden text-sm">
+                    <div class="bg-slate-100 px-3 py-1.5 text-[11px] text-slate-500 border-b border-slate-200 truncate">
+                      <strong>Subject:</strong> {{ templatePreview.subject }}
+                    </div>
+                    <div class="overflow-hidden" style="max-height: 420px; overflow-y: auto;">
+                      <div :style="{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }" class="text-white text-center py-5 px-4">
+                        <div class="text-3xl mb-1">{{ previewMode === 'overdue' ? '⚠️' : '📋' }}</div>
+                        <p class="font-semibold text-sm">{{ previewMode === 'overdue' ? 'Submission Reminder – Overdue' : 'Submission Reminder' }}</p>
+                      </div>
+                      <div class="px-5 py-4 space-y-2 text-[13px] text-slate-700">
+                        <p>{{ templatePreview.greeting }}</p>
+                        <p v-html="templatePreview.body"></p>
+                        <div class="rounded border-l-4 border-amber-400 bg-amber-50 px-3 py-2 my-2">
+                          <strong class="text-amber-800 text-xs">{{ previewMode === 'overdue' ? 'Original Due Date' : 'Due Date' }}:</strong>
+                          <span :class="previewMode === 'overdue' ? 'text-red-600 font-semibold text-xs ml-1' : 'text-slate-800 font-semibold text-xs ml-1'">April 15, 2026</span>
+                        </div>
+                        <p class="text-[13px]">{{ templatePreview.closing }}</p>
+                      </div>
+                      <div class="bg-slate-50 border-t border-slate-200 px-5 py-3 text-xs text-slate-500">
+                        <p class="font-medium">{{ templatePreview.signOff }}</p>
+                        <p>{{ templatePreview.teamName }}</p>
+                        <p class="mt-2 text-[11px] text-slate-400 italic">This is an automated message. Please do not reply to this email.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Template action buttons -->
+              <div class="flex items-center gap-2 pt-1">
+                <button
+                  @click="saveSettings"
+                  :disabled="settingsSaving"
+                  class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {{ settingsSaving ? 'Saving...' : 'Save Template' }}
+                </button>
+                <button
+                  @click="resetTemplate"
+                  class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                >
+                  Reset to Default
                 </button>
               </div>
             </div>
-
-            <!-- Default custom message -->
-            <div>
-              <label class="block text-xs font-medium text-slate-600 mb-1">Default Message (optional)</label>
-              <textarea
-                v-model="autoSettings.customMessage"
-                rows="2"
-                placeholder="A default note included in all auto-sent emails…"
-                class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none resize-none"
-              />
-            </div>
-
-            <!-- Action buttons -->
-            <div class="flex items-center gap-2 pt-1">
-              <button
-                @click="saveSettings"
-                :disabled="settingsSaving"
-                class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-              >
-                {{ settingsSaving ? 'Saving...' : 'Save Settings' }}
-              </button>
-              <button
-                @click="triggerAutoSendNow"
-                :disabled="autoSendRunning || !autoSettings.enabled"
-                class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50"
-                :title="!autoSettings.enabled ? 'Enable auto-send first' : 'Send reminders to all qualifying students now'"
-              >
-                <BoltIcon class="h-4 w-4" />
-                {{ autoSendRunning ? 'Sending...' : 'Run Auto-Send Now' }}
-              </button>
-            </div>
-
-            <p v-if="autoSettings.enabled" class="text-[11px] text-emerald-600">
-              ✓ Auto-send is <strong>enabled</strong>. The system will automatically send reminders every
-              {{ autoSettings.frequencyHours }} hour{{ autoSettings.frequencyHours !== 1 ? 's' : '' }},
-              up to {{ autoSettings.maxRemindersPerStudent }} per student.
-            </p>
-            <p v-else class="text-[11px] text-slate-400">
-              Auto-send is <strong>disabled</strong>. You can send reminders manually using the buttons on each card below.
-            </p>
           </div>
         </div>
       </transition>
