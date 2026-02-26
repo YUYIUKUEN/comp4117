@@ -19,6 +19,8 @@ const submissionSchema = new mongoose.Schema({
   declarationReason: { type: String, maxlength: 1000 },
   declaredAt: Date,
   dueDate: Date,
+  reminderSentAt: Date,
+  reminderCount: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });

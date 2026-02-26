@@ -115,7 +115,8 @@ const authenticate = async (req, res, next) => {
 const requireRole = (...roles) => {
   return (req, res, next) => {
     const userRole = req.auth?.role || req.user?.role;
-    if (!userRole || !roles.includes(userRole)) {
+    const normalizedRoles = roles.map(r => r.toLowerCase());
+    if (!userRole || !normalizedRoles.includes(userRole.toLowerCase())) {
       return res.status(403).json({
         code: 'FORBIDDEN',
         error: `Access denied. Required role(s): ${roles.join(', ')}`,

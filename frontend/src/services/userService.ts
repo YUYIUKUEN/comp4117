@@ -49,6 +49,11 @@ export default {
     return response.data
   },
 
+  async updateUser(userId: string, payload: Partial<CreateUserPayload>): Promise<{ data: User; status: number }> {
+    const response = await httpClient.put(`/admin/users/${userId}`, payload)
+    return response.data
+  },
+
   async reactivateUser(userId: string): Promise<{ data: User; status: number }> {
     const response = await httpClient.post(`/admin/users/${userId}/reactivate`)
     return response.data

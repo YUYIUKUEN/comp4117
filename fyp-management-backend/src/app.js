@@ -29,6 +29,7 @@ const submissionRoutes = require('./routes/submissionRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
 const activityRoutes = require('./routes/activityRoutes');
 const healthRoutes = require('./routes/healthRoutes');
+const adminReminderRoutes = require('./routes/adminReminderRoutes');
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/topics', topicRoutes);
@@ -39,6 +40,7 @@ app.use('/api/v1/submissions', submissionRoutes);
 app.use('/api/v1/feedback', feedbackRoutes);
 app.use('/api/v1/admin/users', userManagementRoutes);
 app.use('/api/v1/admin/topics', topicModerationRoutes);
+app.use('/api/v1/admin/reminders', adminReminderRoutes);
 app.use('/api/v1/activity', activityRoutes);
 app.use('/api/v1/health', healthRoutes);
 

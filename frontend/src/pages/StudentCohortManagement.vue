@@ -64,6 +64,18 @@ const addStudentForm = ref({
 const addStudentError = ref('');
 const addStudentLoading = ref(false);
 
+// Edit Student Modal
+const showEditModal = ref(false);
+const editStudentId = ref('');
+const editStudentForm = ref({
+  fullName: '',
+  email: '',
+  concentration: '',
+  phone: '',
+});
+const editStudentError = ref('');
+const editStudentLoading = ref(false);
+
 const fetchStudents = async () => {
   try {
     isLoading.value = true;
@@ -129,7 +141,42 @@ const handleAddCohort = () => {
 };
 
 const handleEditStudent = (studentId: string) => {
-  console.log('Edit student', studentId);
+  const student = students.value.find(s => s.id === studentId);
+  if (!student) return;
+  editStudentId.value = studentId;
+  editStudentForm.value = {
+    fullName: student.name,
+    email: student.email,
+    concentration: student.programme === 'Not set' ? '' : student.programme,
+    phone: '',
+  };
+  editStudentError.value = '';
+  showEditModal.value = true;
+};
+
+const submitEditStudent = async () => {
+  editStudentError.value = '';
+
+  if (!editStudentForm.value.fullName.trim() || !editStudentForm.value.email.trim()) {
+    editStudentError.value = 'Name and email are required.';
+    return;
+  }
+
+  try {
+    editStudentLoading.value = true;
+    await userService.updateUser(editStudentId.value, {
+      fullName: editStudentForm.value.fullName.trim(),
+      email: editStudentForm.value.email.trim(),
+      concentration: editStudentForm.value.concentration.trim() || undefined,
+      phone: editStudentForm.value.phone.trim() || undefined,
+    });
+    showEditModal.value = false;
+    await fetchStudents();
+  } catch (error: any) {
+    editStudentError.value = error.response?.data?.error || 'Failed to update student. Please try again.';
+  } finally {
+    editStudentLoading.value = false;
+  }
 };
 
 const handleDeleteStudent = async (studentId: string) => {
@@ -489,6 +536,80 @@ const handleDeleteCohort = (cohortId: number) => {
               >
                 <span v-if="addStudentLoading" class="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
                 {{ addStudentLoading ? 'Creating...' : 'Add Student' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Edit Student Modal -->
+      <div v-if="showEditModal" class="fixed inset-0 z-50 flex items-center justify-center">
+        <div class="fixed inset-0 bg-black/40" @click="showEditModal = false" />
+        <div class="relative z-10 w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-xl mx-4">
+          <div class="flex items-center justify-between mb-5">
+            <h3 class="text-lg font-semibold text-slate-900">Edit Student</h3>
+            <button
+              @click="showEditModal = false"
+              class="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            >
+              <XMarkIcon class="h-5 w-5" />
+            </button>
+          </div>
+
+          <div v-if="editStudentError" class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {{ editStudentError }}
+          </div>
+
+          <form @submit.prevent="submitEditStudent" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Full Name *</label>
+              <input
+                v-model="editStudentForm.fullName"
+                type="text"
+                required
+                class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Email *</label>
+              <input
+                v-model="editStudentForm.email"
+                type="email"
+                required
+                class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Programme / Concentration</label>
+              <input
+                v-model="editStudentForm.concentration"
+                type="text"
+                class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+              <input
+                v-model="editStudentForm.phone"
+                type="tel"
+                class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
+              />
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                @click="showEditModal = false"
+                class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                :disabled="editStudentLoading"
+                class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+              >
+                <span v-if="editStudentLoading" class="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
+                {{ editStudentLoading ? 'Saving...' : 'Save Changes' }}
               </button>
             </div>
           </form>

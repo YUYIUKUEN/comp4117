@@ -4,6 +4,7 @@ const {
   getAllUsers,
   getUserById,
   createUser,
+  updateUser,
   deactivateUser,
   reactivateUser,
 } = require('../controllers/userManagementController');
@@ -18,6 +19,9 @@ router.post('/', authenticate, requireRole('Admin'), createUser);
 
 // Get user by ID - Admin only
 router.get('/:userId', authenticate, requireRole('Admin'), getUserById);
+
+// Update user by ID - Admin only
+router.put('/:userId', authenticate, requireRole('Admin'), updateUser);
 
 // Deactivate user - Admin only
 router.post('/:userId/deactivate', authenticate, requireRole('Admin'), deactivateUser);

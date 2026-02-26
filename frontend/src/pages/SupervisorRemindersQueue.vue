@@ -5,16 +5,22 @@ import {
   ArrowLeftIcon,
   BellIcon,
   CheckIcon,
+  EnvelopeIcon,
 } from '@heroicons/vue/24/outline';
 import httpClient from '@/services/httpClient';
+import { useAuthStore } from '@/stores/authStore';
 
 const router = useRouter();
+const authStore = useAuthStore();
+authStore.loadAuthFromStorage();
+const isAdmin = computed(() => authStore.userRole === 'Admin');
 
 interface ReminderItem {
   id: string;
   type: string;
   studentName: string;
   studentEmail: string;
+  studentConcentration: string;
   topic: string;
   dueDate: string;
   daysOverdue: number;
@@ -29,70 +35,38 @@ const completedIds = ref<Set<string>>(new Set());
 const toast = ref<{ message: string; type: 'success' | 'error' } | null>(null);
 const actionLoading = ref<Record<string, boolean>>({});
 
+// Modal state for custom message before sending
+const showMessageModal = ref(false);
+const messageTarget = ref<ReminderItem | null>(null);
+const customMessage = ref('');
+
 const showToast = (message: string, type: 'success' | 'error' = 'success') => {
   toast.value = { message, type };
   setTimeout(() => { toast.value = null; }, 4000);
 };
 
+/** Fetch reminders using the admin/reminders endpoint (available for Admin & Supervisor) */
 const fetchReminders = async () => {
   isLoading.value = true;
   try {
-    // Fetch all supervisor submissions (overdue and not submitted)
-    const [overdueRes, notSubmittedRes] = await Promise.all([
-      httpClient.get('/submissions/supervisor/submissions', { params: { status: 'Overdue' } }),
-      httpClient.get('/submissions/supervisor/submissions', { params: { status: 'Not Submitted' } }),
-    ]);
-
-    const overdueSubs = overdueRes.data.data || [];
-    const notSubmittedSubs = notSubmittedRes.data.data || [];
-
-    const now = new Date();
-    const items: ReminderItem[] = [];
-
-    // Build reminders from overdue submissions
-    for (const sub of overdueSubs) {
-      const due = sub.dueDate ? new Date(sub.dueDate) : null;
-      const days = due ? Math.floor((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24)) : 0;
-      items.push({
-        id: sub._id,
-        type: 'Overdue Submission',
-        studentName: sub.student_id?.fullName || 'Unknown Student',
-        studentEmail: sub.student_id?.email || '',
-        topic: sub.topic_id?.title || 'Unknown Topic',
-        dueDate: due ? due.toISOString().split('T')[0] : '—',
-        daysOverdue: days,
-        reminderSent: 0,
-        priority: days >= 7 ? 'High' : days >= 3 ? 'High' : 'Medium',
-        phase: sub.phase || '',
-      });
-    }
-
-    // Build reminders from not-yet-submitted with upcoming due dates
-    for (const sub of notSubmittedSubs) {
-      const due = sub.dueDate ? new Date(sub.dueDate) : null;
-      if (!due) continue;
-      const days = Math.floor((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
-      // Only show if due within 7 days or already past
-      if (days < -7) continue;
-      items.push({
-        id: sub._id,
-        type: days > 0 ? 'Missing Submission' : 'Deadline Approaching',
-        studentName: sub.student_id?.fullName || 'Unknown Student',
-        studentEmail: sub.student_id?.email || '',
-        topic: sub.topic_id?.title || 'Unknown Topic',
-        dueDate: due.toISOString().split('T')[0],
-        daysOverdue: days,
-        reminderSent: 0,
-        priority: days > 0 ? 'High' : days >= -2 ? 'Medium' : 'Low',
-        phase: sub.phase || '',
-      });
-    }
-
-    // Sort: highest overdue first
-    items.sort((a, b) => b.daysOverdue - a.daysOverdue);
-    reminders.value = items;
+    const res = await httpClient.get('/admin/reminders');
+    const data = res.data.data || [];
+    reminders.value = data.map((r: any) => ({
+      id: r.id,
+      type: r.status === 'Overdue' ? 'Overdue Submission' : 'Not Submitted',
+      studentName: r.student?.fullName || 'Unknown Student',
+      studentEmail: r.student?.email || '',
+      studentConcentration: r.student?.concentration || '',
+      topic: r.topic?.title || 'Unknown Topic',
+      dueDate: r.dueDate ? new Date(r.dueDate).toISOString().split('T')[0] : '—',
+      daysOverdue: r.daysOverdue,
+      reminderSent: r.reminderCount || 0,
+      priority: r.priority,
+      phase: r.phase || '',
+    }));
   } catch (error) {
     console.error('Failed to load reminders:', error);
+    showToast('Failed to load reminders.', 'error');
   } finally {
     isLoading.value = false;
   }
@@ -102,18 +76,34 @@ const activeReminders = computed(() =>
   reminders.value.filter(r => !completedIds.value.has(r.id))
 );
 
-const handleSendReminder = async (reminder: ReminderItem) => {
+/** Open modal to optionally add a custom message before sending */
+const openSendModal = (reminder: ReminderItem) => {
+  messageTarget.value = reminder;
+  customMessage.value = '';
+  showMessageModal.value = true;
+};
+
+/** Actually send the reminder email via backend */
+const confirmSendReminder = async () => {
+  if (!messageTarget.value) return;
+  const reminder = messageTarget.value;
+  showMessageModal.value = false;
   actionLoading.value[reminder.id] = true;
+
   try {
-    // Since there's no dedicated email endpoint, we simulate sending
-    // In a real implementation this would call an email API
-    await new Promise(resolve => setTimeout(resolve, 500));
+    const body: Record<string, string> = {};
+    if (customMessage.value.trim()) body.customMessage = customMessage.value.trim();
+
+    await httpClient.post(`/admin/reminders/${reminder.id}/send`, body);
     reminder.reminderSent += 1;
-    showToast(`Reminder sent to ${reminder.studentName} (${reminder.studentEmail}) about ${reminder.phase}.`, 'success');
-  } catch {
-    showToast('Failed to send reminder.', 'error');
+    showToast(`Reminder email sent to ${reminder.studentName} (${reminder.studentEmail}).`, 'success');
+  } catch (err: any) {
+    const msg = err?.response?.data?.error || 'Failed to send reminder email.';
+    showToast(msg, 'error');
   } finally {
     actionLoading.value[reminder.id] = false;
+    messageTarget.value = null;
+    customMessage.value = '';
   }
 };
 
@@ -170,7 +160,7 @@ onMounted(fetchReminders);
         <ArrowLeftIcon class="h-6 w-6" />
       </button>
       <div>
-        <p class="text-[11px] uppercase tracking-[0.2em] text-slate-500">Supervision</p>
+        <p class="text-[11px] uppercase tracking-[0.2em] text-slate-500">{{ isAdmin ? 'Admin' : 'Supervision' }}</p>
         <p class="text-sm font-semibold text-slate-900">Reminders Queue</p>
       </div>
     </header>
@@ -205,6 +195,15 @@ onMounted(fetchReminders);
                   {{ reminder.type }}
                 </p>
                 <h3 class="text-sm font-semibold text-slate-900 mt-1">{{ reminder.studentName }}</h3>
+                <!-- Student email – clickable mailto link -->
+                <p class="text-xs text-blue-600 mt-0.5">
+                  <a :href="'mailto:' + reminder.studentEmail" class="hover:underline">
+                    {{ reminder.studentEmail || '—' }}
+                  </a>
+                </p>
+                <p v-if="reminder.studentConcentration" class="text-[11px] text-slate-400 mt-0.5">
+                  {{ reminder.studentConcentration }}
+                </p>
                 <p class="text-xs text-slate-600 mt-0.5">{{ reminder.topic }}</p>
                 <p class="text-[11px] text-slate-400 mt-0.5">Phase: {{ reminder.phase }}</p>
               </div>
@@ -237,12 +236,21 @@ onMounted(fetchReminders);
             <div class="flex gap-2">
               <button
                 :disabled="actionLoading[reminder.id]"
-                @click="handleSendReminder(reminder)"
+                @click="openSendModal(reminder)"
                 class="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 hover:bg-blue-100 border border-blue-200 disabled:opacity-50"
               >
                 <BellIcon class="h-4 w-4" />
                 {{ actionLoading[reminder.id] ? 'Sending...' : 'Send Reminder' }}
               </button>
+              <!-- Direct email link -->
+              <a
+                v-if="reminder.studentEmail"
+                :href="'mailto:' + reminder.studentEmail"
+                class="inline-flex items-center gap-1 rounded-lg bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 border border-slate-200"
+              >
+                <EnvelopeIcon class="h-4 w-4" />
+                Direct Email
+              </a>
               <button
                 @click="handleMarkComplete(reminder)"
                 class="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
@@ -255,6 +263,57 @@ onMounted(fetchReminders);
         </div>
       </div>
     </main>
+
+    <!-- Send Reminder Modal -->
+    <teleport to="body">
+      <transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition duration-150 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
+        <div v-if="showMessageModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div class="w-full max-w-md mx-4 bg-white rounded-xl shadow-xl overflow-hidden">
+            <div class="px-5 pt-5 pb-3">
+              <h3 class="text-base font-semibold text-slate-900">Send Reminder Email</h3>
+              <p class="text-xs text-slate-500 mt-1">
+                To: <strong>{{ messageTarget?.studentName }}</strong>
+                ({{ messageTarget?.studentEmail }})
+              </p>
+              <p class="text-xs text-slate-500">
+                Phase: {{ messageTarget?.phase }} · Topic: {{ messageTarget?.topic }}
+              </p>
+            </div>
+            <div class="px-5 pb-3">
+              <label class="block text-xs font-medium text-slate-600 mb-1">Custom Message (optional)</label>
+              <textarea
+                v-model="customMessage"
+                rows="3"
+                placeholder="Add a personal note to the student…"
+                class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none resize-none"
+              />
+            </div>
+            <div class="flex justify-end gap-2 px-5 pb-5">
+              <button
+                @click="showMessageModal = false; messageTarget = null;"
+                class="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                @click="confirmSendReminder"
+                class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                <BellIcon class="inline h-4 w-4 mr-1 -mt-0.5" />
+                Send Reminder
+              </button>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </teleport>
   </div>
 </template>
 

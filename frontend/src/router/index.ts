@@ -80,6 +80,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/admin/reminders',
+    name: 'AdminReminders',
+    component: () => import('../pages/SupervisorRemindersQueue.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/supervisor',
     name: 'SupervisorMainMenu',
     component: () => import('../pages/SupervisorMainMenu.vue'),

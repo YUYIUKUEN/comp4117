@@ -204,9 +204,9 @@ const createUser = async (req, res, next) => {
       });
     }
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
-    if (existingUser) {
+    // Check if an active user already exists with this email
+    const existingActive = await User.findOne({ email: email.toLowerCase(), deactivatedAt: null });
+    if (existingActive) {
       return res.status(409).json({
         error: 'A user with this email already exists',
         code: 'DUPLICATE_EMAIL',
@@ -218,14 +218,30 @@ const createUser = async (req, res, next) => {
     const defaultPassword = password || 'changeme123';
     const passwordHash = await bcrypt.hash(defaultPassword, 10);
 
-    const user = await User.create({
-      email: email.toLowerCase(),
-      passwordHash,
-      fullName,
-      role,
-      concentration: concentration || undefined,
-      phone: phone || undefined,
-    });
+    // Check if a deactivated user exists with this email — reactivate & update instead of creating
+    const deactivatedUser = await User.findOne({ email: email.toLowerCase(), deactivatedAt: { $ne: null } });
+
+    let user;
+    if (deactivatedUser) {
+      deactivatedUser.fullName = fullName;
+      deactivatedUser.role = role;
+      deactivatedUser.passwordHash = passwordHash;
+      deactivatedUser.concentration = concentration || undefined;
+      deactivatedUser.phone = phone || undefined;
+      deactivatedUser.deactivatedAt = null;
+      deactivatedUser.updatedAt = new Date();
+      await deactivatedUser.save();
+      user = deactivatedUser;
+    } else {
+      user = await User.create({
+        email: email.toLowerCase(),
+        passwordHash,
+        fullName,
+        role,
+        concentration: concentration || undefined,
+        phone: phone || undefined,
+      });
+    }
 
     // Log activity
     await ActivityLog.create({
@@ -249,10 +265,74 @@ const createUser = async (req, res, next) => {
   }
 };
 
+/**
+ * Update a user's profile
+ * Admin only
+ */
+const updateUser = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const { fullName, email, concentration, phone, role } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+        code: 'NOT_FOUND',
+        status: 404,
+      });
+    }
+
+    // If email is changing, check for duplicates (exclude deactivated users)
+    if (email && email.toLowerCase() !== user.email) {
+      const existing = await User.findOne({ email: email.toLowerCase(), _id: { $ne: userId }, deactivatedAt: null });
+      if (existing) {
+        return res.status(409).json({
+          error: 'A user with this email already exists',
+          code: 'DUPLICATE_EMAIL',
+          status: 409,
+        });
+      }
+      // Remove any deactivated user holding this email so the unique index doesn't block
+      await User.deleteOne({ email: email.toLowerCase(), _id: { $ne: userId }, deactivatedAt: { $ne: null } });
+      user.email = email.toLowerCase();
+    }
+
+    if (fullName !== undefined) user.fullName = fullName;
+    if (concentration !== undefined) user.concentration = concentration;
+    if (phone !== undefined) user.phone = phone;
+    if (role && ['Student', 'Supervisor', 'Admin'].includes(role)) {
+      user.role = role;
+    }
+    user.updatedAt = new Date();
+    await user.save();
+
+    // Log activity
+    await ActivityLog.create({
+      user_id: req.auth.userId,
+      action: 'user_updated',
+      entityType: 'User',
+      entityId: userId,
+      details: { fullName, email, concentration, phone, role },
+    });
+
+    const userObj = user.toObject();
+    delete userObj.passwordHash;
+
+    res.json({
+      data: userObj,
+      status: 200,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllUsers,
   getUserById,
   createUser,
+  updateUser,
   deactivateUser,
   reactivateUser,
 };
