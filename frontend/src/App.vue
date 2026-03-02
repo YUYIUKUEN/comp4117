@@ -9,7 +9,7 @@ const route = useRoute();
 const authStore = useAuthStore();
 
 const isPublicPage = computed(() => {
-  const publicPaths = ['/login', '/register', '/forgot-password'];
+  const publicPaths = ['/login', '/register', '/forgot-password', '/verify-email'];
   return publicPaths.includes(route.path) || route.path.startsWith('/reset-password');
 });
 

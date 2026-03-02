@@ -107,9 +107,6 @@
             v-for="topic in topicStore.topics"
             :key="topic._id"
             :topic="topic"
-            :user-has-approved-assignment="userHasApprovedAssignment"
-            @applied="handleTopicApplied"
-            @error="handleError"
           />
         </div>
 
@@ -137,11 +134,6 @@
         </div>
       </main>
     </div>
-
-    <!-- Success Message -->
-    <div v-if="successMessage" class="success-toast">
-      {{ successMessage }}
-    </div>
   </div>
 </template>
 
@@ -149,15 +141,12 @@
 import { ref, onMounted } from 'vue'
 import { useTopicStore } from '@/stores/topicStore'
 import { useAuthStore } from '@/stores/authStore'
-import assignmentService from '@/services/assignmentService'
 import TopicCard from '@/components/TopicCard.vue'
 
 const topicStore = useTopicStore()
 const authStore = useAuthStore()
 const searchInput = ref('')
 const selectedStatus = ref('Active')
-const successMessage = ref('')
-const userHasApprovedAssignment = ref(false)
 
 let searchTimeout: NodeJS.Timeout
 
@@ -168,34 +157,7 @@ const handleSearch = () => {
   }, 300)
 }
 
-const handleTopicApplied = (topicId: string) => {
-  successMessage.value = 'Successfully applied for the topic!'
-  setTimeout(() => {
-    successMessage.value = ''
-  }, 3000)
-}
-
-const handleError = (error: string) => {
-  topicStore.error = error
-  setTimeout(() => {
-    topicStore.clearError()
-  }, 5000)
-}
-
 onMounted(async () => {
-  // Check if student has an approved assignment
-  if (authStore.userRole === 'Student') {
-    try {
-      const response = await assignmentService.getMyAssignment()
-      if (response.data) {
-        userHasApprovedAssignment.value = true
-      }
-    } catch (error) {
-      // No active assignment, which is fine
-      userHasApprovedAssignment.value = false
-    }
-  }
-  
   await topicStore.fetchTopics()
 })
 </script>

@@ -30,17 +30,9 @@
 
     <div class="actions">
       <button
-        v-if="canApply"
-        @click="handleApply"
-        class="btn btn-primary"
-        :disabled="applying"
-      >
-        {{ applying ? 'Applying...' : 'Apply' }}
-      </button>
-      <button
-        v-else-if="hasApprovedTopic && authStore.userRole === 'Student'"
+        v-if="userHasApprovedAssignment && authStore.userRole === 'Student'"
         disabled
-        class="btn btn-primary"
+        class="btn btn-primary disabled"
         title="You already have an approved topic assignment"
       >
         Already Assigned
@@ -55,7 +47,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
-import topicService from '@/services/topicService'
 
 interface Topic {
   _id: string
@@ -74,36 +65,10 @@ const props = defineProps<{
   userHasApprovedAssignment?: boolean
 }>()
 
-const emit = defineEmits<{
-  applied: [topicId: string]
-  error: [message: string]
-}>()
-
 const authStore = useAuthStore()
-const applying = ref(false)
-
-const canApply = computed(() => {
-  return (
-    authStore.userRole === 'Student' && 
-    props.topic.status === 'Active' && 
-    !props.userHasApprovedAssignment
-  )
-})
 
 const truncateText = (text: string, length: number) => {
   return text.length > length ? text.substring(0, length) + '...' : text
-}
-
-const handleApply = async () => {
-  applying.value = true
-  try {
-    await topicService.applyForTopic(props.topic._id)
-    emit('applied', props.topic._id)
-  } catch (error: any) {
-    emit('error', error.response?.data?.error || 'Failed to apply for topic')
-  } finally {
-    applying.value = false
-  }
 }
 </script>
 

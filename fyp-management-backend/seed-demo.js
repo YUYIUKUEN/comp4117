@@ -21,8 +21,10 @@ const ActivityLog = require('./src/models/ActivityLog');
 const DEMO_EMAILS = [
   'admin@demo.edu',
   'supervisor@demo.edu',
+  'emily.lee@demo.edu',
   'student1@demo.edu',
   'student2@demo.edu',
+  'student3@demo.edu',
 ];
 
 const PASSWORD = 'Password1';
@@ -50,11 +52,13 @@ const run = async () => {
     // ── Users ───────────────────────────────────────────────────────
     const hash = await bcrypt.hash(PASSWORD, 10);
 
-    const [admin, supervisor, student1, student2] = await User.create([
+    const [admin, supervisor, emilyLee, student1, student2, student3] = await User.create([
       { email: 'admin@demo.edu', passwordHash: hash, fullName: 'Alice Admin', role: 'Admin' },
       { email: 'supervisor@demo.edu', passwordHash: hash, fullName: 'Dr. Samuel Lee', role: 'Supervisor', concentration: 'Software Engineering', phone: '+852-2345-6789', officeHours: 'Tue & Thu 2-4 pm' },
+      { email: 'emily.lee@demo.edu', passwordHash: hash, fullName: 'Emily Lee', role: 'Supervisor', concentration: 'AI/ML', phone: '+852-9777-8888', officeHours: 'Mon & Wed 10-12 pm' },
       { email: 'student1@demo.edu', passwordHash: hash, fullName: 'Bob Chan', role: 'Student', concentration: 'Software Engineering', phone: '+852-9111-2222' },
       { email: 'student2@demo.edu', passwordHash: hash, fullName: 'Carol Wong', role: 'Student', concentration: 'AI/ML', phone: '+852-9333-4444' },
+      { email: 'student3@demo.edu', passwordHash: hash, fullName: 'David Smith', role: 'Student', concentration: 'Cybersecurity', phone: '+852-9555-6666' },
     ]);
 
     console.log('✓ Created users');
@@ -254,10 +258,12 @@ const run = async () => {
     console.log('\n══════════════════════════════════════════════');
     console.log('  DEMO ACCOUNTS  (all passwords: Password1)');
     console.log('══════════════════════════════════════════════');
-    console.log('  Admin      : admin@demo.edu');
-    console.log('  Supervisor : supervisor@demo.edu');
-    console.log('  Student 1  : student1@demo.edu   (Bob Chan)');
-    console.log('  Student 2  : student2@demo.edu   (Carol Wong)');
+    console.log('  Admin         : admin@demo.edu');
+    console.log('  Supervisors   : supervisor@demo.edu (Dr. Samuel Lee)');
+    console.log('                  emily.lee@demo.edu (Emily Lee)');
+    console.log('  Student 1     : student1@demo.edu   (Bob Chan)');
+    console.log('  Student 2     : student2@demo.edu   (Carol Wong)');
+    console.log('  Student 3     : student3@demo.edu   (David Smith - CLEAN ACCOUNT)');
     console.log('══════════════════════════════════════════════');
     console.log('\n✓ Demo data seeded successfully!');
 
