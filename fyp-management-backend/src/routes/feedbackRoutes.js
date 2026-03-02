@@ -6,9 +6,18 @@ const {
   updateFeedback,
   deleteFeedback,
   getFeedbackStats,
+  getStudentRecentFeedback,
 } = require('../controllers/feedbackController');
 
 const router = express.Router();
+
+// Student: get recent feedback across all submissions
+router.get(
+  '/student/recent',
+  authenticate,
+  requireRole('Student'),
+  getStudentRecentFeedback
+);
 
 // Create feedback - supervisor only
 router.post(

@@ -7,10 +7,12 @@ const {
   requestPasswordReset,
   resetPassword,
   register,
+  getMe,
 } = require('../controllers/authController');
 
 const router = express.Router();
 
+router.get('/me', authenticate, getMe);
 router.post('/login', login);
 router.post('/register', register);
 router.post('/logout', authenticate, logout);

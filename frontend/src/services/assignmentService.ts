@@ -43,6 +43,14 @@ interface PaginatedResponse<T> {
 
 export default {
   /**
+   * Get the current student's active assignment (with populated topic & supervisor)
+   */
+  async getMyAssignment(): Promise<{ success: boolean; data: Assignment }> {
+    const response = await httpClient.get('/assignments/my-assignment')
+    return response.data
+  },
+
+  /**
    * Get all assignments for the supervisor's topics
    * Returns only matched/assigned students (not pending applications)
    */

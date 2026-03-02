@@ -342,10 +342,47 @@ const getFeedbackStats = async (req, res, next) => {
   }
 };
 
+/**
+ * Get recent feedback for the current student across all their submissions
+ * GET /feedback/student/recent
+ */
+const getStudentRecentFeedback = async (req, res, next) => {
+  try {
+    const studentId = req.auth.userId;
+    const limit = parseInt(req.query.limit) || 5;
+
+    // Find student's submissions
+    const submissions = await Submission.find({ student_id: studentId });
+    const submissionIds = submissions.map(s => s._id);
+
+    if (submissionIds.length === 0) {
+      return res.json({ data: [], status: 200 });
+    }
+
+    // Get recent public feedback across all submissions
+    const feedback = await Feedback.find({
+      submission_id: { $in: submissionIds },
+      isPrivate: false,
+    })
+      .populate('supervisor_id', 'fullName email')
+      .populate('submission_id', 'phase')
+      .sort({ _id: -1 })
+      .limit(limit);
+
+    res.json({
+      data: feedback,
+      status: 200,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   addFeedback,
   getFeedback,
   updateFeedback,
   deleteFeedback,
   getFeedbackStats,
+  getStudentRecentFeedback,
 };

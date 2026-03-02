@@ -85,16 +85,22 @@ const getUserActivityLog = async (req, res, next) => {
       });
     }
 
-    const { limit = 50, page = 1 } = req.query;
+    const { limit = 50, page = 1, includeAuth } = req.query;
     const skipAmount = (page - 1) * limit;
 
-    const logs = await ActivityLog.find({ user_id: userId })
+    // By default exclude noisy login/logout entries; pass ?includeAuth=true to see them
+    const filter = { user_id: userId };
+    if (includeAuth !== 'true') {
+      filter.action = { $nin: ['login', 'logout', 'login_failed'] };
+    }
+
+    const logs = await ActivityLog.find(filter)
       .populate('user_id', 'fullName email role')
       .sort({ timestamp: -1 })
       .skip(skipAmount)
       .limit(parseInt(limit));
 
-    const total = await ActivityLog.countDocuments({ user_id: userId });
+    const total = await ActivityLog.countDocuments(filter);
 
     res.json({
       data: {

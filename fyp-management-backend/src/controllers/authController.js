@@ -312,4 +312,23 @@ const register = async (req, res, next) => {
   }
 };
 
-module.exports = { login, logout, refresh, requestPasswordReset, resetPassword, register };
+const getMe = async (req, res, next) => {
+  try {
+    const user = req.user;
+    res.json({
+      data: {
+        id: user._id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        concentration: user.concentration || null,
+        phone: user.phone || null,
+      },
+      status: 200,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { login, logout, refresh, requestPasswordReset, resetPassword, register, getMe };

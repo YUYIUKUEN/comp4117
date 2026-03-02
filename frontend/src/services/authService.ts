@@ -24,6 +24,9 @@ const authService = {
   },
   refresh() {
     return client.post('/auth/refresh-token');
+  },
+  getMe() {
+    return client.get('/auth/me');
   }
 };
 

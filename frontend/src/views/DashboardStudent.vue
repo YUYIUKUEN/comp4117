@@ -8,77 +8,136 @@ import {
 } from '@heroicons/vue/24/outline';
 import ActivityLogWidget from '../components/ActivityLogWidget.vue';
 import TopicChangeRequestModal from '../components/TopicChangeRequestModal.vue';
-import { useDummyData } from '../composables/useDummyData';
 import { useSubmissionStore } from '../stores/submissionStore';
+import { useAuthStore } from '../stores/authStore';
+import assignmentService from '../services/assignmentService';
+import feedbackService, { type FeedbackItem } from '../services/feedbackService';
+import activityService from '../services/activityService';
 
 const router = useRouter();
 const submissionStore = useSubmissionStore();
-
-const { currentStudent, supervisor, submissions, recentFeedback } = useDummyData();
+const authStore = useAuthStore();
 const isTopicChangeModalOpen = ref(false);
 
-const openTopicChangeModal = () => {
-  isTopicChangeModalOpen.value = true;
-};
+// Real data refs
+const assignment = ref<any>(null);
+const recentFeedback = ref<FeedbackItem[]>([]);
+const activities = ref<{ _id: string; description: string; createdAt: string }[]>([]);
+const loadingAssignment = ref(true);
+const loadingFeedback = ref(true);
+const loadingActivity = ref(true);
+const errorMessage = ref<string | null>(null);
 
-const closeTopicChangeModal = () => {
-  isTopicChangeModalOpen.value = false;
-};
+// Derived data from assignment
+const topicTitle = computed(() => assignment.value?.topic_id?.title ?? 'No topic assigned');
+const topicConcentration = computed(() => assignment.value?.topic_id?.concentration ?? '');
+const supervisorName = computed(() => assignment.value?.supervisor_id?.fullName ?? 'Not assigned');
+const supervisorEmail = computed(() => assignment.value?.supervisor_id?.email ?? '');
+const supervisorAvatar = computed(() => {
+  const name = supervisorName.value.replace(/\s+/g, '+');
+  return `https://ui-avatars.com/api/?name=${name}&background=0F172A&color=fff`;
+});
+// Completion based on real submission data
+const completion = computed(() => submissionStore.submissionProgress);
+
+// Upcoming deadlines computed from real submissions
+const upcomingDeadlines = computed(() => {
+  const now = new Date();
+  return submissionStore.phases
+    .filter(p => p.status !== 'Submitted' && p.status !== 'Declared Not Needed')
+    .map(p => {
+      const due = new Date(p.dueDate);
+      const diffMs = due.getTime() - now.getTime();
+      const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+      const isOverdue = diffDays < 0;
+      return {
+        _id: p._id,
+        phase: p.phase,
+        dueDate: due,
+        dueDateFormatted: due.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+        diffDays: Math.abs(diffDays),
+        isOverdue,
+        label: isOverdue ? `${Math.abs(diffDays)} days overdue` : `${diffDays} days remaining`,
+      };
+    })
+    .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
+});
+
+// Map action names to human-readable descriptions
+function formatActivityDescription(log: any): string {
+  const action = log.action;
+  const details = log.details || {};
+  switch (action) {
+    case 'login': return 'Logged in';
+    case 'logout': return 'Logged out';
+    case 'login_failed': return 'Failed login attempt';
+    case 'document_submitted': return `Submitted ${details.phase || 'document'}${details.filename ? ': ' + details.filename : ''}`;
+    case 'submission_declared_not_needed': return `Declared "${details.phase}" not needed`;
+    case 'topic_applied': return `Applied to topic: ${details.topicTitle || ''}`;
+    case 'application_withdrawn': return 'Withdrew topic application';
+    case 'password_changed': return 'Changed password';
+    case 'feedback_added': return 'New supervisor feedback received';
+    case 'submission_file_viewed': return `File downloaded: ${details.filename || ''}`;
+    default: return action.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+  }
+}
+
+const openTopicChangeModal = () => { isTopicChangeModalOpen.value = true; };
+const closeTopicChangeModal = () => { isTopicChangeModalOpen.value = false; };
 
 const handleTopicChangeSubmit = (data: { newTopic: string; reason: string }) => {
-  // In a real app, this would send the request to the backend
   console.log('Topic change request submitted:', data);
-  // Close modal after successful submission
   closeTopicChangeModal();
 };
 
-const goToSubmissions = () => {
-  router.push('/submissions');
-};
+const goToSubmissions = () => { router.push('/submissions'); };
 
-// Fetch real submission data on mount
+// Fetch all data on mount
 onMounted(async () => {
+  // Fetch submissions (already in store pattern)
+  submissionStore.fetchSubmissionPhases().catch(e => console.error('Submissions error:', e));
+
+  // Fetch assignment (topic + supervisor)
   try {
-    await submissionStore.fetchSubmissionPhases();
+    const res = await assignmentService.getMyAssignment();
+    assignment.value = res.data;
+  } catch (e: any) {
+    console.error('Assignment fetch error:', e);
+    if (e.response?.status !== 404) {
+      errorMessage.value = 'Failed to load assignment info';
+    }
+  } finally {
+    loadingAssignment.value = false;
+  }
+
+  // Fetch recent feedback
+  try {
+    const data = await feedbackService.getStudentRecentFeedback(3);
+    recentFeedback.value = data;
   } catch (e) {
-    console.error('Failed to fetch submission phases:', e);
+    console.error('Feedback fetch error:', e);
+  } finally {
+    loadingFeedback.value = false;
   }
-});
 
-const activities = [
-  {
-    _id: '1',
-    description: 'Submitted Progress Report 2 feedback to supervisor',
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    _id: '2',
-    description: 'Received feedback on Topic Planning Form from Dr. Emily Lee',
-    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    _id: '3',
-    description: 'Uploaded revised topic proposal document',
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    _id: '4',
-    description: 'Started FYP registration process',
-    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
-
-const completion = computed(() => {
-  // Use real data from store if available
-  if (submissionStore.phases.length > 0) {
-    return submissionStore.submissionProgress;
+  // Fetch activity logs
+  const userId = authStore.user?.id;
+  if (userId) {
+    try {
+      const data = await activityService.getUserActivity(userId, 10);
+      activities.value = data.logs.map(log => ({
+        _id: log._id,
+        description: formatActivityDescription(log),
+        createdAt: log.timestamp,
+      }));
+    } catch (e) {
+      console.error('Activity fetch error:', e);
+    } finally {
+      loadingActivity.value = false;
+    }
+  } else {
+    loadingActivity.value = false;
   }
-  // Fallback to dummy data
-  const values = submissions.value.progress;
-  const done = Object.values(values).filter((p) =>
-    ['completed', 'not-required'].includes(p.status),
-  ).length;
-  return Math.round((done / Object.keys(values).length) * 100);
 });
 </script>
 
@@ -93,83 +152,69 @@ const completion = computed(() => {
               <p class="text-[11px] uppercase tracking-[0.18em] text-slate-500">
                 Current topic
               </p>
-              <h2 class="mt-1 text-sm font-semibold text-slate-900">
-                Student Version FYP System
+              <h2 v-if="!loadingAssignment" class="mt-1 text-sm font-semibold text-slate-900">
+                {{ topicTitle }}
               </h2>
-              <p class="mt-1 text-xs text-slate-600">
-                {{ currentStudent.programme }} · {{ currentStudent.concentration }}
+              <div v-else class="mt-1 h-5 w-48 animate-pulse rounded bg-slate-200" />
+              <p v-if="topicConcentration" class="mt-1 text-xs text-slate-600">
+                {{ topicConcentration }}
               </p>
             </div>
             <!-- Progress ring -->
             <div class="flex flex-col items-end gap-1 text-right">
               <div class="relative h-12 w-12">
-                <svg
-                  class="h-12 w-12 -rotate-90"
-                  viewBox="0 0 36 36"
-                >
+                <svg class="h-12 w-12 -rotate-90" viewBox="0 0 36 36">
                   <path
                     class="text-slate-200"
-                    stroke="currentColor"
-                    stroke-width="4"
-                    fill="none"
-                    stroke-linecap="round"
-                    d="M18 2.0845
-                       a 15.9155 15.9155 0 0 1 0 31.831
-                       a 15.9155 15.9155 0 0 1 0 -31.831"
+                    stroke="currentColor" stroke-width="4" fill="none" stroke-linecap="round"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                   />
                   <path
                     class="text-blue-500"
-                    stroke="currentColor"
-                    stroke-width="4"
-                    fill="none"
-                    stroke-linecap="round"
+                    stroke="currentColor" stroke-width="4" fill="none" stroke-linecap="round"
                     :stroke-dasharray="`${completion}, 100`"
-                    d="M18 2.0845
-                       a 15.9155 15.9155 0 0 1 0 31.831
-                       a 15.9155 15.9155 0 0 1 0 -31.831"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                   />
                 </svg>
                 <div class="absolute inset-0 flex items-center justify-center">
-                  <span class="text-[11px] font-semibold text-slate-900">
-                    {{ completion }}%
-                  </span>
+                  <span class="text-[11px] font-semibold text-slate-900">{{ completion }}%</span>
                 </div>
               </div>
-              <p class="text-[11px] text-slate-500">
-                Overall progress
-              </p>
+              <p class="text-[11px] text-slate-500">Overall progress</p>
             </div>
           </header>
 
           <div class="mt-4 space-y-3 text-xs">
-            <p class="font-medium text-slate-900">
-              Smart City Walkability in Kowloon East
-            </p>
-
-            <div class="flex flex-wrap items-center gap-3">
+            <div v-if="!loadingAssignment && assignment" class="flex flex-wrap items-center gap-3">
               <div class="flex items-center gap-2">
                 <img
-                  :src="supervisor.avatar"
+                  :src="supervisorAvatar"
                   alt="Supervisor avatar"
                   class="h-8 w-8 rounded-full object-cover"
                 >
                 <div>
-                  <p class="text-slate-900 text-xs font-medium">
-                    {{ supervisor.name }}
-                  </p>
-                  <p class="text-[11px] text-slate-500">
-                    {{ supervisor.email }}
-                  </p>
+                  <p class="text-slate-900 text-xs font-medium">{{ supervisorName }}</p>
+                  <p class="text-[11px] text-slate-500">{{ supervisorEmail }}</p>
                 </div>
               </div>
               <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 border border-emerald-200">
-                Approved topic
+                Assigned
               </span>
             </div>
+            <div v-else-if="loadingAssignment" class="flex items-center gap-2">
+              <div class="h-8 w-8 animate-pulse rounded-full bg-slate-200" />
+              <div class="space-y-1">
+                <div class="h-3 w-32 animate-pulse rounded bg-slate-200" />
+                <div class="h-3 w-24 animate-pulse rounded bg-slate-200" />
+              </div>
+            </div>
+            <div v-else class="text-slate-500">
+              No active assignment found. Apply to a topic to get started.
+            </div>
 
-            <div class="flex flex-wrap gap-2 text-[11px] text-slate-600">
+            <div v-if="topicConcentration" class="flex flex-wrap gap-2 text-[11px] text-slate-600">
               <span class="rounded-full bg-blue-50 px-2.5 py-0.5 border border-blue-200 text-blue-700">
-                Concentration · Urban & Regional Studies
+                Concentration · {{ topicConcentration }}
               </span>
               <span class="rounded-full bg-slate-100 px-2.5 py-0.5 border border-slate-200">
                 Student View
@@ -201,44 +246,44 @@ const completion = computed(() => {
         <article class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm shadow-slate-200/70">
           <header class="flex items-center justify-between gap-2">
             <div>
-              <h2 class="text-sm font-semibold text-slate-900">
-                Upcoming deadlines
-              </h2>
-              <p class="mt-1 text-xs text-slate-600">
-                Based on programme timeline
-              </p>
+              <h2 class="text-sm font-semibold text-slate-900">Upcoming deadlines</h2>
+              <p class="mt-1 text-xs text-slate-600">Based on your submission schedule</p>
             </div>
             <ClockIcon class="h-5 w-5 text-slate-400" />
           </header>
 
-          <ul class="mt-3 space-y-2 text-xs">
-            <li class="flex items-center justify-between rounded-lg border border-rose-200 bg-rose-50 px-3 py-2">
+          <ul v-if="upcomingDeadlines.length > 0" class="mt-3 space-y-2 text-xs">
+            <li
+              v-for="d in upcomingDeadlines"
+              :key="d._id"
+              class="flex items-center justify-between rounded-lg px-3 py-2"
+              :class="d.isOverdue
+                ? 'border border-rose-200 bg-rose-50'
+                : 'border border-amber-200 bg-amber-50'"
+            >
               <div>
-                <p class="font-medium text-rose-800">
-                  Progress Report 1
+                <p class="font-medium" :class="d.isOverdue ? 'text-rose-800' : 'text-amber-900'">
+                  {{ d.phase }}
                 </p>
-                <p class="text-[11px] text-rose-700">
-                  Due 1 Feb 2026 · 3 days overdue
+                <p class="text-[11px]" :class="d.isOverdue ? 'text-rose-700' : 'text-amber-700'">
+                  Due {{ d.dueDateFormatted }} · {{ d.label }}
                 </p>
               </div>
-              <span class="rounded-full bg-rose-600 px-2.5 py-0.5 text-[11px] font-medium text-white">
-                Overdue
-              </span>
-            </li>
-            <li class="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
-              <div>
-                <p class="font-medium text-amber-900">
-                  Progress Report 2
-                </p>
-                <p class="text-[11px] text-amber-700">
-                  Due 10 Apr 2026 · 65 days remaining
-                </p>
-              </div>
-              <span class="rounded-full bg-amber-500 px-2.5 py-0.5 text-[11px] font-medium text-white">
-                Upcoming
+              <span
+                class="rounded-full px-2.5 py-0.5 text-[11px] font-medium text-white"
+                :class="d.isOverdue ? 'bg-rose-600' : 'bg-amber-500'"
+              >
+                {{ d.isOverdue ? 'Overdue' : 'Upcoming' }}
               </span>
             </li>
           </ul>
+          <div v-else-if="submissionStore.loading" class="mt-3 space-y-2">
+            <div class="h-12 animate-pulse rounded-lg bg-slate-100" />
+            <div class="h-12 animate-pulse rounded-lg bg-slate-100" />
+          </div>
+          <p v-else class="mt-3 text-xs text-slate-500">
+            All submissions are up to date. Great job!
+          </p>
         </article>
       </section>
 
@@ -248,12 +293,8 @@ const completion = computed(() => {
         <article class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm shadow-slate-200/70">
           <header class="flex items-center justify-between gap-2">
             <div>
-              <h2 class="text-sm font-semibold text-slate-900">
-                Submission status
-              </h2>
-              <p class="mt-1 text-xs text-slate-600">
-                Your checklist for the whole FYP lifecycle.
-              </p>
+              <h2 class="text-sm font-semibold text-slate-900">Submission status</h2>
+              <p class="mt-1 text-xs text-slate-600">Your checklist for the whole FYP lifecycle.</p>
             </div>
           </header>
 
@@ -305,7 +346,14 @@ const completion = computed(() => {
               </p>
             </div>
 
-            <!-- Fallback when no real data yet -->
+            <!-- Loading state -->
+            <template v-if="submissionStore.loading">
+              <div class="h-14 animate-pulse rounded-lg bg-slate-100" />
+              <div class="h-14 animate-pulse rounded-lg bg-slate-100" />
+              <div class="h-14 animate-pulse rounded-lg bg-slate-100" />
+            </template>
+
+            <!-- Empty state -->
             <div v-if="submissionStore.phases.length === 0 && !submissionStore.loading" class="col-span-full text-xs text-slate-500 text-center py-4">
               No submission data available. You may not have an active assignment yet.
             </div>
@@ -316,36 +364,39 @@ const completion = computed(() => {
         <article class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm shadow-slate-200/70">
           <header class="flex items-center justify-between gap-2">
             <div>
-              <h2 class="text-sm font-semibold text-slate-900">
-                Recent supervisor feedback
-              </h2>
-              <p class="mt-1 text-xs text-slate-600">
-                Visible to you in the Student Version FYP System.
-              </p>
+              <h2 class="text-sm font-semibold text-slate-900">Recent supervisor feedback</h2>
+              <p class="mt-1 text-xs text-slate-600">Latest comments from your supervisor.</p>
             </div>
           </header>
 
-          <div class="mt-3 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs">
-            <div class="flex items-center gap-2">
-              <img
-                :src="supervisor.avatar"
-                alt="Supervisor avatar"
-                class="h-7 w-7 rounded-full object-cover"
-              >
-              <div>
-                <p class="font-medium text-slate-900">
-                  {{ recentFeedback.from }}
-                </p>
-                <p class="text-[11px] text-slate-500">
-                  {{ recentFeedback.role }} · {{ recentFeedback.date }}
-                </p>
-              </div>
-            </div>
-
-            <p class="mt-2 text-[11px] text-slate-700 leading-relaxed">
-              {{ recentFeedback.visibleToStudent }}
-            </p>
+          <div v-if="loadingFeedback" class="mt-3 space-y-2">
+            <div class="h-16 animate-pulse rounded-lg bg-slate-100" />
           </div>
+          <div v-else-if="recentFeedback.length > 0" class="mt-3 space-y-3">
+            <div
+              v-for="fb in recentFeedback"
+              :key="fb._id"
+              class="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs"
+            >
+              <div class="flex items-center gap-2">
+                <img
+                  :src="`https://ui-avatars.com/api/?name=${encodeURIComponent(fb.supervisor_id?.fullName || 'S')}&background=0F172A&color=fff`"
+                  alt="Supervisor avatar"
+                  class="h-7 w-7 rounded-full object-cover"
+                >
+                <div>
+                  <p class="font-medium text-slate-900">{{ fb.supervisor_id?.fullName ?? 'Supervisor' }}</p>
+                  <p class="text-[11px] text-slate-500">
+                    {{ fb.submission_id?.phase ?? '' }} · {{ new Date(fb.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) }}
+                  </p>
+                </div>
+              </div>
+              <p class="mt-2 text-[11px] text-slate-700 leading-relaxed">{{ fb.feedbackText }}</p>
+            </div>
+          </div>
+          <p v-else class="mt-3 text-xs text-slate-500">
+            No feedback received yet. Your supervisor will leave comments after reviewing your submissions.
+          </p>
         </article>
       </section>
 
@@ -354,15 +405,18 @@ const completion = computed(() => {
         <article class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm shadow-slate-200/70">
           <header class="flex items-center justify-between gap-2 mb-4">
             <div>
-              <h2 class="text-sm font-semibold text-slate-900">
-                Activity log
-              </h2>
-              <p class="mt-1 text-xs text-slate-600">
-                Your recent actions and submissions
-              </p>
+              <h2 class="text-sm font-semibold text-slate-900">Activity log</h2>
+              <p class="mt-1 text-xs text-slate-600">Your recent actions and submissions</p>
             </div>
           </header>
-          <ActivityLogWidget :activities="activities" />
+          <div v-if="loadingActivity">
+            <div class="space-y-2">
+              <div class="h-6 animate-pulse rounded bg-slate-100" />
+              <div class="h-6 animate-pulse rounded bg-slate-100" />
+              <div class="h-6 animate-pulse rounded bg-slate-100" />
+            </div>
+          </div>
+          <ActivityLogWidget v-else :activities="activities" />
         </article>
       </section>
     </main>

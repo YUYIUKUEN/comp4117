@@ -115,7 +115,7 @@ const authenticate = async (req, res, next) => {
 const requireRole = (...roles) => {
   return (req, res, next) => {
     const userRole = req.auth?.role || req.user?.role;
-    const normalizedRoles = roles.map(r => r.toLowerCase());
+    const normalizedRoles = roles.flat().map(r => r.toLowerCase());
     if (!userRole || !normalizedRoles.includes(userRole.toLowerCase())) {
       return res.status(403).json({
         code: 'FORBIDDEN',
