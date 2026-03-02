@@ -21,16 +21,6 @@ const formData = ref<GradingStandardInput>({
   enabled: true,
 })
 
-const submissionTypes = [
-  'Initial Statement',
-  'Progress Report 1',
-  'Progress Report 2',
-  'Final Dissertation',
-  'Final Presentation',
-  'Proposal Review',
-  'Other',
-]
-
 const fetchStandards = async () => {
   try {
     loading.value = true
@@ -181,15 +171,15 @@ const updateCustomOption = (index: number, value: string) => {
             <label class="block text-sm font-medium text-slate-700 mb-1">
               Submission Type *
             </label>
-            <select
+            <input
               v-model="formData.submissionType"
+              type="text"
+              placeholder="e.g. Initial Statement, Progress Report 1, Final Dissertation"
               class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="">Select submission type</option>
-              <option v-for="type in submissionTypes" :key="type" :value="type">
-                {{ type }}
-              </option>
-            </select>
+            />
+            <p class="mt-1 text-xs text-slate-500">
+              Type the name of the submission phase. This will appear in the student submission checklist.
+            </p>
           </div>
 
           <!-- Grading System -->

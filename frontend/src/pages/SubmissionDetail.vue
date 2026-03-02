@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   Bars3Icon,
@@ -11,14 +11,20 @@ import {
   DocumentArrowUpIcon,
   ClipboardDocumentListIcon,
   HomeIcon,
+  CheckCircleIcon,
 } from '@heroicons/vue/24/outline';
 import { AcademicCapIcon } from '@heroicons/vue/24/outline';
 import { useSubmissionStore } from '../stores/submissionStore';
+import { useAuthStore } from '../stores/authStore';
 
 const router = useRouter();
 const submissionStore = useSubmissionStore();
+const authStore = useAuthStore();
+const isStudent = computed(() => authStore.userRole === 'Student');
 const sidebarOpen = ref(false);
 const declarationChecked = ref(false);
+const declarationSubmitting = ref(false);
+const declarationError = ref<string | null>(null);
 const activeView = ref<'submissions' | 'checklist'>('submissions');
 const uploading = ref(false);
 const uploadError = ref<string | null>(null);
@@ -28,6 +34,39 @@ const fileInputRef = ref<HTMLInputElement | null>(null);
 const goToDashboard = () => {
   router.push('/dashboard');
 };
+
+// Sync checkbox with current phase status
+const currentPhaseIsDeclared = computed(() => currentPhase.value?.status === 'Declared Not Needed');
+
+watch(() => submissionStore.selectedPhase, (phase) => {
+  declarationChecked.value = phase?.status === 'Declared Not Needed';
+  declarationError.value = null;
+}, { immediate: true });
+
+async function handleDeclarationChange(checked: boolean) {
+  if (!currentPhase.value || declarationSubmitting.value) return;
+  if (!checked) {
+    // Cannot uncheck — already declared
+    declarationChecked.value = true;
+    return;
+  }
+  declarationSubmitting.value = true;
+  declarationError.value = null;
+  try {
+    const reason = 'This report is not required for my project as agreed with my supervisor.';
+    await submissionStore.submitDeclaration(currentPhase.value.phase, reason);
+    declarationChecked.value = true;
+    // Refresh phases
+    await submissionStore.fetchSubmissionPhases();
+    const updated = submissionStore.phases.find(p => p.phase === currentPhase.value?.phase);
+    if (updated) submissionStore.setSelectedPhase(updated);
+  } catch (err: any) {
+    declarationChecked.value = false;
+    declarationError.value = err.message || 'Failed to submit declaration';
+  } finally {
+    declarationSubmitting.value = false;
+  }
+}
 
 // Fetch submissions on mount
 onMounted(async () => {
@@ -364,27 +403,46 @@ async function handleDownload(file: any) {
                 id="feedback-heading"
                 class="text-sm font-semibold text-slate-900"
               >
-                Declarations & feedback
+                Declarations
               </h2>
 
-              <div class="mt-3 flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+              <!-- Already declared banner -->
+              <div v-if="currentPhaseIsDeclared" class="mt-3 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2">
+                <CheckCircleIcon class="h-5 w-5 text-green-600 flex-shrink-0" />
+                <div>
+                  <p class="text-[11px] font-medium text-green-800">
+                    Declared as not needed
+                  </p>
+                  <p v-if="currentPhase?.declarationReason" class="text-[10px] text-green-700 mt-0.5">
+                    Reason: {{ currentPhase.declarationReason }}
+                  </p>
+                  <p v-if="currentPhase?.declaredAt" class="text-[10px] text-green-600 mt-0.5">
+                    Declared on {{ formatDate(currentPhase.declaredAt) }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Declaration checkbox (only for students, only if not already declared or submitted) -->
+              <div v-if="isStudent && currentPhase?.status !== 'Submitted'" class="mt-3 flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                 <input
                   id="declaration"
-                  v-model="declarationChecked"
+                  :checked="declarationChecked"
                   type="checkbox"
-                  class="mt-1 h-3.5 w-3.5 rounded border-slate-300 bg-white text-blue-500 focus:ring-blue-500"
+                  :disabled="currentPhaseIsDeclared || declarationSubmitting"
+                  class="mt-1 h-3.5 w-3.5 rounded border-slate-300 bg-white text-blue-500 focus:ring-blue-500 disabled:opacity-50"
+                  @change="handleDeclarationChange(($event.target as HTMLInputElement).checked)"
                 >
                 <label
                   for="declaration"
                   class="text-[11px] text-slate-800"
                 >
-                  This report replaces the need for a separate written document
-                  for this checkpoint, or is not required for my project as
-                  agreed with my supervisor.
+                  This report is not required for my project as agreed with my supervisor.
                 </label>
               </div>
+              <p v-if="declarationError" class="mt-1 text-[11px] text-red-600">{{ declarationError }}</p>
+              <p v-if="declarationSubmitting" class="mt-1 text-[11px] text-blue-600">Submitting declaration...</p>
 
-              <div class="mt-4 grid gap-4 md:grid-cols-2">
+              <div v-if="!isStudent" class="mt-4 grid gap-4 md:grid-cols-2">
                 <div class="space-y-1 text-xs">
                   <label class="font-medium text-slate-800">
                     Visible feedback to student

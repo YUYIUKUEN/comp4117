@@ -4,15 +4,8 @@ const gradingStandardSchema = new mongoose.Schema({
   submissionType: {
     type: String,
     required: [true, 'Submission type required'],
-    enum: [
-      'Initial Statement',
-      'Progress Report 1',
-      'Progress Report 2',
-      'Final Dissertation',
-      'Final Presentation',
-      'Proposal Review',
-      'Other',
-    ],
+    trim: true,
+    maxlength: 100,
   },
   gradingSystem: {
     type: String,

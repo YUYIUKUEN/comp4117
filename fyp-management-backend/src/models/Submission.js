@@ -4,7 +4,7 @@ const submissionSchema = new mongoose.Schema({
   student_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   topic_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Topic', required: true },
   assignment_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Assignment' },
-  phase: { type: String, enum: ['Initial Statement', 'Progress Report 1', 'Progress Report 2', 'Final Dissertation'] },
+  phase: { type: String, trim: true },
   status: { type: String, enum: ['Not Submitted', 'Submitted', 'Overdue', 'Declared Not Needed'], default: 'Not Submitted' },
   submittedAt: Date,
   submittedDate: Date,

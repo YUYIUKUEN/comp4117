@@ -1,19 +1,16 @@
 const Submission = require('../models/Submission');
 const Assignment = require('../models/Assignment');
 const ActivityLog = require('../models/ActivityLog');
+const GradingStandard = require('../models/GradingStandard');
 const { validateFile } = require('../utils/fileUpload');
 const { saveFile, deleteFile, getFile } = require('../config/storage');
 const fs = require('fs');
 
-const calculateDueDate = (phase) => {
+const calculateDueDate = (phase, index) => {
   const now = new Date();
-  const dueDates = {
-    'Initial Statement': new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
-    'Progress Report 1': new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000),
-    'Progress Report 2': new Date(now.getTime() + 120 * 24 * 60 * 60 * 1000),
-    'Final Dissertation': new Date(now.getTime() + 180 * 24 * 60 * 60 * 1000),
-  };
-  return dueDates[phase] || now;
+  // Space them out: first phase 14 days, then each subsequent +45 days
+  const daysOffset = 14 + (index * 45);
+  return new Date(now.getTime() + daysOffset * 24 * 60 * 60 * 1000);
 };
 
 const submitDocument = async (req, res, next) => {
@@ -248,16 +245,21 @@ const getAllStudentSubmissions = async (req, res, next) => {
       });
     }
 
-    const phases = ['Initial Statement', 'Progress Report 1', 'Progress Report 2', 'Final Dissertation'];
+    // Fetch submission phases dynamically from enabled grading standards
+    const enabledStandards = await GradingStandard.find({ enabled: true }).sort({ _id: 1 });
+    const phases = enabledStandards.length > 0
+      ? enabledStandards.map(s => s.submissionType)
+      : ['Initial Statement', 'Progress Report 1', 'Progress Report 2', 'Final Dissertation']; // fallback
 
     // Get existing submissions
     const existingSubmissions = await Submission.find({ student_id: studentId });
     const existingPhases = existingSubmissions.map(s => s.phase);
 
     // Create placeholder submissions for phases without one
-    for (const phase of phases) {
+    for (let i = 0; i < phases.length; i++) {
+      const phase = phases[i];
       if (!existingPhases.includes(phase)) {
-        const dueDate = calculateDueDate(phase);
+        const dueDate = calculateDueDate(phase, i);
         await Submission.create({
           student_id: studentId,
           topic_id: assignment.topic_id,
@@ -268,11 +270,15 @@ const getAllStudentSubmissions = async (req, res, next) => {
     }
 
     // Re-fetch all submissions
-    const submissions = await Submission.find({ student_id: studentId })
+    const allSubmissions = await Submission.find({ student_id: studentId })
       .populate('topic_id', 'title');
 
-    // Sort in JS to avoid Cosmos DB index issues
-    const phaseOrder = { 'Initial Statement': 0, 'Progress Report 1': 1, 'Progress Report 2': 2, 'Final Dissertation': 3 };
+    // Only return submissions whose phase matches the current enabled grading standards
+    const submissions = allSubmissions.filter(s => phases.includes(s.phase));
+
+    // Sort by the order of phases from grading standards
+    const phaseOrder = {};
+    phases.forEach((p, i) => { phaseOrder[p] = i; });
     submissions.sort((a, b) => (phaseOrder[a.phase] ?? 99) - (phaseOrder[b.phase] ?? 99));
 
     res.json({
