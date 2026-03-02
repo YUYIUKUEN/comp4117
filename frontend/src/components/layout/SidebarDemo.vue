@@ -12,6 +12,7 @@ const studentItems = [
   { id: 'topic', label: 'My Topic & Supervisor', path: '/topics' },
   { id: 'submissions', label: 'My Submissions', path: '/submissions' },
   { id: 'feedback', label: 'Feedback Received', path: '/feedback' },
+  { id: 'meetings', label: 'Meeting Bookings', path: '/meetings' },
   { id: 'archive', label: 'Topic Archive', path: '/archive' },
   { id: 'reminders', label: 'Reminders', path: '/reminders' },
 ]
@@ -21,6 +22,7 @@ const supervisorItems = [
   { id: 'sup-students', label: 'All Students', path: '/supervisor/students' },
   { id: 'sup-topics', label: 'My Topics', path: '/supervisor/topics' },
   { id: 'feedback-grading', label: 'Feedback & Grading', path: '/supervisor/feedback-grading' },
+  { id: 'sup-meetings', label: 'Meeting Slots', path: '/supervisor/meetings' },
 ]
 
 const adminItems = [

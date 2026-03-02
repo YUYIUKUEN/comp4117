@@ -7,4 +7,6 @@ module.exports = {
   Feedback: require('./Feedback'),
   ActivityLog: require('./ActivityLog'),
   GradingStandard: require('./GradingStandard'),
+  MeetingSlot: require('./MeetingSlot'),
+  Notification: require('./Notification'),
 };

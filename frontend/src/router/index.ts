@@ -192,6 +192,18 @@ const routes: RouteRecordRaw[] = [
     name: 'Reminders',
     component: () => import('../views/StudentReminders.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/meetings',
+    name: 'StudentMeetingBooking',
+    component: () => import('../pages/StudentMeetingBooking.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/supervisor/meetings',
+    name: 'SupervisorMeetingSlots',
+    component: () => import('../pages/SupervisorMeetingSlots.vue'),
+    meta: { requiresAuth: true }
   },  {
     path: '/supervisor/topic/:id',
     name: 'TopicDetails',

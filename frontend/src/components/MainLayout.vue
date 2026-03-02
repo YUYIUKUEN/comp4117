@@ -43,6 +43,7 @@ const currentRoute = computed(() => {
   if (path === '/feedback') return 'feedback';
   if (path === '/archive') return 'archive';
   if (path === '/reminders') return 'reminders';
+  if (path === '/meetings') return 'meetings';
   // Supervisor routes
   if (path === '/supervisor/dashboard') return 'dashboard';
   if (path === '/supervisor/students') return 'students';
@@ -53,6 +54,7 @@ const currentRoute = computed(() => {
   if (path === '/supervisor/feedback') return 'feedback';
   if (path === '/supervisor/activity-logs') return 'activity';
   if (path === '/supervisor/reminders') return 'reminders';
+  if (path === '/supervisor/meetings') return 'meetings';
   // Admin routes
   if (path === '/admin') return 'admin';
   if (path === '/admin/students-cohorts') return 'admin-cohorts';

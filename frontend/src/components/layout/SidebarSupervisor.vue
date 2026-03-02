@@ -15,6 +15,7 @@ const items = [
   { id: 'feedback', label: 'Feedback & Grading', path: '/supervisor/feedback-grading' },
   { id: 'activity', label: 'Activity Logs', path: '/supervisor/activity-logs' },
   { id: 'reminders', label: 'Reminders Queue', path: '/supervisor/reminders' },
+  { id: 'meetings', label: 'Meeting Slots', path: '/supervisor/meetings' },
 ]
 
 const navigate = (path: string) => {

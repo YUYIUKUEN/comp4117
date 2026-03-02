@@ -14,6 +14,7 @@ const items = [
   { id: 'feedback', label: 'Feedback Received', path: '/feedback' },
   { id: 'archive', label: 'Topic Archive', path: '/archive' },
   { id: 'reminders', label: 'Reminders', path: '/reminders' },
+  { id: 'meetings', label: 'Meeting Bookings', path: '/meetings' },
 ]
 
 const navigate = (path: string) => {
