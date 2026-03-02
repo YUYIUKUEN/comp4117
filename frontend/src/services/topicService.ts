@@ -85,9 +85,12 @@ export default {
     }
   },
 
-  async applyForTopic(topicId: string): Promise<{ success: boolean }> {
+  async applyForTopic(topicId: string, preferenceRank: number = 1): Promise<{ success: boolean }> {
     try {
-      const response = await httpClient.post(`/topics/${topicId}/apply`)
+      const response = await httpClient.post('/applications', {
+        topic_id: topicId,
+        preference_rank: preferenceRank
+      })
       return response.data
     } catch (error) {
       throw error
