@@ -366,12 +366,83 @@ const getStudentRecentFeedback = async (req, res, next) => {
     })
       .populate('supervisor_id', 'fullName email')
       .populate('submission_id', 'phase')
+      .populate('replies.user_id', 'fullName email role')
       .sort({ _id: -1 })
       .limit(limit);
 
     res.json({
       data: feedback,
       status: 200,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Add a reply to a feedback item
+ * Students can reply to feedback on their own submissions
+ * Supervisors can reply to feedback they gave
+ */
+const replyToFeedback = async (req, res, next) => {
+  try {
+    const { feedbackId } = req.params;
+    const userId = req.auth.userId;
+    const { replyText } = req.body;
+
+    if (!replyText || replyText.trim().length === 0) {
+      return res.status(400).json({
+        error: 'Reply text is required',
+        code: 'REPLY_TEXT_REQUIRED',
+        status: 400,
+      });
+    }
+
+    const feedback = await Feedback.findById(feedbackId);
+    if (!feedback) {
+      return res.status(404).json({
+        error: 'Feedback not found',
+        code: 'FEEDBACK_NOT_FOUND',
+        status: 404,
+      });
+    }
+
+    // Verify the user is either the student who owns the submission or the supervisor who gave feedback
+    const submission = await Submission.findById(feedback.submission_id);
+    if (!submission) {
+      return res.status(404).json({
+        error: 'Submission not found',
+        code: 'SUBMISSION_NOT_FOUND',
+        status: 404,
+      });
+    }
+
+    const isStudent = submission.student_id.toString() === userId;
+    const isSupervisor = feedback.supervisor_id.toString() === userId;
+
+    if (!isStudent && !isSupervisor) {
+      return res.status(403).json({
+        error: 'You can only reply to feedback on your own submissions',
+        code: 'FORBIDDEN',
+        status: 403,
+      });
+    }
+
+    feedback.replies.push({
+      user_id: userId,
+      replyText: replyText.trim(),
+    });
+    feedback.updatedAt = new Date();
+    await feedback.save();
+
+    // Populate the new reply's user_id before returning
+    await feedback.populate('replies.user_id', 'fullName email role');
+
+    const newReply = feedback.replies[feedback.replies.length - 1];
+
+    res.status(201).json({
+      data: newReply,
+      status: 201,
     });
   } catch (error) {
     next(error);
@@ -385,4 +456,5 @@ module.exports = {
   deleteFeedback,
   getFeedbackStats,
   getStudentRecentFeedback,
+  replyToFeedback,
 };

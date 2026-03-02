@@ -7,6 +7,7 @@ const {
   deleteFeedback,
   getFeedbackStats,
   getStudentRecentFeedback,
+  replyToFeedback,
 } = require('../controllers/feedbackController');
 
 const router = express.Router();
@@ -55,6 +56,13 @@ router.delete(
   authenticate,
   requireRole('Supervisor'),
   deleteFeedback
+);
+
+// Reply to feedback - students and supervisors
+router.post(
+  '/:feedbackId/replies',
+  authenticate,
+  replyToFeedback
 );
 
 module.exports = router;

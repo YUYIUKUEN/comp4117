@@ -1,5 +1,17 @@
 import httpClient from './httpClient'
 
+export interface FeedbackReply {
+  _id: string
+  user_id: {
+    _id: string
+    fullName: string
+    email: string
+    role: string
+  }
+  replyText: string
+  createdAt: string
+}
+
 export interface FeedbackItem {
   _id: string
   submission_id: {
@@ -14,6 +26,7 @@ export interface FeedbackItem {
   feedbackText: string
   rating?: number
   isPrivate: boolean
+  replies: FeedbackReply[]
   createdAt: string
   updatedAt: string
 }
@@ -34,6 +47,14 @@ export default {
    */
   async getSubmissionFeedback(submissionId: string): Promise<FeedbackItem[]> {
     const response = await httpClient.get(`/feedback/submissions/${submissionId}/feedback`)
+    return response.data.data
+  },
+
+  /**
+   * Reply to a feedback item
+   */
+  async replyToFeedback(feedbackId: string, replyText: string): Promise<FeedbackReply> {
+    const response = await httpClient.post(`/feedback/${feedbackId}/replies`, { replyText })
     return response.data.data
   },
 }

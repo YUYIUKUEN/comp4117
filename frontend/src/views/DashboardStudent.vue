@@ -28,6 +28,40 @@ const loadingFeedback = ref(true);
 const loadingActivity = ref(true);
 const errorMessage = ref<string | null>(null);
 
+// Reply state
+const replyingTo = ref<string | null>(null);
+const replyText = ref('');
+const submittingReply = ref(false);
+
+const toggleReply = (feedbackId: string) => {
+  if (replyingTo.value === feedbackId) {
+    replyingTo.value = null;
+    replyText.value = '';
+  } else {
+    replyingTo.value = feedbackId;
+    replyText.value = '';
+  }
+};
+
+const submitReply = async (feedbackId: string) => {
+  if (!replyText.value.trim() || submittingReply.value) return;
+  submittingReply.value = true;
+  try {
+    const newReply = await feedbackService.replyToFeedback(feedbackId, replyText.value.trim());
+    const fb = recentFeedback.value.find(f => f._id === feedbackId);
+    if (fb) {
+      if (!fb.replies) fb.replies = [];
+      fb.replies.push(newReply);
+    }
+    replyingTo.value = null;
+    replyText.value = '';
+  } catch (e) {
+    console.error('Reply error:', e);
+  } finally {
+    submittingReply.value = false;
+  }
+};
+
 // Derived data from assignment
 const topicTitle = computed(() => assignment.value?.topic_id?.title ?? 'No topic assigned');
 const topicConcentration = computed(() => assignment.value?.topic_id?.concentration ?? '');
@@ -392,6 +426,58 @@ onMounted(async () => {
                 </div>
               </div>
               <p class="mt-2 text-[11px] text-slate-700 leading-relaxed">{{ fb.feedbackText }}</p>
+
+              <!-- Existing replies -->
+              <div v-if="fb.replies?.length" class="mt-2 space-y-1.5 border-t border-slate-100 pt-2">
+                <div
+                  v-for="reply in fb.replies"
+                  :key="reply._id"
+                  class="flex items-start gap-2 rounded bg-slate-50 px-2 py-1.5"
+                >
+                  <img
+                    :src="`https://ui-avatars.com/api/?name=${encodeURIComponent(reply.user_id?.fullName || 'U')}&background=${reply.user_id?.role === 'Supervisor' ? '0F172A' : '3B82F6'}&color=fff&size=24`"
+                    class="h-5 w-5 rounded-full mt-0.5"
+                  >
+                  <div class="min-w-0 flex-1">
+                    <p class="text-[11px]">
+                      <span class="font-medium text-slate-900">{{ reply.user_id?.fullName ?? 'User' }}</span>
+                      <span class="text-slate-400 ml-1">{{ new Date(reply.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) }}</span>
+                    </p>
+                    <p class="text-[11px] text-slate-600">{{ reply.replyText }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Reply toggle -->
+              <div class="mt-2 flex items-center gap-2">
+                <button
+                  type="button"
+                  class="text-[11px] text-blue-600 hover:text-blue-800 font-medium"
+                  @click="toggleReply(fb._id)"
+                >
+                  {{ replyingTo === fb._id ? 'Cancel' : 'Reply' }}
+                </button>
+              </div>
+
+              <!-- Reply input -->
+              <div v-if="replyingTo === fb._id" class="mt-2">
+                <textarea
+                  v-model="replyText"
+                  rows="2"
+                  class="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-[11px] text-slate-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none"
+                  placeholder="Write a reply…"
+                />
+                <div class="mt-1.5 flex justify-end">
+                  <button
+                    type="button"
+                    :disabled="!replyText.trim() || submittingReply"
+                    class="inline-flex items-center rounded-full bg-blue-600 px-3 py-1 text-[11px] font-medium text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    @click="submitReply(fb._id)"
+                  >
+                    {{ submittingReply ? 'Sending…' : 'Send reply' }}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
           <p v-else class="mt-3 text-xs text-slate-500">
