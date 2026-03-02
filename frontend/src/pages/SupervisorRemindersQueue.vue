@@ -81,6 +81,10 @@ const completedIds = ref<Set<string>>(new Set());
 const toast = ref<{ message: string; type: 'success' | 'error' } | null>(null);
 const actionLoading = ref<Record<string, boolean>>({});
 
+// Bulk selection state
+const selectedReminderIds = ref<Set<string>>(new Set());
+const bulkSending = ref(false);
+
 // Modal state for custom message before sending
 const showMessageModal = ref(false);
 const messageTarget = ref<ReminderItem | null>(null);
@@ -371,6 +375,172 @@ watch(groupedRemindersByStudent, (groups) => {
     groups.forEach(g => expandedReminderStudents.value.add(g.studentId));
   }
 }, { immediate: true });
+
+// Group reminders by concentration for admin view
+interface ConcentrationGroup {
+  concentration: string;
+  reminders: ReminderItem[];
+}
+
+const groupedRemindersByConcentration = computed<ConcentrationGroup[]>(() => {
+  const map = new Map<string, ConcentrationGroup>();
+  for (const reminder of activeReminders.value) {
+    const conc = reminder.studentConcentration || 'Unassigned';
+    if (!map.has(conc)) {
+      map.set(conc, {
+        concentration: conc,
+        reminders: [],
+      });
+    }
+    const group = map.get(conc)!;
+    group.reminders.push(reminder);
+  }
+  // Sort groups by concentration name
+  return Array.from(map.values()).sort((a, b) => a.concentration.localeCompare(b.concentration));
+});
+
+// Track which concentration groups are expanded
+const expandedConcentrations = ref<Set<string>>(new Set());
+
+// Auto-expand all concentration groups on initial load
+watch(groupedRemindersByConcentration, (groups) => {
+  if (expandedConcentrations.value.size === 0 && groups.length > 0) {
+    groups.forEach(g => expandedConcentrations.value.add(g.concentration));
+  }
+}, { immediate: true });
+
+// Bulk action helpers
+const selectAllReminders = () => {
+  activeReminders.value.forEach(r => selectedReminderIds.value.add(r.id));
+};
+
+const deselectAllReminders = () => {
+  selectedReminderIds.value.clear();
+};
+
+const toggleReminderSelection = (id: string) => {
+  if (selectedReminderIds.value.has(id)) {
+    selectedReminderIds.value.delete(id);
+  } else {
+    selectedReminderIds.value.add(id);
+  }
+};
+
+/** Send reminders in bulk to all selected reminders */
+const sendBulkReminders = async () => {
+  if (selectedReminderIds.value.size === 0) {
+    showToast('Please select at least one reminder to send.', 'error');
+    return;
+  }
+
+  const selectedCount = selectedReminderIds.value.size;
+  if (!confirm(`Send reminder emails to ${selectedCount} student(s)?`)) {
+    return;
+  }
+
+  bulkSending.value = true;
+  let successCount = 0;
+  let failCount = 0;
+
+  try {
+    for (const reminderId of selectedReminderIds.value) {
+      try {
+        const reminder = activeReminders.value.find(r => r.id === reminderId);
+        if (!reminder) continue;
+
+        await httpClient.post(`/reminders/${reminderId}/send`, {});
+        successCount++;
+        completedIds.value.add(reminderId);
+      } catch (err) {
+        console.error(`Failed to send reminder ${reminderId}:`, err);
+        failCount++;
+      }
+    }
+
+    selectedReminderIds.value.clear();
+    let msg = `Sent ${successCount} reminder email(s)`;
+    if (failCount > 0) {
+      msg += ` (${failCount} failed)`;
+    }
+    showToast(msg, failCount > 0 ? 'error' : 'success');
+  } finally {
+    bulkSending.value = false;
+  }
+};
+
+// Bulk selection computed properties
+const selectedCount = computed(() => selectedReminderIds.value.size);
+const isAllSelected = computed(() => {
+  if (activeReminders.value.length === 0) return false;
+  return activeReminders.value.every(r => selectedReminderIds.value.has(r.id));
+});
+
+const canSelectAll = computed(() => activeReminders.value.length > 0);
+
+const toggleSelectReminder = (reminderId: string) => {
+  if (selectedReminderIds.value.has(reminderId)) {
+    selectedReminderIds.value.delete(reminderId);
+  } else {
+    selectedReminderIds.value.add(reminderId);
+  }
+};
+
+const toggleSelectAll = () => {
+  if (isAllSelected.value) {
+    selectedReminderIds.value.clear();
+  } else {
+    activeReminders.value.forEach(r => selectedReminderIds.value.add(r.id));
+  }
+};
+
+const bulkSendReminders = async () => {
+  if (selectedReminderIds.value.size === 0) {
+    showToast('No reminders selected.', 'error');
+    return;
+  }
+
+  bulkSending.value = true;
+  let successCount = 0;
+  let failureCount = 0;
+
+  try {
+    for (const reminderId of selectedReminderIds.value) {
+      const reminder = activeReminders.value.find(r => r.id === reminderId);
+      if (!reminder) continue;
+
+      actionLoading.value[reminderId] = true;
+      try {
+        const body: Record<string, string> = {};
+        body[`${reminder.studentEmail.replace('@', '_at_').replace('.', '_dot_')}`] = reminder.studentEmail;
+        
+        await httpClient.post('/admin/reminders/send', {
+          submissionId: reminder.id,
+          customMessage: '',
+        });
+        
+        completedIds.value.add(reminderId);
+        successCount++;
+      } catch (error) {
+        console.error(`Failed to send reminder to ${reminder.studentEmail}:`, error);
+        failureCount++;
+      } finally {
+        actionLoading.value[reminderId] = false;
+      }
+    }
+
+    // Clear selection after sending
+    selectedReminderIds.value.clear();
+    
+    if (successCount > 0) {
+      showToast(`Sent reminders to ${successCount} student${successCount !== 1 ? 's' : ''}.`, 'success');
+    }
+    if (failureCount > 0) {
+      showToast(`Failed to send ${failureCount} reminder${failureCount !== 1 ? 's' : ''}.`, 'error');
+    }
+  } finally {
+    bulkSending.value = false;
+  }
+};
 
 /** Open modal to optionally add a custom message before sending */
 const openSendModal = (reminder: ReminderItem) => {
@@ -909,119 +1079,283 @@ onMounted(() => {
       </div>
 
       <div v-else class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
-        <h2 class="text-sm font-semibold text-slate-900 mb-4">
-          {{ activeReminders.length }} Active Reminder{{ activeReminders.length !== 1 ? 's' : '' }}
-        </h2>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-semibold text-slate-900">
+            {{ activeReminders.length }} Active Reminder{{ activeReminders.length !== 1 ? 's' : '' }}
+          </h2>
+          <!-- Bulk action toolbar -->
+          <transition
+            enter-active-class="transition duration-150 ease-out"
+            enter-from-class="opacity-0 -translate-x-2"
+            enter-to-class="opacity-100 translate-x-0"
+            leave-active-class="transition duration-150 ease-in"
+            leave-from-class="opacity-100 translate-x-0"
+            leave-to-class="opacity-0 -translate-x-2"
+          >
+            <div v-if="selectedCount > 0" class="flex items-center gap-2">
+              <span class="text-xs font-medium text-slate-600">
+                {{ selectedCount }} selected
+              </span>
+              <button
+                @click="toggleSelectAll"
+                class="text-xs text-slate-500 hover:text-slate-700 underline"
+              >
+                {{ isAllSelected ? 'Deselect All' : 'Select All' }}
+              </button>
+              <button
+                @click="selectedReminderIds.clear()"
+                class="text-xs text-slate-500 hover:text-slate-700 underline"
+              >
+                Clear
+              </button>
+              <div class="w-px h-4 bg-slate-200"></div>
+              <button
+                @click="bulkSendReminders"
+                :disabled="bulkSending || selectedCount === 0"
+                class="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                <BellIcon class="h-3.5 w-3.5" />
+                {{ bulkSending ? 'Sending...' : `Send to ${selectedCount}` }}
+              </button>
+            </div>
+          </transition>
+        </div>
 
         <div class="space-y-3">
-          <!-- Student Group Headers -->
-          <div
-            v-for="group in groupedRemindersByStudent"
-            :key="group.studentId"
-            class="border border-slate-200 rounded-lg overflow-hidden"
-          >
-            <!-- Student Group Header -->
-            <button
-              @click="expandedReminderStudents.has(group.studentId) ? expandedReminderStudents.delete(group.studentId) : expandedReminderStudents.add(group.studentId)"
-              class="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors"
+          <!-- ADMIN VIEW: Group by Concentration -->
+          <div v-if="isAdmin">
+            <div
+              v-for="group in groupedRemindersByConcentration"
+              :key="group.concentration"
+              class="border border-slate-200 rounded-lg overflow-hidden"
             >
-              <div class="flex items-center gap-3 flex-1 text-left">
-                <div :class="['transition-transform', expandedReminderStudents.has(group.studentId) ? 'rotate-90' : '']">
-                  <ChevronRightIcon class="h-4 w-4 text-slate-500" />
+              <!-- Concentration Group Header -->
+              <button
+                @click="expandedConcentrations.has(group.concentration) ? expandedConcentrations.delete(group.concentration) : expandedConcentrations.add(group.concentration)"
+                class="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors"
+              >
+                <div class="flex items-center gap-3 flex-1 text-left">
+                  <div :class="['transition-transform', expandedConcentrations.has(group.concentration) ? 'rotate-90' : '']">
+                    <ChevronRightIcon class="h-4 w-4 text-slate-500" />
+                  </div>
+                  <div>
+                    <h3 class="text-sm font-semibold text-slate-900">{{ group.concentration }}</h3>
+                  </div>
                 </div>
-                <div>
-                  <h3 class="text-sm font-semibold text-slate-900">{{ group.studentName }}</h3>
-                  <p class="text-xs text-blue-600">
-                    <a :href="'mailto:' + group.studentEmail" class="hover:underline">
-                      {{ group.studentEmail }}
-                    </a>
-                  </p>
-                  <p v-if="group.studentConcentration" class="text-[11px] text-slate-400 mt-0.5">
-                    {{ group.studentConcentration }}
-                  </p>
-                </div>
-              </div>
-              <span class="inline-flex items-center rounded-full bg-slate-200 px-2.5 py-0.5 text-xs font-medium text-slate-700">
-                {{ group.reminders.length }}
-              </span>
-            </button>
+                <span class="inline-flex items-center rounded-full bg-slate-200 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+                  {{ group.reminders.length }}
+                </span>
+              </button>
 
-            <!-- Student Group Content (Reminders) -->
-            <transition
-              enter-active-class="transition duration-150 ease-out"
-              enter-from-class="opacity-0"
-              enter-to-class="opacity-100"
-              leave-active-class="transition duration-150 ease-in"
-              leave-from-class="opacity-100"
-              leave-to-class="opacity-0"
+              <!-- Concentration Group Content (Reminders) -->
+              <transition
+                enter-active-class="transition duration-150 ease-out"
+                enter-from-class="opacity-0"
+                enter-to-class="opacity-100"
+                leave-active-class="transition duration-150 ease-in"
+                leave-from-class="opacity-100"
+                leave-to-class="opacity-0"
+              >
+                <div v-show="expandedConcentrations.has(group.concentration)" class="divide-y divide-slate-100 bg-white">
+                  <div
+                    v-for="reminder in group.reminders"
+                    :key="reminder.id"
+                    class="p-4 hover:bg-slate-50 transition-colors flex items-start gap-3"
+                  >
+                    <!-- Checkbox -->
+                    <div class="mt-1">
+                      <input
+                        type="checkbox"
+                        :checked="selectedReminderIds.has(reminder.id)"
+                        @change="toggleSelectReminder(reminder.id)"
+                        class="h-4 w-4 rounded border-slate-300 text-blue-600 cursor-pointer"
+                      />
+                    </div>
+
+                    <!-- Content -->
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-start justify-between gap-4 mb-3">
+                        <div class="flex-1">
+                          <h4 class="text-sm font-semibold text-slate-900">{{ reminder.studentName }}</h4>
+                          <p class="text-xs text-blue-600 mt-0.5">
+                            <a :href="'mailto:' + reminder.studentEmail" class="hover:underline">
+                              {{ reminder.studentEmail }}
+                            </a>
+                          </p>
+                          <p class="text-xs text-slate-600 mt-1">{{ reminder.topic }}</p>
+                          <p class="text-xs font-semibold text-blue-600 uppercase tracking-wide mt-1">
+                            {{ reminder.type }}
+                          </p>
+                          <p class="text-[11px] text-slate-400 mt-0.5">Phase: {{ reminder.phase }}</p>
+                        </div>
+                        <span
+                          :class="['inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium whitespace-nowrap', getPriorityColor(reminder.priority)]"
+                        >
+                          {{ reminder.priority }} Priority
+                        </span>
+                      </div>
+
+                      <div class="grid grid-cols-3 gap-4 mb-3 text-xs">
+                        <div>
+                          <p class="text-slate-500">Due Date</p>
+                          <p class="font-medium text-slate-900">{{ reminder.dueDate }}</p>
+                        </div>
+                        <div>
+                          <p class="text-slate-500">Days Overdue</p>
+                          <p :class="['font-medium', reminder.daysOverdue > 0 ? 'text-red-600' : 'text-slate-900']">
+                            {{ reminder.daysOverdue > 0 ? '+' + reminder.daysOverdue : 'On Track' }}
+                          </p>
+                        </div>
+                        <div>
+                          <p class="text-slate-500">Reminders Sent</p>
+                          <p class="font-medium text-slate-900">{{ reminder.reminderSent }}</p>
+                        </div>
+                      </div>
+
+                      <div class="flex gap-2 flex-wrap">
+                        <!-- For admin, show "Send Selected" via bulk toolbar, but keep individual send option -->
+                        <button
+                          :disabled="actionLoading[reminder.id]"
+                          @click="openSendModal(reminder)"
+                          class="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 hover:bg-blue-100 border border-blue-200 disabled:opacity-50"
+                        >
+                          <BellIcon class="h-4 w-4" />
+                          {{ actionLoading[reminder.id] ? 'Sending...' : 'Send' }}
+                        </button>
+                        <a
+                          v-if="reminder.studentEmail"
+                          :href="'mailto:' + reminder.studentEmail"
+                          class="inline-flex items-center gap-1 rounded-lg bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 border border-slate-200"
+                        >
+                          <EnvelopeIcon class="h-4 w-4" />
+                          Email
+                        </a>
+                        <button
+                          @click="handleMarkComplete(reminder)"
+                          class="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
+                        >
+                          <CheckIcon class="h-4 w-4" />
+                          Done
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </transition>
+            </div>
+          </div>
+
+          <!-- SUPERVISOR VIEW: Group by Student -->
+          <div v-else>
+            <!-- Student Group Headers -->
+            <div
+              v-for="group in groupedRemindersByStudent"
+              :key="group.studentId"
+              class="border border-slate-200 rounded-lg overflow-hidden"
             >
-              <div v-show="expandedReminderStudents.has(group.studentId)" class="divide-y divide-slate-100 bg-white">
-                <div
-                  v-for="reminder in group.reminders"
-                  :key="reminder.id"
-                  class="p-4 hover:bg-slate-50 transition-colors"
-                >
-                  <div class="flex items-start justify-between gap-4 mb-3">
-                    <div class="flex-1">
-                      <p class="text-xs font-semibold text-blue-600 uppercase tracking-wide">
-                        {{ reminder.type }}
-                      </p>
-                      <p class="text-xs text-slate-600 mt-1">{{ reminder.topic }}</p>
-                      <p class="text-[11px] text-slate-400 mt-0.5">Phase: {{ reminder.phase }}</p>
-                    </div>
-                    <span
-                      :class="['inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium', getPriorityColor(reminder.priority)]"
-                    >
-                      {{ reminder.priority }} Priority
-                    </span>
+              <!-- Student Group Header -->
+              <button
+                @click="expandedReminderStudents.has(group.studentId) ? expandedReminderStudents.delete(group.studentId) : expandedReminderStudents.add(group.studentId)"
+                class="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors"
+              >
+                <div class="flex items-center gap-3 flex-1 text-left">
+                  <div :class="['transition-transform', expandedReminderStudents.has(group.studentId) ? 'rotate-90' : '']">
+                    <ChevronRightIcon class="h-4 w-4 text-slate-500" />
                   </div>
-
-                  <div class="grid grid-cols-3 gap-4 mb-4 text-xs">
-                    <div>
-                      <p class="text-slate-500">Due Date</p>
-                      <p class="font-medium text-slate-900">{{ reminder.dueDate }}</p>
-                    </div>
-                    <div>
-                      <p class="text-slate-500">Days Overdue</p>
-                      <p :class="['font-medium', reminder.daysOverdue > 0 ? 'text-red-600' : 'text-slate-900']">
-                        {{ reminder.daysOverdue > 0 ? '+' + reminder.daysOverdue : 'On Track' }}
-                      </p>
-                    </div>
-                    <div>
-                      <p class="text-slate-500">Reminders Sent</p>
-                      <p class="font-medium text-slate-900">{{ reminder.reminderSent }}</p>
-                    </div>
-                  </div>
-
-                  <div class="flex gap-2">
-                    <button
-                      :disabled="actionLoading[reminder.id]"
-                      @click="openSendModal(reminder)"
-                      class="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 hover:bg-blue-100 border border-blue-200 disabled:opacity-50"
-                    >
-                      <BellIcon class="h-4 w-4" />
-                      {{ actionLoading[reminder.id] ? 'Sending...' : 'Send Reminder' }}
-                    </button>
-                    <!-- Direct email link -->
-                    <a
-                      v-if="reminder.studentEmail"
-                      :href="'mailto:' + reminder.studentEmail"
-                      class="inline-flex items-center gap-1 rounded-lg bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 border border-slate-200"
-                    >
-                      <EnvelopeIcon class="h-4 w-4" />
-                      Direct Email
-                    </a>
-                    <button
-                      @click="handleMarkComplete(reminder)"
-                      class="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
-                    >
-                      <CheckIcon class="h-4 w-4" />
-                      Mark Complete
-                    </button>
+                  <div>
+                    <h3 class="text-sm font-semibold text-slate-900">{{ group.studentName }}</h3>
+                    <p class="text-xs text-blue-600">
+                      <a :href="'mailto:' + group.studentEmail" class="hover:underline">
+                        {{ group.studentEmail }}
+                      </a>
+                    </p>
+                    <p v-if="group.studentConcentration" class="text-[11px] text-slate-400 mt-0.5">
+                      {{ group.studentConcentration }}
+                    </p>
                   </div>
                 </div>
-              </div>
-            </transition>
+                <span class="inline-flex items-center rounded-full bg-slate-200 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+                  {{ group.reminders.length }}
+                </span>
+              </button>
+
+              <!-- Student Group Content (Reminders) -->
+              <transition
+                enter-active-class="transition duration-150 ease-out"
+                enter-from-class="opacity-0"
+                enter-to-class="opacity-100"
+                leave-active-class="transition duration-150 ease-in"
+                leave-from-class="opacity-100"
+                leave-to-class="opacity-0"
+              >
+                <div v-show="expandedReminderStudents.has(group.studentId)" class="divide-y divide-slate-100 bg-white">
+                  <div
+                    v-for="reminder in group.reminders"
+                    :key="reminder.id"
+                    class="p-4 hover:bg-slate-50 transition-colors"
+                  >
+                    <div class="flex items-start justify-between gap-4 mb-3">
+                      <div class="flex-1">
+                        <p class="text-xs font-semibold text-blue-600 uppercase tracking-wide">
+                          {{ reminder.type }}
+                        </p>
+                        <p class="text-xs text-slate-600 mt-1">{{ reminder.topic }}</p>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Phase: {{ reminder.phase }}</p>
+                      </div>
+                      <span
+                        :class="['inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium whitespace-nowrap', getPriorityColor(reminder.priority)]"
+                      >
+                        {{ reminder.priority }} Priority
+                      </span>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-4 mb-4 text-xs">
+                      <div>
+                        <p class="text-slate-500">Due Date</p>
+                        <p class="font-medium text-slate-900">{{ reminder.dueDate }}</p>
+                      </div>
+                      <div>
+                        <p class="text-slate-500">Days Overdue</p>
+                        <p :class="['font-medium', reminder.daysOverdue > 0 ? 'text-red-600' : 'text-slate-900']">
+                          {{ reminder.daysOverdue > 0 ? '+' + reminder.daysOverdue : 'On Track' }}
+                        </p>
+                      </div>
+                      <div>
+                        <p class="text-slate-500">Reminders Sent</p>
+                        <p class="font-medium text-slate-900">{{ reminder.reminderSent }}</p>
+                      </div>
+                    </div>
+
+                    <div class="flex gap-2">
+                      <button
+                        :disabled="actionLoading[reminder.id]"
+                        @click="openSendModal(reminder)"
+                        class="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 hover:bg-blue-100 border border-blue-200 disabled:opacity-50"
+                      >
+                        <BellIcon class="h-4 w-4" />
+                        {{ actionLoading[reminder.id] ? 'Sending...' : 'Send Reminder' }}
+                      </button>
+                      <!-- Direct email link -->
+                      <a
+                        v-if="reminder.studentEmail"
+                        :href="'mailto:' + reminder.studentEmail"
+                        class="inline-flex items-center gap-1 rounded-lg bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 border border-slate-200"
+                      >
+                        <EnvelopeIcon class="h-4 w-4" />
+                        Direct Email
+                      </a>
+                      <button
+                        @click="handleMarkComplete(reminder)"
+                        class="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
+                      >
+                        <CheckIcon class="h-4 w-4" />
+                        Mark Complete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </transition>
+            </div>
           </div>
         </div>
       </div>
