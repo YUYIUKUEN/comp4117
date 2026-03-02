@@ -31,7 +31,7 @@ const fetchPendingItems = async () => {
     
     // Fetch pending applications
     const applicationsResponse = await applicationService.getSupervisorApplications({ status: 'Pending' });
-    const applications = applicationsResponse || [];
+    const applications = applicationsResponse?.data || [];
 
     // Transform topic change requests
     const transformedRequests = topicChangeRequests.map((request: any) => ({
@@ -66,8 +66,14 @@ const fetchPendingItems = async () => {
       (a, b) => new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime()
     );
   } catch (error: any) {
-    loadError.value = error?.response?.data?.error || 'Failed to load pending approvals';
     console.error('Error fetching pending approvals:', error);
+    let errorMsg = 'Failed to load pending approvals';
+    if (error?.response?.data?.error) {
+      errorMsg = error.response.data.error;
+    } else if (error?.message) {
+      errorMsg = error.message;
+    }
+    loadError.value = errorMsg;
   } finally {
     isLoading.value = false;
   }

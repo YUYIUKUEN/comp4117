@@ -5,9 +5,13 @@ import {
   ExclamationTriangleIcon,
 } from '@heroicons/vue/24/outline';
 
-defineProps<{
-  isOpen: boolean;
-}>();
+interface Props {
+  isOpen?: boolean;
+}
+
+withDefaults(defineProps<Props>(), {
+  isOpen: false,
+});
 
 const emit = defineEmits<{
   close: [];
@@ -19,7 +23,7 @@ const reason = ref('');
 const submitted = ref(false);
 
 const handleSubmit = () => {
-  if (newTopic.trim() && reason.trim()) {
+  if (newTopic.value.trim() && reason.value.trim()) {
     emit('submit', {
       newTopic: newTopic.value,
       reason: reason.value,
@@ -150,7 +154,7 @@ const handleClose = () => {
           <button
             type="button"
             @click="handleSubmit"
-            :disabled="!newTopic.value.trim() || !reason.value.trim()"
+            :disabled="newTopic.trim() === '' || reason.trim() === ''"
             class="flex-1 rounded-lg border border-blue-500 bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
             Submit Request

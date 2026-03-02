@@ -32,8 +32,7 @@ const getSupervisorPendingRequests = async (req, res, next) => {
     })
       .populate('student_id', 'fullName email')
       .populate('current_topic_id', 'title')
-      .populate('proposed_topic_id', 'title')
-      .sort({ createdAt: -1 });
+      .populate('proposed_topic_id', 'title');
 
     res.json({
       data: {

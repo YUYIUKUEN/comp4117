@@ -28,8 +28,14 @@ export default {
    * Get pending topic change requests for supervisor
    */
   async getSupervisorPendingRequests(): Promise<TopicChangeRequest[]> {
-    const response = await httpClient.get('/topic-change-requests/supervisor/pending')
-    return response.data.data?.requests || response.data.data || []
+    try {
+      const response = await httpClient.get('/topic-change-requests/supervisor/pending')
+      console.log('Topic change requests response:', response);
+      return response.data.data?.requests || response.data.data || []
+    } catch (error) {
+      console.error('Error in getSupervisorPendingRequests:', error);
+      throw error;
+    }
   },
 
   /**
