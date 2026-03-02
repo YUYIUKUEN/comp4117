@@ -1,54 +1,119 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   ArrowLeftIcon,
   CheckCircleIcon,
   XCircleIcon,
   ClockIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/vue/24/outline';
+import topicChangeRequestService from '../services/topicChangeRequestService';
+import applicationService from '../services/applicationService';
 
 const router = useRouter();
 
-const pendingApprovals = ref([
-  {
-    id: 1,
-    type: 'Topic Change Request',
-    studentName: 'Student Chan Hoi Ting',
-    currentTopic: 'Smart City Walkability in Kowloon East',
-    proposedTopic: 'Sustainable Urban Transportation Systems',
-    reason: 'Want to focus more on transportation aspects',
-    submittedDate: '2025-02-10',
-    status: 'Pending Review',
-  },
-  {
-    id: 2,
-    type: 'Progress Report Review',
-    studentName: 'Student Ho Pui Kwan',
-    topic: 'Digital Platforms and Youth Political Participation',
-    summary: 'Completed literature review and started data collection',
-    submittedDate: '2025-02-08',
-    status: 'Awaiting Approval',
-  },
-  {
-    id: 3,
-    type: 'Extension Request',
-    studentName: 'Student Lee Man Kei',
-    topic: 'Literary Analysis and Digital Storytelling',
-    reason: 'Need extra time for final manuscript review',
-    requestedDays: 14,
-    submittedDate: '2025-02-11',
-    status: 'Pending Review',
-  },
-]);
+const pendingApprovals = ref<any[]>([]);
+const isLoading = ref(true);
+const loadError = ref('');
+const approving = ref<string | null>(null);
+const rejecting = ref<string | null>(null);
 
-const handleApprove = (id: number) => {
-  console.log('Approve request', id);
+// Combine topic change requests and pending applications
+const fetchPendingItems = async () => {
+  isLoading.value = true;
+  loadError.value = '';
+  pendingApprovals.value = [];
+
+  try {
+    // Fetch topic change requests
+    const topicChangeRequests = await topicChangeRequestService.getSupervisorPendingRequests();
+    
+    // Fetch pending applications
+    const applicationsResponse = await applicationService.getSupervisorApplications({ status: 'Pending' });
+    const applications = applicationsResponse || [];
+
+    // Transform topic change requests
+    const transformedRequests = topicChangeRequests.map((request: any) => ({
+      _id: request._id,
+      type: 'Topic Change Request',
+      id: request._id,
+      studentName: request.student_id?.fullName || 'Unknown Student',
+      studentId: request.student_id?._id,
+      currentTopic: request.current_topic_id?.title || 'Unknown',
+      proposedTopic: request.proposed_topic_id?.title || request.proposed_topic_title || 'Not specified',
+      reason: request.reason,
+      submittedDate: new Date(request.createdAt).toLocaleDateString(),
+      status: 'Pending Review',
+      requestType: 'topicChange',
+    }));
+
+    // Transform pending applications
+    const transformedApplications = (applications as any[]).map((app: any) => ({
+      _id: app._id,
+      type: 'Topic Application',
+      id: app._id,
+      studentName: app.student_id?.fullName || 'Unknown Student',
+      studentId: app.student_id?._id,
+      topic: app.topic_id?.title || 'Unknown',
+      submittedDate: new Date(app.createdAt).toLocaleDateString(),
+      status: 'Awaiting Approval',
+      requestType: 'application',
+    }));
+
+    // Combine and sort by date
+    pendingApprovals.value = [...transformedRequests, ...transformedApplications].sort(
+      (a, b) => new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime()
+    );
+  } catch (error: any) {
+    loadError.value = error?.response?.data?.error || 'Failed to load pending approvals';
+    console.error('Error fetching pending approvals:', error);
+  } finally {
+    isLoading.value = false;
+  }
 };
 
-const handleReject = (id: number) => {
-  console.log('Reject request', id);
+const handleApprove = async (item: any) => {
+  approving.value = item._id;
+
+  try {
+    if (item.requestType === 'topicChange') {
+      await topicChangeRequestService.approveTopicChangeRequest(item._id);
+    } else if (item.requestType === 'application') {
+      await applicationService.approveApplication(item._id);
+    }
+
+    await fetchPendingItems();
+  } catch (error: any) {
+    alert(error?.response?.data?.error || 'Failed to approve');
+  } finally {
+    approving.value = null;
+  }
 };
+
+const handleReject = async (item: any) => {
+  if (!confirm('Are you sure you want to reject this request?')) return;
+
+  rejecting.value = item._id;
+
+  try {
+    if (item.requestType === 'topicChange') {
+      await topicChangeRequestService.rejectTopicChangeRequest(item._id);
+    } else if (item.requestType === 'application') {
+      await applicationService.rejectApplication(item._id);
+    }
+
+    await fetchPendingItems();
+  } catch (error: any) {
+    alert(error?.response?.data?.error || 'Failed to reject');
+  } finally {
+    rejecting.value = null;
+  }
+};
+
+onMounted(() => {
+  fetchPendingItems();
+});
 </script>
 
 <template>
@@ -74,15 +139,39 @@ const handleReject = (id: number) => {
     </header>
 
     <main class="px-4 sm:px-6 pb-6 pt-4 sm:pt-5">
-      <div class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
+      <!-- Loading State -->
+      <div v-if="isLoading" class="flex items-center justify-center py-12">
+        <span class="loading loading-spinner loading-md text-blue-600"></span>
+        <span class="ml-2 text-sm text-slate-600">Loading pending approvals...</span>
+      </div>
+
+      <!-- Error State -->
+      <div v-else-if="loadError" class="rounded-xl border border-red-200 bg-red-50 p-5 text-center">
+        <p class="text-sm font-medium text-red-700">{{ loadError }}</p>
+        <button
+          @click="fetchPendingItems"
+          class="mt-3 text-sm text-blue-600 hover:underline"
+        >
+          Retry
+        </button>
+      </div>
+
+      <!-- Empty State -->
+      <div v-else-if="pendingApprovals.length === 0" class="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+        <p class="text-sm font-medium text-slate-900">No pending approvals</p>
+        <p class="mt-1 text-xs text-slate-500">All topic change requests and applications have been reviewed.</p>
+      </div>
+
+      <!-- Pending Items -->
+      <div v-else class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
         <h2 class="text-sm font-semibold text-slate-900 mb-4">
-          {{ pendingApprovals.length }} Pending Items
+          {{ pendingApprovals.length }} Pending Item<span v-if="pendingApprovals.length !== 1">s</span>
         </h2>
 
         <div class="space-y-3">
           <div
             v-for="item in pendingApprovals"
-            :key="item.id"
+            :key="item._id"
             class="border border-slate-200 rounded-lg p-4 hover:border-blue-300 transition-colors"
           >
             <div class="flex items-start justify-between gap-4 mb-3">
@@ -102,20 +191,14 @@ const handleReject = (id: number) => {
               <p v-if="item.currentTopic" class="text-xs text-slate-600">
                 <span class="font-medium text-slate-900">Current Topic:</span> {{ item.currentTopic }}
               </p>
-              <p v-if="item.proposedTopic" class="text-xs text-slate-600">
-                <span class="font-medium text-slate-900">Proposed:</span> {{ item.proposedTopic }}
+              <p v-if="item.proposedTopic && item.requestType === 'topicChange'" class="text-xs text-slate-600">
+                <span class="font-medium text-slate-900">Proposed Topic:</span> {{ item.proposedTopic }}
               </p>
-              <p v-if="item.topic" class="text-xs text-slate-600">
-                <span class="font-medium text-slate-900">Topic:</span> {{ item.topic }}
+              <p v-if="item.topic && item.requestType === 'application'" class="text-xs text-slate-600">
+                <span class="font-medium text-slate-900">Applied Topic:</span> {{ item.topic }}
               </p>
               <p v-if="item.reason" class="text-xs text-slate-600">
                 <span class="font-medium text-slate-900">Reason:</span> {{ item.reason }}
-              </p>
-              <p v-if="item.summary" class="text-xs text-slate-600">
-                <span class="font-medium text-slate-900">Summary:</span> {{ item.summary }}
-              </p>
-              <p v-if="item.requestedDays" class="text-xs text-slate-600">
-                <span class="font-medium text-slate-900">Requested Days:</span> {{ item.requestedDays }}
               </p>
             </div>
 
@@ -123,18 +206,20 @@ const handleReject = (id: number) => {
 
             <div class="flex gap-2">
               <button
-                @click="handleApprove(item.id)"
-                class="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
+                @click="handleApprove(item)"
+                :disabled="approving === item._id"
+                class="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 border border-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <CheckCircleIcon class="h-4 w-4" />
-                Approve
+                {{ approving === item._id ? 'Approving...' : 'Approve' }}
               </button>
               <button
-                @click="handleReject(item.id)"
-                class="inline-flex items-center gap-1 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700 hover:bg-red-100 border border-red-200"
+                @click="handleReject(item)"
+                :disabled="rejecting === item._id"
+                class="inline-flex items-center gap-1 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700 hover:bg-red-100 border border-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <XCircleIcon class="h-4 w-4" />
-                Reject
+                {{ rejecting === item._id ? 'Rejecting...' : 'Reject' }}
               </button>
             </div>
           </div>
