@@ -135,6 +135,7 @@ const handleTopicChangeSubmit = async (data: { newTopic: string; reason: string 
       data.newTopic
     );
     errorMessage.value = null;
+    closeTopicChangeModal();
   } catch (error: any) {
     console.error('Error submitting topic change request:', error);
     errorMessage.value = error.message || 'Failed to submit topic change request. Please try again.';
