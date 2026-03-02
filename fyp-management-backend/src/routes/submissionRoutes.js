@@ -4,6 +4,7 @@ const upload = require('../middleware/fileUpload');
 const {
   submitDocument,
   getSubmission,
+  getAllStudentSubmissions,
   downloadFile,
   declareNotNeeded,
   getSupervisorSubmissions,
@@ -13,6 +14,9 @@ const {
 } = require('../controllers/submissionController');
 
 const router = express.Router();
+
+// Student: get all submissions for current student (must be before /:phase)
+router.get('/my', authenticate, requireRole('Student'), getAllStudentSubmissions);
 
 // Student routes
 router.post(

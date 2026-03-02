@@ -230,6 +230,60 @@ const declareNotNeeded = async (req, res, next) => {
   }
 };
 
+const getAllStudentSubmissions = async (req, res, next) => {
+  try {
+    const studentId = req.auth.userId;
+
+    // Find active assignment
+    const assignment = await Assignment.findOne({
+      student_id: studentId,
+      status: 'Active',
+    });
+
+    if (!assignment) {
+      return res.status(400).json({
+        error: 'No active assignment found',
+        code: 'NO_ASSIGNMENT',
+        status: 400,
+      });
+    }
+
+    const phases = ['Initial Statement', 'Progress Report 1', 'Progress Report 2', 'Final Dissertation'];
+
+    // Get existing submissions
+    const existingSubmissions = await Submission.find({ student_id: studentId });
+    const existingPhases = existingSubmissions.map(s => s.phase);
+
+    // Create placeholder submissions for phases without one
+    for (const phase of phases) {
+      if (!existingPhases.includes(phase)) {
+        const dueDate = calculateDueDate(phase);
+        await Submission.create({
+          student_id: studentId,
+          topic_id: assignment.topic_id,
+          phase,
+          dueDate,
+        });
+      }
+    }
+
+    // Re-fetch all submissions
+    const submissions = await Submission.find({ student_id: studentId })
+      .populate('topic_id', 'title');
+
+    // Sort in JS to avoid Cosmos DB index issues
+    const phaseOrder = { 'Initial Statement': 0, 'Progress Report 1': 1, 'Progress Report 2': 2, 'Final Dissertation': 3 };
+    submissions.sort((a, b) => (phaseOrder[a.phase] ?? 99) - (phaseOrder[b.phase] ?? 99));
+
+    res.json({
+      data: submissions,
+      status: 200,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getSupervisorSubmissions = async (req, res, next) => {
   try {
     const supervisorId = req.auth.userId;
@@ -406,6 +460,7 @@ const getSubmissionStatistics = async (req, res, next) => {
 module.exports = {
   submitDocument,
   getSubmission,
+  getAllStudentSubmissions,
   downloadFile,
   declareNotNeeded,
   getSupervisorSubmissions,

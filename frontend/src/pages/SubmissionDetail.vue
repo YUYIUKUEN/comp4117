@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   Bars3Icon,
@@ -13,61 +13,102 @@ import {
   HomeIcon,
 } from '@heroicons/vue/24/outline';
 import { AcademicCapIcon } from '@heroicons/vue/24/outline';
+import { useSubmissionStore } from '../stores/submissionStore';
 
 const router = useRouter();
+const submissionStore = useSubmissionStore();
 const sidebarOpen = ref(false);
-const declarationChecked = ref(true);
+const declarationChecked = ref(false);
 const activeView = ref<'submissions' | 'checklist'>('submissions');
+const uploading = ref(false);
+const uploadError = ref<string | null>(null);
+const uploadSuccess = ref<string | null>(null);
+const fileInputRef = ref<HTMLInputElement | null>(null);
 
 const goToDashboard = () => {
   router.push('/dashboard');
 };
 
-const submissionPhases = [
-  {
-    id: 1,
-    name: 'Initial Statement',
-    dueDate: '2025-11-15',
-    status: 'Completed',
-    submittedAt: '2025-11-10',
-  },
-  {
-    id: 2,
-    name: 'Progress Report 1',
-    dueDate: '2026-02-01',
-    status: 'Overdue',
-    submittedAt: null,
-  },
-  {
-    id: 3,
-    name: 'Progress Report 2',
-    dueDate: '2026-04-10',
-    status: 'Pending',
-    submittedAt: null,
-  },
-  {
-    id: 4,
-    name: 'Final Dissertation',
-    dueDate: '2026-05-25',
-    status: 'Not Started',
-    submittedAt: null,
-  },
-];
+// Fetch submissions on mount
+onMounted(async () => {
+  if (submissionStore.phases.length === 0) {
+    await submissionStore.fetchSubmissionPhases();
+  }
+  // Select first non-submitted phase, or first phase
+  if (submissionStore.phases.length > 0 && !submissionStore.selectedPhase) {
+    const pending = submissionStore.phases.find(p => p.status !== 'Submitted' && p.status !== 'Declared Not Needed');
+    submissionStore.setSelectedPhase(pending || submissionStore.phases[0]);
+  }
+});
 
-const files = [
-  {
-    id: 1,
-    name: 'Progress_Report_1_ChanHoiTing.pdf',
-    uploadedAt: '29 Jan 2026 • 21:14',
-    size: '1.2 MB',
-  },
-  {
-    id: 2,
-    name: 'GIS_Maps_Appendix.zip',
-    uploadedAt: '29 Jan 2026 • 21:09',
-    size: '24.7 MB',
-  },
-];
+const currentPhase = computed(() => submissionStore.selectedPhase);
+const currentFiles = computed(() => currentPhase.value?.files ?? []);
+
+function formatFileSize(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${bytes} B`;
+}
+
+function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function selectPhase(phase: any) {
+  submissionStore.setSelectedPhase(phase);
+}
+
+function triggerFileInput() {
+  fileInputRef.value?.click();
+}
+
+async function handleFileSelect(event: Event) {
+  const input = event.target as HTMLInputElement;
+  if (!input.files?.length || !currentPhase.value) return;
+  await doUpload(input.files[0]);
+  input.value = ''; // reset
+}
+
+function handleDrop(event: DragEvent) {
+  event.preventDefault();
+  const file = event.dataTransfer?.files?.[0];
+  if (file && currentPhase.value) {
+    doUpload(file);
+  }
+}
+
+function handleDragOver(event: DragEvent) {
+  event.preventDefault();
+}
+
+async function doUpload(file: File) {
+  if (!currentPhase.value) return;
+  uploading.value = true;
+  uploadError.value = null;
+  uploadSuccess.value = null;
+  try {
+    await submissionStore.uploadFile(currentPhase.value.phase, file);
+    uploadSuccess.value = `"${file.name}" uploaded successfully!`;
+    // Refresh the phases list
+    await submissionStore.fetchSubmissionPhases();
+    // Re-select the current phase to get updated data
+    const updated = submissionStore.phases.find(p => p.phase === currentPhase.value?.phase);
+    if (updated) submissionStore.setSelectedPhase(updated);
+  } catch (err: any) {
+    uploadError.value = err.message || 'Upload failed';
+  } finally {
+    uploading.value = false;
+  }
+}
+
+async function handleDownload(file: any) {
+  if (!currentPhase.value) return;
+  try {
+    await submissionStore.triggerDownload(currentPhase.value.phase, file.filename, file.originalName);
+  } catch (err: any) {
+    console.error('Download failed:', err);
+  }
+}
 </script>
 
 <template>
@@ -184,21 +225,35 @@ const files = [
         <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <p class="text-xs uppercase tracking-[0.2em] text-slate-500">
-              Progress report
+              {{ currentPhase?.phase ?? 'Submission' }}
             </p>
             <h1 class="mt-1 text-sm sm:text-base font-semibold text-slate-900">
-              Progress Report 1 · Smart City Walkability in Kowloon East
+              {{ currentPhase?.phase ?? 'Select a phase' }}
+              <template v-if="currentPhase?.topic_id?.title"> · {{ currentPhase.topic_id.title }}</template>
             </h1>
             <p class="mt-1 text-xs text-slate-500">
-              This view illustrates how a single submission keeps files, declarations, feedback, and grading together.
+              <template v-if="currentPhase?.dueDate">Due {{ formatDate(currentPhase.dueDate) }}</template>
+              <template v-else>Upload files and manage your submission.</template>
             </p>
           </div>
           <div class="flex flex-wrap gap-2 text-[11px] items-center">
             <span
-              class="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 font-medium text-amber-700"
+              class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-medium text-[11px]"
+              :class="{
+                'border border-emerald-200 bg-emerald-50 text-emerald-700': currentPhase?.status === 'Submitted',
+                'border border-amber-200 bg-amber-50 text-amber-700': currentPhase?.status === 'Overdue' || currentPhase?.status === 'Not Submitted',
+                'border border-blue-200 bg-blue-50 text-blue-700': currentPhase?.status === 'Declared Not Needed',
+              }"
             >
-              <span class="h-1.5 w-1.5 rounded-full bg-amber-400" />
-              In review by supervisor
+              <span
+                class="h-1.5 w-1.5 rounded-full"
+                :class="{
+                  'bg-emerald-400': currentPhase?.status === 'Submitted',
+                  'bg-amber-400': currentPhase?.status === 'Overdue' || currentPhase?.status === 'Not Submitted',
+                  'bg-blue-400': currentPhase?.status === 'Declared Not Needed',
+                }"
+              />
+              {{ currentPhase?.status ?? 'Unknown' }}
             </span>
             <button
               type="button"
@@ -224,30 +279,52 @@ const files = [
                     Uploaded files
                   </h2>
                   <p class="mt-1 text-xs text-slate-500">
-                    Files shown here are static examples representing what a real submission would include.
+                    {{ currentFiles.length }} file(s) uploaded for this phase.
                   </p>
                 </div>
                 <CloudArrowUpIcon class="h-5 w-5 text-slate-500" />
               </header>
 
+              <!-- Upload success/error messages -->
+              <div v-if="uploadSuccess" class="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                {{ uploadSuccess }}
+              </div>
+              <div v-if="uploadError" class="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+                {{ uploadError }}
+              </div>
+
               <div
-                class="mt-4 flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-xs text-slate-500"
+                class="mt-4 flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-xs text-slate-500 cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-colors"
+                @click="triggerFileInput"
+                @drop="handleDrop"
+                @dragover="handleDragOver"
               >
-                <PaperClipIcon class="h-6 w-6 text-slate-500" />
+                <input
+                  ref="fileInputRef"
+                  type="file"
+                  class="hidden"
+                  accept=".pdf,.docx,.doc,.zip,.pptx,.ppt,.xlsx,.xls"
+                  @change="handleFileSelect"
+                >
+                <PaperClipIcon v-if="!uploading" class="h-6 w-6 text-slate-500" />
+                <div v-else class="h-6 w-6 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
                 <p class="mt-2">
-                  Drag and drop files here, or
-                  <span class="text-blue-300 font-medium">browse</span>
-                  from your device.
+                  <template v-if="uploading">Uploading… {{ submissionStore.uploadProgress }}%</template>
+                  <template v-else>
+                    Drag and drop files here, or
+                    <span class="text-blue-500 font-medium">browse</span>
+                    from your device.
+                  </template>
                 </p>
                 <p class="mt-1 text-[11px]">
                   PDF, DOCX, ZIP up to 50MB.
                 </p>
               </div>
 
-              <ul class="mt-4 space-y-2 text-xs">
+              <ul v-if="currentFiles.length > 0" class="mt-4 space-y-2 text-xs">
                 <li
-                  v-for="file in files"
-                  :key="file.id"
+                  v-for="file in currentFiles"
+                  :key="file.filename"
                   class="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2"
                 >
                   <div class="flex items-center gap-2">
@@ -258,21 +335,25 @@ const files = [
                     </div>
                     <div>
                       <p class="text-slate-900">
-                        {{ file.name }}
+                        {{ file.originalName }}
                       </p>
                       <p class="text-[11px] text-slate-500">
-                        {{ file.uploadedAt }} · {{ file.size }}
+                        {{ formatDate(file.uploadedAt) }} · {{ formatFileSize(file.size) }}
                       </p>
                     </div>
                   </div>
                   <button
                     type="button"
                     class="inline-flex items-center rounded-full border border-slate-300 bg-white px-2.5 py-1 text-[11px] text-slate-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                    @click="handleDownload(file)"
                   >
-                    Preview
+                    Download
                   </button>
                 </li>
               </ul>
+              <p v-else class="mt-4 text-xs text-slate-500 text-center py-2">
+                No files uploaded yet. Use the drop zone above to upload.
+              </p>
             </section>
 
             <section
@@ -366,21 +447,22 @@ const files = [
 
           <section class="space-y-3">
             <div
-              v-for="phase in submissionPhases"
-              :key="phase.id"
+              v-for="phase in submissionStore.phases"
+              :key="phase._id"
               class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm shadow-slate-200/70 hover:border-blue-300 hover:shadow-md hover:shadow-blue-100 cursor-pointer transition-all"
+              @click="selectPhase(phase); activeView = 'submissions'"
             >
               <div class="flex items-start justify-between gap-4">
                 <div class="flex-1">
-                  <h3 class="font-semibold text-slate-900">{{ phase.name }}</h3>
+                  <h3 class="font-semibold text-slate-900">{{ phase.phase }}</h3>
                   <div class="mt-2 grid grid-cols-2 gap-3 text-xs text-slate-600">
                     <div>
                       <p class="text-slate-500">Due Date</p>
-                      <p class="font-medium text-slate-900">{{ phase.dueDate }}</p>
+                      <p class="font-medium text-slate-900">{{ phase.dueDate ? formatDate(phase.dueDate) : 'TBD' }}</p>
                     </div>
                     <div>
                       <p class="text-slate-500">Submitted</p>
-                      <p class="font-medium text-slate-900">{{ phase.submittedAt || 'Not submitted' }}</p>
+                      <p class="font-medium text-slate-900">{{ phase.submittedAt ? formatDate(phase.submittedAt) : 'Not submitted' }}</p>
                     </div>
                   </div>
                 </div>
@@ -388,19 +470,19 @@ const files = [
                   <span
                     class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium"
                     :class="{
-                      'bg-emerald-50 text-emerald-700 border border-emerald-200': phase.status === 'Completed',
+                      'bg-emerald-50 text-emerald-700 border border-emerald-200': phase.status === 'Submitted',
                       'bg-amber-50 text-amber-700 border border-amber-200': phase.status === 'Overdue',
-                      'bg-blue-50 text-blue-700 border border-blue-200': phase.status === 'Pending',
-                      'bg-slate-100 text-slate-600 border border-slate-200': phase.status === 'Not Started',
+                      'bg-blue-50 text-blue-700 border border-blue-200': phase.status === 'Not Submitted',
+                      'bg-slate-100 text-slate-600 border border-slate-200': phase.status === 'Declared Not Needed',
                     }"
                   >
                     <span
                       class="h-2 w-2 rounded-full"
                       :class="{
-                        'bg-emerald-500': phase.status === 'Completed',
+                        'bg-emerald-500': phase.status === 'Submitted',
                         'bg-amber-500': phase.status === 'Overdue',
-                        'bg-blue-500': phase.status === 'Pending',
-                        'bg-slate-400': phase.status === 'Not Started',
+                        'bg-blue-500': phase.status === 'Not Submitted',
+                        'bg-slate-400': phase.status === 'Declared Not Needed',
                       }"
                     />
                     {{ phase.status }}

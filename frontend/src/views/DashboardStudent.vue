@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import {
   ClockIcon,
   CloudArrowUpIcon,
@@ -8,6 +9,10 @@ import {
 import ActivityLogWidget from '../components/ActivityLogWidget.vue';
 import TopicChangeRequestModal from '../components/TopicChangeRequestModal.vue';
 import { useDummyData } from '../composables/useDummyData';
+import { useSubmissionStore } from '../stores/submissionStore';
+
+const router = useRouter();
+const submissionStore = useSubmissionStore();
 
 const { currentStudent, supervisor, submissions, recentFeedback } = useDummyData();
 const isTopicChangeModalOpen = ref(false);
@@ -26,6 +31,19 @@ const handleTopicChangeSubmit = (data: { newTopic: string; reason: string }) => 
   // Close modal after successful submission
   closeTopicChangeModal();
 };
+
+const goToSubmissions = () => {
+  router.push('/submissions');
+};
+
+// Fetch real submission data on mount
+onMounted(async () => {
+  try {
+    await submissionStore.fetchSubmissionPhases();
+  } catch (e) {
+    console.error('Failed to fetch submission phases:', e);
+  }
+});
 
 const activities = [
   {
@@ -51,6 +69,11 @@ const activities = [
 ];
 
 const completion = computed(() => {
+  // Use real data from store if available
+  if (submissionStore.phases.length > 0) {
+    return submissionStore.submissionProgress;
+  }
+  // Fallback to dummy data
   const values = submissions.value.progress;
   const done = Object.values(values).filter((p) =>
     ['completed', 'not-required'].includes(p.status),
@@ -165,7 +188,7 @@ const completion = computed(() => {
             </button>
             <button
               type="button"
-              @click="alert('Document upload feature - coming soon')"
+              @click="goToSubmissions"
               class="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-slate-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50"
             >
               <CloudArrowUpIcon class="h-3.5 w-3.5" />
@@ -235,45 +258,56 @@ const completion = computed(() => {
           </header>
 
           <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-[11px]">
-            <div class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5">
-              <p class="font-medium text-emerald-900">
-                Topic Planning
+            <div
+              v-for="phase in submissionStore.phases"
+              :key="phase._id"
+              class="rounded-lg px-3 py-2.5 cursor-pointer"
+              :class="{
+                'border border-emerald-200 bg-emerald-50': phase.status === 'Submitted',
+                'border border-rose-200 bg-rose-50': phase.status === 'Overdue',
+                'border border-amber-200 bg-amber-50': phase.status === 'Not Submitted' && phase.dueDate,
+                'border border-slate-200 bg-slate-50': phase.status === 'Not Submitted' && !phase.dueDate,
+                'border border-blue-200 bg-blue-50': phase.status === 'Declared Not Needed',
+              }"
+              @click="goToSubmissions"
+            >
+              <p class="font-medium" :class="{
+                'text-emerald-900': phase.status === 'Submitted',
+                'text-rose-900': phase.status === 'Overdue',
+                'text-amber-900': phase.status === 'Not Submitted' && phase.dueDate,
+                'text-slate-900': phase.status === 'Not Submitted' && !phase.dueDate,
+                'text-blue-900': phase.status === 'Declared Not Needed',
+              }">
+                {{ phase.phase }}
               </p>
-              <p class="mt-0.5 text-emerald-700">
-                Submitted 10 Nov 2025
+              <p class="mt-0.5" :class="{
+                'text-emerald-700': phase.status === 'Submitted',
+                'text-rose-700': phase.status === 'Overdue',
+                'text-amber-700': phase.status === 'Not Submitted' && phase.dueDate,
+                'text-slate-600': phase.status === 'Not Submitted' && !phase.dueDate,
+                'text-blue-700': phase.status === 'Declared Not Needed',
+              }">
+                <template v-if="phase.status === 'Submitted'">
+                  Submitted {{ new Date(phase.submittedAt!).toLocaleDateString() }}
+                </template>
+                <template v-else-if="phase.status === 'Overdue'">
+                  Overdue – please submit soon
+                </template>
+                <template v-else-if="phase.status === 'Declared Not Needed'">
+                  Not required
+                </template>
+                <template v-else-if="phase.dueDate">
+                  Due {{ new Date(phase.dueDate).toLocaleDateString() }}
+                </template>
+                <template v-else>
+                  Not started
+                </template>
               </p>
             </div>
-            <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5">
-              <p class="font-medium text-rose-900">
-                Progress Report 1
-              </p>
-              <p class="mt-0.5 text-rose-700">
-                Overdue – please submit soon
-              </p>
-            </div>
-            <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
-              <p class="font-medium text-slate-900">
-                Ethics Clearance
-              </p>
-              <p class="mt-0.5 text-slate-600">
-                Not required (agreed with supervisor)
-              </p>
-            </div>
-            <div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
-              <p class="font-medium text-amber-900">
-                Progress Report 2
-              </p>
-              <p class="mt-0.5 text-amber-700">
-                Due in April 2026
-              </p>
-            </div>
-            <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
-              <p class="font-medium text-slate-900">
-                Dissertation & Presentation
-              </p>
-              <p class="mt-0.5 text-slate-600">
-                Not started
-              </p>
+
+            <!-- Fallback when no real data yet -->
+            <div v-if="submissionStore.phases.length === 0 && !submissionStore.loading" class="col-span-full text-xs text-slate-500 text-center py-4">
+              No submission data available. You may not have an active assignment yet.
             </div>
           </div>
         </article>

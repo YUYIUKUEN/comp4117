@@ -2,35 +2,21 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import submissionService, {
   type SubmissionPhase,
-  type UploadedFile,
-  type Declaration,
-  type SubmissionComment,
 } from '../services/submissionService'
 
 export const useSubmissionStore = defineStore('submission', () => {
   // State
   const phases = ref<SubmissionPhase[]>([])
   const selectedPhase = ref<SubmissionPhase | null>(null)
-  const files = ref<UploadedFile[]>([])
-  const declarations = ref<Declaration[]>([])
-  const feedback = ref<SubmissionComment[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
   const uploadProgress = ref(0)
-  const submissionStats = ref({
-    totalPhases: 0,
-    submitted: 0,
-    pending: 0,
-    overdue: 0,
-    declared: 0,
-    submissionRate: 0,
-  })
 
-  // Computed properties
-  const submittedCount = computed(() => phases.value.filter(p => p.status === 'submitted').length)
-  const pendingCount = computed(() => phases.value.filter(p => p.status === 'not-submitted').length)
-  const overdueCount = computed(() => phases.value.filter(p => p.status === 'overdue').length)
-  const declaredCount = computed(() => phases.value.filter(p => p.status === 'declared').length)
+  // Computed
+  const submittedCount = computed(() => phases.value.filter(p => p.status === 'Submitted').length)
+  const pendingCount = computed(() => phases.value.filter(p => p.status === 'Not Submitted').length)
+  const overdueCount = computed(() => phases.value.filter(p => p.status === 'Overdue').length)
+  const declaredCount = computed(() => phases.value.filter(p => p.status === 'Declared Not Needed').length)
 
   const submissionProgress = computed(() => {
     if (phases.value.length === 0) return 0
@@ -39,23 +25,10 @@ export const useSubmissionStore = defineStore('submission', () => {
     )
   })
 
-  const allFilesSize = computed(() => {
-    return files.value.reduce((total, file) => total + file.fileSize, 0)
-  })
-
-  const allFilesSizeFormatted = computed(() => {
-    const mb = allFilesSize.value / 1024 / 1024
-    if (mb > 1) return `${mb.toFixed(2)} MB`
-    const kb = allFilesSize.value / 1024
-    if (kb > 1) return `${kb.toFixed(2)} KB`
-    return `${allFilesSize.value} B`
-  })
-
   // Actions
   async function fetchSubmissionPhases() {
     loading.value = true
     error.value = null
-
     try {
       const data = await submissionService.getSubmissionPhases()
       phases.value = data
@@ -67,21 +40,18 @@ export const useSubmissionStore = defineStore('submission', () => {
     }
   }
 
-  async function fetchSubmissionPhase(phaseId: string) {
+  async function fetchSubmissionPhase(phase: string) {
     loading.value = true
     error.value = null
-
     try {
-      const phase = await submissionService.getSubmissionPhase(phaseId)
-      selectedPhase.value = phase
-
-      // Update in phases array
-      const index = phases.value.findIndex(p => p.id === phaseId)
-      if (index !== -1) {
-        phases.value[index] = phase
+      const data = await submissionService.getSubmissionPhase(phase)
+      selectedPhase.value = data
+      // Update in phases array too
+      const idx = phases.value.findIndex(p => p.phase === phase)
+      if (idx !== -1) {
+        phases.value[idx] = data
       }
-
-      return phase
+      return data
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to fetch phase'
       console.error('Error fetching phase:', err)
@@ -91,26 +61,23 @@ export const useSubmissionStore = defineStore('submission', () => {
     }
   }
 
-  async function uploadFile(phaseId: string, file: File) {
+  async function uploadFile(phase: string, file: File) {
     loading.value = true
     error.value = null
     uploadProgress.value = 0
-
     try {
-      const uploaded = await submissionService.uploadSubmissionFile(phaseId, file, progress => {
+      const updated = await submissionService.uploadSubmissionFile(phase, file, progress => {
         uploadProgress.value = progress
       })
-
-      files.value.push(uploaded)
-
-      // Update phase status
-      const phase = selectedPhase.value
-      if (phase && phase.id === phaseId) {
-        phase.status = 'submitted'
-        phase.submittedAt = new Date().toISOString()
+      // Update local state
+      const idx = phases.value.findIndex(p => p.phase === phase)
+      if (idx !== -1) {
+        phases.value[idx] = updated
       }
-
-      return uploaded
+      if (selectedPhase.value?.phase === phase) {
+        selectedPhase.value = updated
+      }
+      return updated
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'File upload failed'
       console.error('Error uploading file:', err)
@@ -121,59 +88,19 @@ export const useSubmissionStore = defineStore('submission', () => {
     }
   }
 
-  async function fetchSubmissionFiles(phaseId: string) {
+  async function submitDeclaration(phase: string, reason: string) {
     loading.value = true
     error.value = null
-
     try {
-      const data = await submissionService.getSubmissionFiles(phaseId)
-      files.value = data
-      return data
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch files'
-      console.error('Error fetching files:', err)
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function deleteFile(phaseId: string, fileId: string) {
-    loading.value = true
-    error.value = null
-
-    try {
-      await submissionService.deleteSubmissionFile(phaseId, fileId)
-      files.value = files.value.filter(f => f.id !== fileId)
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to delete file'
-      console.error('Error deleting file:', err)
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function submitDeclaration(phaseId: string, reason: string, justification: string) {
-    loading.value = true
-    error.value = null
-
-    try {
-      const declaration = await submissionService.submitDeclaration(phaseId, reason, justification)
-      declarations.value.push(declaration)
-
-      // Update phase status
-      const phase = selectedPhase.value
-      if (phase && phase.id === phaseId) {
-        phase.status = 'declared'
+      const updated = await submissionService.submitDeclaration(phase, reason)
+      const idx = phases.value.findIndex(p => p.phase === phase)
+      if (idx !== -1) {
+        phases.value[idx] = updated
       }
-
-      const phaseIndex = phases.value.findIndex(p => p.id === phaseId)
-      if (phaseIndex !== -1) {
-        phases.value[phaseIndex].status = 'declared'
+      if (selectedPhase.value?.phase === phase) {
+        selectedPhase.value = updated
       }
-
-      return declaration
+      return updated
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to submit declaration'
       console.error('Error submitting declaration:', err)
@@ -183,74 +110,13 @@ export const useSubmissionStore = defineStore('submission', () => {
     }
   }
 
-  async function fetchDeclarations(phaseId: string) {
-    loading.value = true
-    error.value = null
-
+  async function triggerDownload(phase: string, filename: string, originalName: string) {
     try {
-      const data = await submissionService.getDeclarations(phaseId)
-      declarations.value = data
-      return data
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch declarations'
-      console.error('Error fetching declarations:', err)
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function fetchFeedback(phaseId: string) {
-    loading.value = true
-    error.value = null
-
-    try {
-      const data = await submissionService.getFeedback(phaseId)
-      feedback.value = data
-      return data
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch feedback'
-      console.error('Error fetching feedback:', err)
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function postComment(phaseId: string, content: string) {
-    loading.value = true
-    error.value = null
-
-    try {
-      const comment = await submissionService.postComment(phaseId, content)
-      feedback.value.push(comment)
-      return comment
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to post comment'
-      console.error('Error posting comment:', err)
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function fetchSubmissionStats() {
-    try {
-      const stats = await submissionService.getSubmissionStats()
-      submissionStats.value = stats
-      return stats
-    } catch (err) {
-      console.error('Error fetching submission stats:', err)
-    }
-  }
-
-  async function downloadFile(phaseId: string, fileId: string, fileName: string) {
-    try {
-      const blob = await submissionService.downloadFile(phaseId, fileId)
+      const blob = await submissionService.downloadFile(phase, filename)
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = fileName
+      link.download = originalName
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -273,9 +139,6 @@ export const useSubmissionStore = defineStore('submission', () => {
   function resetStore() {
     phases.value = []
     selectedPhase.value = null
-    files.value = []
-    declarations.value = []
-    feedback.value = []
     loading.value = false
     error.value = null
     uploadProgress.value = 0
@@ -285,13 +148,9 @@ export const useSubmissionStore = defineStore('submission', () => {
     // State
     phases,
     selectedPhase,
-    files,
-    declarations,
-    feedback,
     loading,
     error,
     uploadProgress,
-    submissionStats,
 
     // Computed
     submittedCount,
@@ -299,21 +158,13 @@ export const useSubmissionStore = defineStore('submission', () => {
     overdueCount,
     declaredCount,
     submissionProgress,
-    allFilesSize,
-    allFilesSizeFormatted,
 
     // Actions
     fetchSubmissionPhases,
     fetchSubmissionPhase,
     uploadFile,
-    fetchSubmissionFiles,
-    deleteFile,
     submitDeclaration,
-    fetchDeclarations,
-    fetchFeedback,
-    postComment,
-    fetchSubmissionStats,
-    downloadFile,
+    triggerDownload,
     setSelectedPhase,
     clearError,
     resetStore,
