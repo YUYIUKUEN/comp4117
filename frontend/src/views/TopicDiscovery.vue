@@ -107,6 +107,7 @@
             v-for="topic in topicStore.topics"
             :key="topic._id"
             :topic="topic"
+            :user-has-approved-assignment="userHasApprovedAssignment"
           />
         </div>
 
@@ -141,12 +142,14 @@
 import { ref, onMounted } from 'vue'
 import { useTopicStore } from '@/stores/topicStore'
 import { useAuthStore } from '@/stores/authStore'
+import assignmentService from '@/services/assignmentService'
 import TopicCard from '@/components/TopicCard.vue'
 
 const topicStore = useTopicStore()
 const authStore = useAuthStore()
 const searchInput = ref('')
 const selectedStatus = ref('Active')
+const userHasApprovedAssignment = ref(false)
 
 let searchTimeout: NodeJS.Timeout
 
@@ -158,6 +161,19 @@ const handleSearch = () => {
 }
 
 onMounted(async () => {
+  // Check if student has an approved assignment
+  if (authStore.userRole === 'Student') {
+    try {
+      const response = await assignmentService.getMyAssignment()
+      if (response.data) {
+        userHasApprovedAssignment.value = true
+      }
+    } catch (error) {
+      // No active assignment, which is fine
+      userHasApprovedAssignment.value = false
+    }
+  }
+  
   await topicStore.fetchTopics()
 })
 </script>

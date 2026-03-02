@@ -87,6 +87,7 @@ const feedbackItems = computed(() => {
   }
   return subs.map(sub => ({
     id: sub._id,
+    studentId: sub.student_id?._id || '',
     studentName: sub.student_id?.fullName || 'Unknown Student',
     studentEmail: sub.student_id?.email || '',
     topic: sub.topic_id?.title || 'Unknown Topic',
@@ -95,6 +96,7 @@ const feedbackItems = computed(() => {
     dueDate: sub.dueDate ? new Date(sub.dueDate).toLocaleDateString() : '—',
     status: sub.feedbacks.length > 0 ? 'Reviewed' : (sub.status === 'Submitted' ? 'Pending Review' : sub.status),
     feedback: sub.feedbacks.length > 0 ? sub.feedbacks[0].feedbackText : null,
+    files: sub.files || [],
     fileCount: sub.files?.length || 0,
   }));
 });
@@ -173,6 +175,26 @@ const getStatusColor = (status: string) => {
       return 'border-red-500/50 bg-red-50 text-red-700';
     default:
       return 'border-slate-500/50 bg-slate-50 text-slate-700';
+  }
+};
+
+const downloadFile = async (studentId: string, phase: string, filename: string, originalName: string) => {
+  try {
+    const response = await httpClient.get(`/submissions/supervisor/student/${studentId}/${phase}/files/${filename}`, {
+      responseType: 'blob',
+    });
+    
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', originalName);
+    document.body.appendChild(link);
+    link.click();
+    link.parentNode?.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (error: any) {
+    console.error('Failed to download file:', error);
+    errorMessage.value = 'Failed to download file. Please try again.';
   }
 };
 </script>
@@ -296,6 +318,32 @@ const getStatusColor = (status: string) => {
               <div class="flex gap-4 text-[11px] text-slate-500 mb-2">
                 <span>Submitted: {{ item.submissionDate }}</span>
                 <span>Due: {{ item.dueDate }}</span>
+              </div>
+
+              <!-- Files Section -->
+              <div v-if="item.files.length > 0" class="mb-4 bg-blue-50 rounded p-3">
+                <p class="text-[11px] font-medium text-blue-900 mb-2">Submitted Files:</p>
+                <div class="space-y-2">
+                  <div
+                    v-for="file in item.files"
+                    :key="file.filename"
+                    class="flex items-center justify-between gap-2 bg-white rounded px-2.5 py-2 border border-blue-200"
+                  >
+                    <div class="flex-1 min-w-0">
+                      <p class="text-[11px] font-medium text-slate-900 truncate">{{ file.originalName }}</p>
+                      <p class="text-[10px] text-slate-500">{{ (file.size / 1024).toFixed(2) }} KB</p>
+                    </div>
+                    <button
+                      @click="downloadFile(item.studentId, item.phase, file.filename, file.originalName)"
+                      class="inline-flex items-center gap-1 flex-shrink-0 rounded px-2 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 text-[11px] font-medium transition-colors"
+                    >
+                      <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v6h16v-6m-2-4l-8.147 8.147a1 1 0 01-1.414-1.414L16.439 6.44M9 13H5m8 0h4"></path>
+                      </svg>
+                      Download
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div v-if="item.feedback" class="bg-slate-50 rounded p-3 text-xs text-slate-700">

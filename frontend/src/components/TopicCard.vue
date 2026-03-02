@@ -203,6 +203,11 @@ const truncateText = (text: string, length: number) => {
   cursor: not-allowed;
 }
 
+.btn-primary.disabled {
+  background: #999;
+  opacity: 0.7;
+}
+
 .btn-secondary {
   background: #f0f0f0;
   color: #333;

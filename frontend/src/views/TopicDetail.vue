@@ -75,6 +75,9 @@
             >
               {{ applying ? 'Applying...' : 'Apply for this Topic' }}
             </button>
+            <button v-else-if="userHasApprovedAssignment && authStore.userRole === 'Student'" disabled class="btn btn-primary disabled">
+              Already Assigned
+            </button>
             <button v-else class="btn btn-disabled">
               Not Available
             </button>
@@ -124,6 +127,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useTopicStore } from '@/stores/topicStore'
+import assignmentService from '@/services/assignmentService'
 
 const router = useRouter()
 const route = useRoute()
@@ -132,11 +136,13 @@ const topicStore = useTopicStore()
 
 const applying = ref(false)
 const successMessage = ref('')
+const userHasApprovedAssignment = ref(false)
 
 const canApply = computed(() => {
   return (
     authStore.userRole === 'Student' &&
-    topicStore.selectedTopic?.status === 'Active'
+    topicStore.selectedTopic?.status === 'Active' &&
+    !userHasApprovedAssignment.value
   )
 })
 
@@ -166,7 +172,22 @@ const goBack = () => {
   router.push('/topics')
 }
 
-onMounted(loadTopic)
+onMounted(async () => {
+  // Check if student has an approved assignment
+  if (authStore.userRole === 'Student') {
+    try {
+      const response = await assignmentService.getMyAssignment()
+      if (response.data) {
+        userHasApprovedAssignment.value = true
+      }
+    } catch (error) {
+      // No active assignment, which is fine
+      userHasApprovedAssignment.value = false
+    }
+  }
+  
+  await loadTopic()
+})
 </script>
 
 <style scoped>
