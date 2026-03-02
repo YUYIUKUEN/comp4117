@@ -8,9 +8,18 @@ const {
   getFeedbackStats,
   getStudentRecentFeedback,
   replyToFeedback,
+  getAdminInternalNotes,
 } = require('../controllers/feedbackController');
 
 const router = express.Router();
+
+// Admin: get all internal notes
+router.get(
+  '/admin/internal-notes',
+  authenticate,
+  requireRole('Admin'),
+  getAdminInternalNotes
+);
 
 // Student: get recent feedback across all submissions
 router.get(

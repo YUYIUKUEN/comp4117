@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vue-router';
 import {
   ArrowLeftIcon,
   CheckIcon,
+  ShieldExclamationIcon,
 } from '@heroicons/vue/24/outline';
 import { getSupervisorSubmissionById } from '../services/submissionService';
 import gradingStandardService from '../services/gradingStandardService';
@@ -27,6 +28,7 @@ const selectedGrade = ref('');
 const pointsInput = ref<number | string>('');
 const isSaving = ref(false);
 const saveError = ref('');
+const internalNote = ref('');
 
 // Fetch data
 onMounted(async () => {
@@ -104,6 +106,7 @@ const handleSaveFeedback = async () => {
       feedbackText: feedbackText.value.trim(),
       grade: gradeValue || undefined,
       gradingStandard_id: applicableStandard.value?._id || undefined,
+      internalNote: internalNote.value.trim() || undefined,
     });
 
     alert('Feedback and grade saved successfully!');
@@ -310,7 +313,7 @@ const handleCancel = () => {
       </div>
 
       <!-- Existing Feedback -->
-      <div v-if="existingFeedback.length > 0" class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
+      <div v-if="existingFeedback.length > 0" class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm mb-6">
         <h3 class="text-lg font-semibold text-slate-900 mb-4">Previous Feedback</h3>
         <div v-for="fb in existingFeedback" :key="fb._id" class="mb-4 last:mb-0 p-3 bg-slate-50 rounded-lg border border-slate-200">
           <p class="text-sm text-slate-700 whitespace-pre-wrap">{{ fb.feedbackText }}</p>
@@ -319,6 +322,24 @@ const handleCancel = () => {
             <span v-if="fb.grade" class="font-semibold text-blue-600">Grade: {{ fb.grade }}</span>
           </div>
         </div>
+      </div>
+
+      <!-- Internal Note for Admin Card -->
+      <div class="rounded-xl border-2 border-amber-400 bg-amber-50/50 p-4 sm:p-5 shadow-sm">
+        <div class="flex items-center gap-2 mb-3">
+          <ShieldExclamationIcon class="h-5 w-5 text-amber-600" />
+          <h3 class="text-lg font-semibold text-amber-900">Internal Note for Admin</h3>
+        </div>
+        <p class="text-xs text-amber-700 mb-3">
+          This note is <strong>only visible to you and the admin</strong>. Students will never see this.
+          Use it to communicate concerns, special circumstances, or internal remarks about this student's work.
+        </p>
+        <textarea
+          v-model="internalNote"
+          placeholder="E.g. Student may need additional support with methodology. Recommend follow-up meeting with programme coordinator..."
+          class="block w-full rounded-lg border border-amber-300 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-amber-400/70 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/60"
+          rows="4"
+        ></textarea>
       </div>
       </template>
     </main>

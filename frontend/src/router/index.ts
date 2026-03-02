@@ -86,6 +86,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/admin/internal-notes',
+    name: 'AdminInternalNotes',
+    component: () => import('../pages/AdminInternalNotes.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/supervisor',
     name: 'SupervisorMainMenu',
     component: () => import('../pages/SupervisorMainMenu.vue'),

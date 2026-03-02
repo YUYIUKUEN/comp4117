@@ -59,7 +59,7 @@ export default {
   },
 
   /**
-   * Add feedback (with optional grade) to a submission
+   * Add feedback (with optional grade and internal note) to a submission
    */
   async addFeedback(
     submissionId: string,
@@ -68,9 +68,23 @@ export default {
       isPrivate?: boolean
       grade?: string
       gradingStandard_id?: string
+      internalNote?: string
     },
   ): Promise<FeedbackItem> {
     const response = await httpClient.post(`/feedback/submissions/${submissionId}/feedback`, data)
     return response.data.data
+  },
+
+  /**
+   * Get all internal notes (admin only)
+   */
+  async getAdminInternalNotes(page = 1, limit = 20): Promise<{
+    data: (FeedbackItem & { internalNote: string })[]
+    pagination: { page: number; limit: number; total: number; pages: number }
+  }> {
+    const response = await httpClient.get('/feedback/admin/internal-notes', {
+      params: { page, limit },
+    })
+    return response.data
   },
 }

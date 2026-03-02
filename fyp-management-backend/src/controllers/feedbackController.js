@@ -13,7 +13,7 @@ const addFeedback = async (req, res, next) => {
   try {
     const { submissionId } = req.params;
     const supervisorId = req.auth.userId;
-    const { feedbackText, rating, isPrivate, grade, gradingStandard_id } = req.body;
+    const { feedbackText, rating, isPrivate, grade, gradingStandard_id, internalNote } = req.body;
 
     // Validate feedback text
     if (!feedbackText || feedbackText.trim().length === 0) {
@@ -110,6 +110,7 @@ const addFeedback = async (req, res, next) => {
       grade: grade || null,
       gradingSystem: gradingSystem,
       gradingStandard_id: gradingStandard_id || null,
+      internalNote: internalNote ? internalNote.trim() : '',
     });
 
     // Log activity
@@ -189,9 +190,18 @@ const getFeedback = async (req, res, next) => {
     }
 
     // Query feedback
-    const feedback = await Feedback.find(filter)
+    const feedbackDocs = await Feedback.find(filter)
       .populate('supervisor_id', 'fullName email')
       .sort({ createdAt: -1 });
+
+    // Strip internalNote from student responses — they should never see it
+    const feedback = feedbackDocs.map(fb => {
+      const obj = fb.toObject();
+      if (userRole === 'Student') {
+        delete obj.internalNote;
+      }
+      return obj;
+    });
 
     res.json({
       data: {
@@ -259,6 +269,10 @@ const updateFeedback = async (req, res, next) => {
 
     if (isPrivate !== undefined) {
       feedback.isPrivate = isPrivate === true;
+    }
+
+    if (req.body.internalNote !== undefined) {
+      feedback.internalNote = req.body.internalNote.trim();
     }
 
     feedback.updatedAt = new Date();
@@ -495,6 +509,45 @@ const replyToFeedback = async (req, res, next) => {
   }
 };
 
+/**
+ * Get all internal notes across feedback — admin only
+ * GET /feedback/admin/internal-notes
+ */
+const getAdminInternalNotes = async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const filter = { internalNote: { $exists: true, $ne: '' } };
+
+    const [notes, total] = await Promise.all([
+      Feedback.find(filter)
+        .populate('supervisor_id', 'fullName email')
+        .populate('submission_id', 'phase')
+        .populate({
+          path: 'submission_id',
+          populate: [
+            { path: 'student_id', select: 'fullName email' },
+            { path: 'topic_id', select: 'title' },
+          ],
+        })
+        .sort({ _id: -1 })
+        .skip(skip)
+        .limit(limit),
+      Feedback.countDocuments(filter),
+    ]);
+
+    res.json({
+      data: notes,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+      status: 200,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   addFeedback,
   getFeedback,
@@ -503,4 +556,5 @@ module.exports = {
   getFeedbackStats,
   getStudentRecentFeedback,
   replyToFeedback,
+  getAdminInternalNotes,
 };
