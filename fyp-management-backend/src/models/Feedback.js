@@ -11,6 +11,10 @@ const feedbackSchema = new mongoose.Schema({
   supervisor_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   feedbackText: { type: String, required: true, maxlength: 5000 },
   isPrivate: { type: Boolean, default: false },
+  // Grade fields — linked to grading standards set by admin
+  grade: { type: String, default: null },           // e.g. "85", "A", "Approved"
+  gradingSystem: { type: String, enum: ['point-range', 'letter-grade', 'custom', null], default: null },
+  gradingStandard_id: { type: mongoose.Schema.Types.ObjectId, ref: 'GradingStandard', default: null },
   replies: [feedbackReplySchema],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },

@@ -131,10 +131,16 @@ exports.getMyApplications = async (req, res) => {
 
     // Fetch applications with pagination
     const applications = await Application.find(query)
-      .populate(['student_id', 'topic_id'])
-      .sort({ preference_rank: 1 })
+      .populate('student_id')
+      .populate({
+        path: 'topic_id',
+        populate: { path: 'supervisor_id', select: 'fullName email' },
+      })
       .limit(parseInt(limit))
       .skip((parseInt(page) - 1) * parseInt(limit));
+
+    // Sort in JS to avoid Cosmos DB index issues
+    applications.sort((a, b) => (a.preference_rank || 99) - (b.preference_rank || 99));
 
     res.json({
       success: true,

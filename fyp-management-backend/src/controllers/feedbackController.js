@@ -3,6 +3,7 @@ const Feedback = require('../models/Feedback');
 const Submission = require('../models/Submission');
 const Assignment = require('../models/Assignment');
 const ActivityLog = require('../models/ActivityLog');
+const GradingStandard = require('../models/GradingStandard');
 
 /**
  * Add feedback to a submission
@@ -12,7 +13,7 @@ const addFeedback = async (req, res, next) => {
   try {
     const { submissionId } = req.params;
     const supervisorId = req.auth.userId;
-    const { feedbackText, rating, isPrivate } = req.body;
+    const { feedbackText, rating, isPrivate, grade, gradingStandard_id } = req.body;
 
     // Validate feedback text
     if (!feedbackText || feedbackText.trim().length === 0) {
@@ -23,7 +24,7 @@ const addFeedback = async (req, res, next) => {
       });
     }
 
-    // Validate rating if provided
+    // Validate rating if provided (legacy)
     if (rating !== undefined && (rating < 1 || rating > 5)) {
       return res.status(400).json({
         error: 'Rating must be between 1 and 5',
@@ -57,6 +58,48 @@ const addFeedback = async (req, res, next) => {
       });
     }
 
+    // Validate grade against grading standard if provided
+    let gradingSystem = null;
+    if (gradingStandard_id && grade) {
+      const standard = await GradingStandard.findById(gradingStandard_id);
+      if (!standard || !standard.enabled) {
+        return res.status(400).json({
+          error: 'Invalid or disabled grading standard',
+          code: 'INVALID_GRADING_STANDARD',
+          status: 400,
+        });
+      }
+      gradingSystem = standard.gradingSystem;
+
+      // Validate grade value matches the standard
+      if (standard.gradingSystem === 'point-range') {
+        const points = parseFloat(grade);
+        if (isNaN(points) || points < standard.pointRange.min || points > standard.pointRange.max) {
+          return res.status(400).json({
+            error: `Grade must be between ${standard.pointRange.min} and ${standard.pointRange.max}`,
+            code: 'INVALID_GRADE',
+            status: 400,
+          });
+        }
+      } else if (standard.gradingSystem === 'letter-grade') {
+        if (!standard.letterGrades.includes(grade)) {
+          return res.status(400).json({
+            error: `Invalid letter grade. Must be one of: ${standard.letterGrades.join(', ')}`,
+            code: 'INVALID_GRADE',
+            status: 400,
+          });
+        }
+      } else if (standard.gradingSystem === 'custom') {
+        if (!standard.customOptions.includes(grade)) {
+          return res.status(400).json({
+            error: `Invalid grade option. Must be one of: ${standard.customOptions.join(', ')}`,
+            code: 'INVALID_GRADE',
+            status: 400,
+          });
+        }
+      }
+    }
+
     // Create feedback
     const feedback = await Feedback.create({
       submission_id: submissionId,
@@ -64,6 +107,9 @@ const addFeedback = async (req, res, next) => {
       feedbackText: feedbackText.trim(),
       rating: rating || undefined,
       isPrivate: isPrivate === true,
+      grade: grade || null,
+      gradingSystem: gradingSystem,
+      gradingStandard_id: gradingStandard_id || null,
     });
 
     // Log activity

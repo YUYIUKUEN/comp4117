@@ -159,6 +159,14 @@ export async function getSubmissionStats(): Promise<any> {
   }
 }
 
+/**
+ * Get a single submission by ID (supervisor)
+ */
+export async function getSupervisorSubmissionById(submissionId: string): Promise<any> {
+  const response = await httpClient.get(`/submissions/supervisor/by-id/${submissionId}`)
+  return response.data.data
+}
+
 export default {
   getSubmissionPhases,
   getSubmissionPhase,
@@ -166,4 +174,5 @@ export default {
   submitDeclaration,
   downloadFile,
   getSubmissionStats,
+  getSupervisorSubmissionById,
 }

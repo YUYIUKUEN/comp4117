@@ -6,4 +6,5 @@ module.exports = {
   Submission: require('./Submission'),
   Feedback: require('./Feedback'),
   ActivityLog: require('./ActivityLog'),
+  GradingStandard: require('./GradingStandard'),
 };

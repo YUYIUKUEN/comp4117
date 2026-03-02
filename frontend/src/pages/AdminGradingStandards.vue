@@ -1,14 +1,17 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useGradingStandards } from '../composables/useGradingStandards'
-import type { GradingStandard } from '../composables/useGradingStandards'
+import { ref, onMounted } from 'vue'
+import gradingStandardService from '../services/gradingStandardService'
+import type { GradingStandard, GradingStandardInput } from '../services/gradingStandardService'
 
-const { gradingStandards, addGradingStandard, updateGradingStandard, deleteGradingStandard, toggleGradingStandard } = useGradingStandards()
+const gradingStandards = ref<GradingStandard[]>([])
+const loading = ref(true)
+const saving = ref(false)
+const error = ref('')
 
 const showAddForm = ref(false)
 const editingId = ref<string | null>(null)
 
-const formData = ref<Omit<GradingStandard, 'id'>>({
+const formData = ref<GradingStandardInput>({
   submissionType: '',
   gradingSystem: 'point-range',
   pointRange: { min: 0, max: 100 },
@@ -19,14 +22,28 @@ const formData = ref<Omit<GradingStandard, 'id'>>({
 })
 
 const submissionTypes = [
-  'Progress Report',
-  'Final Report',
+  'Initial Statement',
+  'Progress Report 1',
+  'Progress Report 2',
+  'Final Dissertation',
   'Final Presentation',
   'Proposal Review',
-  'Ethics Clearance',
-  'Topic Planning',
   'Other',
 ]
+
+const fetchStandards = async () => {
+  try {
+    loading.value = true
+    error.value = ''
+    gradingStandards.value = await gradingStandardService.getAll()
+  } catch (e: any) {
+    error.value = e?.response?.data?.error || 'Failed to load grading standards'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(fetchStandards)
 
 const resetForm = () => {
   formData.value = {
@@ -42,36 +59,61 @@ const resetForm = () => {
   showAddForm.value = false
 }
 
-const handleAddStandard = () => {
+const handleAddStandard = async () => {
   if (!formData.value.submissionType) {
     alert('Please select a submission type')
     return
   }
-  if (editingId.value) {
-    updateGradingStandard(editingId.value, formData.value)
-  } else {
-    addGradingStandard(formData.value)
+  try {
+    saving.value = true
+    error.value = ''
+    if (editingId.value) {
+      await gradingStandardService.update(editingId.value, formData.value)
+    } else {
+      await gradingStandardService.create(formData.value)
+    }
+    resetForm()
+    await fetchStandards()
+  } catch (e: any) {
+    error.value = e?.response?.data?.error || 'Failed to save grading standard'
+  } finally {
+    saving.value = false
   }
-  resetForm()
 }
 
 const startEdit = (standard: GradingStandard) => {
-  editingId.value = standard.id
+  editingId.value = standard._id
   formData.value = {
     submissionType: standard.submissionType,
     gradingSystem: standard.gradingSystem,
-    pointRange: standard.pointRange,
-    letterGrades: standard.letterGrades,
-    customOptions: standard.customOptions,
-    description: standard.description,
+    pointRange: standard.pointRange || { min: 0, max: 100 },
+    letterGrades: standard.letterGrades || ['A', 'B', 'C', 'D', 'F'],
+    customOptions: standard.customOptions || [],
+    description: standard.description || '',
     enabled: standard.enabled,
   }
   showAddForm.value = true
 }
 
-const handleDeleteStandard = (id: string) => {
+const handleDeleteStandard = async (id: string) => {
   if (confirm('Are you sure you want to delete this grading standard?')) {
-    deleteGradingStandard(id)
+    try {
+      error.value = ''
+      await gradingStandardService.delete(id)
+      await fetchStandards()
+    } catch (e: any) {
+      error.value = e?.response?.data?.error || 'Failed to delete grading standard'
+    }
+  }
+}
+
+const toggleEnabled = async (standard: GradingStandard) => {
+  try {
+    error.value = ''
+    await gradingStandardService.update(standard._id, { enabled: !standard.enabled })
+    await fetchStandards()
+  } catch (e: any) {
+    error.value = e?.response?.data?.error || 'Failed to toggle grading standard'
   }
 }
 
@@ -114,6 +156,17 @@ const updateCustomOption = (index: number, value: string) => {
         >
           + Add Standard
         </button>
+      </div>
+
+      <!-- Error Banner -->
+      <div v-if="error" class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        {{ error }}
+      </div>
+
+      <!-- Loading -->
+      <div v-if="loading" class="flex items-center justify-center py-12">
+        <span class="loading loading-spinner loading-md text-blue-600"></span>
+        <span class="ml-2 text-sm text-slate-600">Loading grading standards...</span>
       </div>
 
       <!-- Add/Edit Form -->
@@ -277,9 +330,10 @@ const updateCustomOption = (index: number, value: string) => {
             <button
               @click="handleAddStandard"
               type="button"
-              class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500"
+              :disabled="saving"
+              class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
             >
-              {{ editingId ? 'Update' : 'Create' }} Standard
+              {{ saving ? 'Saving...' : editingId ? 'Update' : 'Create' }} Standard
             </button>
             <button
               @click="resetForm"
@@ -293,10 +347,10 @@ const updateCustomOption = (index: number, value: string) => {
       </div>
 
       <!-- Standards List -->
-      <div class="space-y-3">
+      <div v-if="!loading" class="space-y-3">
         <div
           v-for="standard in gradingStandards"
-          :key="standard.id"
+          :key="standard._id"
           class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
         >
           <div class="flex items-start justify-between gap-4">
@@ -352,7 +406,7 @@ const updateCustomOption = (index: number, value: string) => {
             <!-- Actions -->
             <div class="flex gap-2">
               <button
-                @click="toggleGradingStandard(standard.id)"
+                @click="toggleEnabled(standard)"
                 type="button"
                 :class="
                   standard.enabled
@@ -371,7 +425,7 @@ const updateCustomOption = (index: number, value: string) => {
                 Edit
               </button>
               <button
-                @click="handleDeleteStandard(standard.id)"
+                @click="handleDeleteStandard(standard._id)"
                 type="button"
                 class="rounded-lg border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
               >
@@ -383,7 +437,7 @@ const updateCustomOption = (index: number, value: string) => {
       </div>
 
       <!-- Empty State -->
-      <div v-if="gradingStandards.length === 0" class="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-8 text-center">
+      <div v-if="!loading && gradingStandards.length === 0" class="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-8 text-center">
         <p class="text-sm text-slate-600">No grading standards defined yet</p>
       </div>
     </main>

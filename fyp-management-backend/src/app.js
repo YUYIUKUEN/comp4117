@@ -30,6 +30,7 @@ const feedbackRoutes = require('./routes/feedbackRoutes');
 const activityRoutes = require('./routes/activityRoutes');
 const healthRoutes = require('./routes/healthRoutes');
 const adminReminderRoutes = require('./routes/adminReminderRoutes');
+const gradingStandardRoutes = require('./routes/gradingStandardRoutes');
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/topics', topicRoutes);
@@ -42,6 +43,7 @@ app.use('/api/v1/admin/users', userManagementRoutes);
 app.use('/api/v1/admin/topics', topicModerationRoutes);
 app.use('/api/v1/admin/reminders', adminReminderRoutes);
 app.use('/api/v1/activity', activityRoutes);
+app.use('/api/v1/grading-standards', gradingStandardRoutes);
 app.use('/api/v1/health', healthRoutes);
 
 // 404 handler

@@ -457,6 +457,51 @@ const getSubmissionStatistics = async (req, res, next) => {
   }
 };
 
+/**
+ * Get a single submission by ID (for supervisors)
+ * Verifies the supervisor is assigned to the student
+ */
+const getSubmissionById = async (req, res, next) => {
+  try {
+    const supervisorId = req.auth.userId;
+    const { submissionId } = req.params;
+
+    const submission = await Submission.findById(submissionId)
+      .populate('student_id', 'fullName email')
+      .populate('topic_id', 'title');
+
+    if (!submission) {
+      return res.status(404).json({
+        error: 'Submission not found',
+        code: 'NOT_FOUND',
+        status: 404,
+      });
+    }
+
+    // Verify supervisor is assigned to this student
+    const assignment = await Assignment.findOne({
+      student_id: submission.student_id._id,
+      supervisor_id: supervisorId,
+      status: 'Active',
+    });
+
+    if (!assignment) {
+      return res.status(403).json({
+        error: 'Not authorized to view this submission',
+        code: 'FORBIDDEN',
+        status: 403,
+      });
+    }
+
+    res.json({
+      data: submission,
+      status: 200,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   submitDocument,
   getSubmission,
@@ -467,4 +512,5 @@ module.exports = {
   getSupervisorStudentSubmission,
   downloadSupervisorFile,
   getSubmissionStatistics,
+  getSubmissionById,
 };

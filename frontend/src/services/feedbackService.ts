@@ -57,4 +57,20 @@ export default {
     const response = await httpClient.post(`/feedback/${feedbackId}/replies`, { replyText })
     return response.data.data
   },
+
+  /**
+   * Add feedback (with optional grade) to a submission
+   */
+  async addFeedback(
+    submissionId: string,
+    data: {
+      feedbackText: string
+      isPrivate?: boolean
+      grade?: string
+      gradingStandard_id?: string
+    },
+  ): Promise<FeedbackItem> {
+    const response = await httpClient.post(`/feedback/submissions/${submissionId}/feedback`, data)
+    return response.data.data
+  },
 }

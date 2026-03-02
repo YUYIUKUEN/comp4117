@@ -11,6 +11,7 @@ const {
   getSupervisorStudentSubmission,
   downloadSupervisorFile,
   getSubmissionStatistics,
+  getSubmissionById,
 } = require('../controllers/submissionController');
 
 const router = express.Router();
@@ -57,6 +58,14 @@ router.get(
   authenticate,
   requireRole('Supervisor'),
   getSubmissionStatistics
+);
+
+// Supervisor: get a single submission by ID
+router.get(
+  '/supervisor/by-id/:submissionId',
+  authenticate,
+  requireRole('Supervisor'),
+  getSubmissionById
 );
 
 router.get(
