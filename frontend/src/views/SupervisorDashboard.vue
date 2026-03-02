@@ -5,31 +5,6 @@
       <p>Welcome, {{ userName }}</p>
     </div>
 
-    <!-- Navigation Buttons -->
-    <div class="supervisor-nav-buttons">
-      <button
-        @click="router.push('/supervisor/dashboard')"
-        class="nav-button active"
-      >
-        <span class="nav-label">Dashboard</span>
-        <span class="nav-desc">Overview & stats</span>
-      </button>
-      <button
-        @click="router.push('/supervisor/topics')"
-        class="nav-button"
-      >
-        <span class="nav-label">Topics</span>
-        <span class="nav-desc">Manage topics</span>
-      </button>
-      <button
-        @click="router.push('/supervisor/management')"
-        class="nav-button"
-      >
-        <span class="nav-label">Management</span>
-        <span class="nav-desc">Students & feedback</span>
-      </button>
-    </div>
-
     <div class="quick-actions">
       <QuickActionsMenu :actions="supervisorActions" />
     </div>

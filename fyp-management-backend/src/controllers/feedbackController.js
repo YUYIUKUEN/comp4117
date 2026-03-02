@@ -189,10 +189,9 @@ const getFeedback = async (req, res, next) => {
       }
     }
 
-    // Query feedback
+    // Query feedback (removed sort to avoid Cosmos DB index issues)
     const feedbackDocs = await Feedback.find(filter)
-      .populate('supervisor_id', 'fullName email')
-      .sort({ createdAt: -1 });
+      .populate('supervisor_id', 'fullName email');
 
     // Strip internalNote from student responses — they should never see it
     const feedback = feedbackDocs.map(fb => {

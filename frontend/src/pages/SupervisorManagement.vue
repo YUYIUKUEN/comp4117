@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   ArrowLeftIcon,
@@ -8,116 +8,117 @@ import {
   CheckCircleIcon,
   ClockIcon,
 } from '@heroicons/vue/24/outline';
+import assignmentService from '@/services/assignmentService';
+import httpClient from '@/services/httpClient';
 
 const router = useRouter();
 const sidebarOpen = ref(false);
 const activeTab = ref('students'); // 'students', 'proposals', 'feedback'
+const isLoading = ref(false);
+const errorMessage = ref('');
 
-const supervisedStudents = ref([
-  {
-    id: 1,
-    name: 'Student Chan Hoi Ting',
-    email: 'chan.ht@student.edu.hk',
-    programme: 'BSocSc Geography',
-    topic: 'Smart City Walkability in Kowloon East',
-    status: 'Active',
-    progress: 65,
-  },
-  {
-    id: 2,
-    name: 'Student Ho Pui Kwan',
-    email: 'ho.pk@student.edu.hk',
-    programme: 'BSocSc Sociology',
-    topic: 'Digital Platforms and Youth Political Participation',
-    status: 'In Progress',
-    progress: 45,
-  },
-  {
-    id: 3,
-    name: 'Student Lee Man Kei',
-    email: 'lee.mk@student.edu.hk',
-    programme: 'BA English',
-    topic: 'Literary Analysis and Digital Storytelling',
-    status: 'Active',
-    progress: 80,
-  },
-]);
+// ── Students (from assignments API) ─────────────────────────────
+const assignments = ref<any[]>([]);
 
-const topicProposals = ref([
-  {
-    id: 1,
-    title: 'Smart City Walkability in Kowloon East',
-    description: 'Analysis of urban planning and pedestrian accessibility',
-    concentration: 'Urban Studies',
-    status: 'Published',
-    applicants: 5,
-    createdAt: '2025-01-15',
-  },
-  {
-    id: 2,
-    title: 'Digital Transformation in Non-Profit Organizations',
-    description: 'How digital tools can enhance nonprofit effectiveness',
-    concentration: 'Social Sector',
-    status: 'Draft',
-    applicants: 0,
-    createdAt: '2025-02-01',
-  },
-  {
-    id: 3,
-    title: 'Environmental Sustainability and Corporate Responsibility',
-    description: 'Corporate strategies for environmental sustainability',
-    concentration: 'Sustainability',
-    status: 'Published',
-    applicants: 8,
-    createdAt: '2025-01-20',
-  },
-]);
+const supervisedStudents = computed(() => {
+  return assignments.value
+    .filter((a: any) => a.student_id && a.topic_id)
+    .map((a: any) => ({
+      id: a._id,
+      name: a.student_id.fullName,
+      email: a.student_id.email || '—',
+      topic: a.topic_id?.title || 'No Topic',
+      status: a.status === 'Active' ? 'Active' : a.status === 'Completed' ? 'Completed' : 'In Progress',
+      progress: a.status === 'Completed' ? 100 : a.status === 'Active' ? 50 : 0,
+    }));
+});
 
-const feedbackItems = ref([
-  {
-    id: 1,
-    studentName: 'Student Chan Hoi Ting',
-    topic: 'Smart City Walkability in Kowloon East',
-    feedbackType: 'Progress Report Review',
-    status: 'Pending',
-    dueDate: '2025-02-20',
-  },
-  {
-    id: 2,
-    studentName: 'Student Ho Pui Kwan',
-    topic: 'Digital Platforms and Youth Political Participation',
-    feedbackType: 'Midterm Review',
-    status: 'Completed',
-    dueDate: '2025-02-10',
-  },
-  {
-    id: 3,
-    studentName: 'Student Lee Man Kei',
-    topic: 'Literary Analysis and Digital Storytelling',
-    feedbackType: 'Progress Report Review',
-    status: 'Pending',
-    dueDate: '2025-02-25',
-  },
-]);
+const fetchStudents = async () => {
+  try {
+    const response = await assignmentService.getSupervisorAssignments({ limit: 100, page: 1 });
+    assignments.value = response.data;
+  } catch (error: any) {
+    console.error('Failed to fetch students:', error);
+  }
+};
+
+// ── Topics (from topics API) ────────────────────────────────────
+const topicProposals = ref<any[]>([]);
+
+const fetchTopics = async () => {
+  try {
+    const response = await httpClient.get('/topics/supervisor/topics');
+    const topics = response.data.data || response.data || [];
+    topicProposals.value = topics.map((t: any) => ({
+      id: t._id,
+      title: t.title,
+      description: t.description,
+      concentration: t.concentration || '—',
+      status: t.status === 'Active' ? 'Published' : t.status,
+      applicants: t.currentApplications || 0,
+      createdAt: t.createdAt ? new Date(t.createdAt).toLocaleDateString() : '—',
+    }));
+  } catch (error: any) {
+    console.error('Failed to fetch topics:', error);
+  }
+};
+
+// ── Feedback (from submissions API) ─────────────────────────────
+const feedbackItems = ref<any[]>([]);
+
+const fetchFeedback = async () => {
+  try {
+    const response = await httpClient.get('/submissions/supervisor/submissions');
+    const subs = response.data.data || [];
+
+    const items: any[] = [];
+    for (const sub of subs) {
+      let feedbacks: any[] = [];
+      try {
+        const fbRes = await httpClient.get(`/feedback/submissions/${sub._id}/feedback`);
+        feedbacks = fbRes.data.data || [];
+      } catch { /* no feedback yet */ }
+
+      items.push({
+        id: sub._id,
+        studentName: sub.student_id?.fullName || 'Unknown Student',
+        topic: sub.topic_id?.title || 'Unknown Topic',
+        feedbackType: sub.phase || 'Submission',
+        status: feedbacks.length > 0 ? 'Completed' : (sub.status === 'Submitted' ? 'Pending' : sub.status),
+        dueDate: sub.dueDate ? new Date(sub.dueDate).toLocaleDateString() : '—',
+      });
+    }
+    feedbackItems.value = items;
+  } catch (error: any) {
+    console.error('Failed to fetch feedback:', error);
+  }
+};
+
+// ── Load data on mount ──────────────────────────────────────────
+onMounted(async () => {
+  isLoading.value = true;
+  await Promise.all([fetchStudents(), fetchTopics(), fetchFeedback()]);
+  isLoading.value = false;
+});
 
 const handleBack = () => {
   router.push('/supervisor/dashboard');
 };
 
 const handleAddTopic = () => {
-  console.log('Add topic');
+  router.push('/supervisor/topics');
 };
 
-const handleEditTopic = (topicId: number) => {
-  console.log('Edit topic', topicId);
+const handleEditTopic = (topicId: string) => {
+  router.push(`/supervisor/topics?edit=${topicId}`);
 };
 
-const handleViewStudent = (studentId: number) => {
-  console.log('View student', studentId);
+const handleViewStudent = (studentId: string) => {
+  router.push(`/supervisor/feedback-grading?student=${studentId}`);
 };
 
-const handleProvideFeedback = (feedbackId: number) => {
-  console.log('Provide feedback', feedbackId);
+const handleProvideFeedback = (submissionId: string) => {
+  router.push(`/supervisor/feedback-form?id=${submissionId}`);
 };
 </script>
 
@@ -147,31 +148,6 @@ const handleProvideFeedback = (feedbackId: number) => {
     </header>
 
     <main class="flex-1 px-4 sm:px-6 pb-6 pt-4 sm:pt-5">
-      <!-- Navigation Tabs -->
-      <div class="mb-6 grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <button
-          @click="router.push('/supervisor/dashboard')"
-          class="p-3 rounded-lg border-2 border-slate-200 bg-white hover:border-blue-500 hover:bg-blue-50 transition-colors text-left"
-        >
-          <p class="text-xs font-semibold text-slate-900">Dashboard</p>
-          <p class="text-[10px] text-slate-500 mt-1">Overview & stats</p>
-        </button>
-        <button
-          @click="router.push('/supervisor/topics')"
-          class="p-3 rounded-lg border-2 border-slate-200 bg-white hover:border-blue-500 hover:bg-blue-50 transition-colors text-left"
-        >
-          <p class="text-xs font-semibold text-slate-900">Topics</p>
-          <p class="text-[10px] text-slate-500 mt-1">Manage topics</p>
-        </button>
-        <button
-          @click="router.push('/supervisor/management')"
-          class="p-3 rounded-lg border-2 border-blue-500 bg-blue-50 transition-colors text-left"
-        >
-          <p class="text-xs font-semibold text-blue-900">Management</p>
-          <p class="text-[10px] text-blue-600 mt-1">Current view</p>
-        </button>
-      </div>
-
       <!-- Tabs -->
       <div class="flex gap-4 border-b border-slate-200 mb-5">
         <button
@@ -236,7 +212,16 @@ const handleProvideFeedback = (feedbackId: number) => {
           </div>
         </div>
 
-        <div class="overflow-x-auto">
+        <!-- Loading State -->
+        <div v-if="isLoading" class="py-8 text-center text-sm text-slate-500">Loading students...</div>
+
+        <!-- Empty State -->
+        <div v-else-if="supervisedStudents.length === 0" class="py-8 text-center">
+          <p class="text-sm font-medium text-slate-900">No supervised students yet</p>
+          <p class="mt-1 text-xs text-slate-500">Students will appear here once they are assigned to your topics.</p>
+        </div>
+
+        <div v-else class="overflow-x-auto">
           <table class="min-w-full text-xs">
             <thead class="bg-slate-50 text-slate-600 border-b border-slate-200">
               <tr>
@@ -245,9 +230,6 @@ const handleProvideFeedback = (feedbackId: number) => {
                 </th>
                 <th scope="col" class="px-4 py-3 text-left font-medium">
                   Topic
-                </th>
-                <th scope="col" class="px-4 py-3 text-left font-medium">
-                  Progress
                 </th>
                 <th scope="col" class="px-4 py-3 text-left font-medium">
                   Status
@@ -269,28 +251,19 @@ const handleProvideFeedback = (feedbackId: number) => {
                   <p class="text-slate-600 line-clamp-2">{{ student.topic }}</p>
                 </td>
                 <td class="px-4 py-3">
-                  <div class="flex items-center gap-2">
-                    <div class="w-16 bg-slate-200 rounded-full h-1.5">
-                      <div
-                        class="bg-blue-500 h-1.5 rounded-full"
-                        :style="{ width: student.progress + '%' }"
-                      ></div>
-                    </div>
-                    <span class="text-[11px] text-slate-600">{{ student.progress }}%</span>
-                  </div>
-                </td>
-                <td class="px-4 py-3">
                   <span
                     :class="[
                       'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5',
                       student.status === 'Active'
                         ? 'border-emerald-500/50 bg-emerald-50 text-emerald-700'
-                        : 'border-blue-500/50 bg-blue-50 text-blue-700'
+                        : student.status === 'Completed'
+                          ? 'border-blue-500/50 bg-blue-50 text-blue-700'
+                          : 'border-amber-500/50 bg-amber-50 text-amber-700'
                     ]"
                   >
                     <span
                       class="h-1.5 w-1.5 rounded-full"
-                      :class="student.status === 'Active' ? 'bg-emerald-500' : 'bg-blue-500'"
+                      :class="student.status === 'Active' ? 'bg-emerald-500' : student.status === 'Completed' ? 'bg-blue-500' : 'bg-amber-500'"
                     />
                     {{ student.status }}
                   </span>
@@ -330,7 +303,16 @@ const handleProvideFeedback = (feedbackId: number) => {
           </button>
         </div>
 
-        <div class="space-y-3">
+        <!-- Loading State -->
+        <div v-if="isLoading" class="py-8 text-center text-sm text-slate-500">Loading topics...</div>
+
+        <!-- Empty State -->
+        <div v-else-if="topicProposals.length === 0" class="py-8 text-center">
+          <p class="text-sm font-medium text-slate-900">No topics yet</p>
+          <p class="mt-1 text-xs text-slate-500">Create your first FYP topic proposal for students.</p>
+        </div>
+
+        <div v-else class="space-y-3">
           <div
             v-for="proposal in topicProposals"
             :key="proposal.id"
@@ -390,7 +372,16 @@ const handleProvideFeedback = (feedbackId: number) => {
           </div>
         </div>
 
-        <div class="space-y-3">
+        <!-- Loading State -->
+        <div v-if="isLoading" class="py-8 text-center text-sm text-slate-500">Loading feedback...</div>
+
+        <!-- Empty State -->
+        <div v-else-if="feedbackItems.length === 0" class="py-8 text-center">
+          <p class="text-sm font-medium text-slate-900">No feedback items</p>
+          <p class="mt-1 text-xs text-slate-500">Feedback items will appear once students submit their work.</p>
+        </div>
+
+        <div v-else class="space-y-3">
           <div
             v-for="item in feedbackItems"
             :key="item.id"

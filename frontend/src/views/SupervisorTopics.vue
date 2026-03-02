@@ -7,31 +7,6 @@
       </button>
     </div>
 
-    <!-- Navigation Buttons -->
-    <div class="supervisor-nav-buttons">
-      <button
-        @click="navigateTo('/supervisor/dashboard')"
-        class="nav-button"
-      >
-        <span class="nav-label">Dashboard</span>
-        <span class="nav-desc">Overview & stats</span>
-      </button>
-      <button
-        @click="navigateTo('/supervisor/topics')"
-        class="nav-button active"
-      >
-        <span class="nav-label">Topics</span>
-        <span class="nav-desc">Current view</span>
-      </button>
-      <button
-        @click="navigateTo('/supervisor/management')"
-        class="nav-button"
-      >
-        <span class="nav-label">Management</span>
-        <span class="nav-desc">Students & feedback</span>
-      </button>
-    </div>
-
     <!-- Topics List -->
     <div v-if="supervisorTopics.loading" class="loading-state">
       <div class="spinner"></div>

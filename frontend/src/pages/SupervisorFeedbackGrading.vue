@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onActivated, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import {
   PencilIcon,
@@ -9,6 +9,7 @@ import {
   UserIcon,
 } from '@heroicons/vue/24/outline';
 import httpClient from '@/services/httpClient';
+import feedbackService from '@/services/feedbackService';
 
 interface SubmissionItem {
   _id: string;
@@ -28,6 +29,7 @@ const submissions = ref<SubmissionItem[]>([]);
 const isLoading = ref(false);
 const errorMessage = ref('');
 const filterStudentId = ref<string | null>(null);
+const deletingFeedbackId = ref<string | null>(null);
 
 const fetchSubmissions = async () => {
   try {
@@ -35,6 +37,7 @@ const fetchSubmissions = async () => {
     errorMessage.value = '';
     const response = await httpClient.get('/submissions/supervisor/submissions');
     const subs = response.data.data || [];
+    console.log(`Loaded ${subs.length} submissions`, subs);
 
     // For each submission, fetch its feedback
     const subsWithFeedback: SubmissionItem[] = [];
@@ -42,13 +45,23 @@ const fetchSubmissions = async () => {
       let feedbacks: any[] = [];
       try {
         const fbRes = await httpClient.get(`/feedback/submissions/${sub._id}/feedback`);
-        feedbacks = fbRes.data.data || [];
-      } catch {
-        // No feedback yet
+        // Handle different response structures
+        if (fbRes.data.data?.feedback) {
+          feedbacks = Array.isArray(fbRes.data.data.feedback) ? fbRes.data.data.feedback : [];
+        } else if (fbRes.data.data && Array.isArray(fbRes.data.data)) {
+          feedbacks = fbRes.data.data;
+        }
+        if (feedbacks.length > 0) {
+          console.log(`Submission ${sub._id} has ${feedbacks.length} feedback(s)`);
+        }
+      } catch (error) {
+        // Log error for debugging but don't break the flow
+        console.warn(`Failed to fetch feedback for submission ${sub._id}:`, error);
       }
       subsWithFeedback.push({ ...sub, feedbacks });
     }
     submissions.value = subsWithFeedback;
+    console.log(`Loaded submissions with feedback:`, subsWithFeedback);
   } catch (error: any) {
     console.error('Failed to fetch submissions:', error);
     errorMessage.value = error.response?.data?.message || error.response?.data?.error || 'Failed to load submissions. Please try again.';
@@ -59,6 +72,12 @@ const fetchSubmissions = async () => {
 
 onMounted(() => {
   filterStudentId.value = (route.query.student as string) || null;
+  fetchSubmissions();
+});
+
+// Refetch when returning to this page from navigation
+onActivated(() => {
+  // Always refetch to ensure we have the latest feedback
   fetchSubmissions();
 });
 
@@ -163,6 +182,25 @@ const handleProvideFeedback = (id: string) => {
   router.push(`/supervisor/feedback-form?id=${id}`);
 };
 
+const handleDeleteFeedback = async (feedbackId: string, submissionId: string) => {
+  if (!confirm('Are you sure you want to delete this feedback?')) {
+    return;
+  }
+
+  deletingFeedbackId.value = feedbackId;
+  try {
+    await feedbackService.deleteFeedback(feedbackId);
+    // Refresh submissions to reflect the deletion
+    await fetchSubmissions();
+    console.log(`Feedback ${feedbackId} deleted successfully`);
+  } catch (error: any) {
+    console.error('Failed to delete feedback:', error);
+    alert('Failed to delete feedback. Only the supervisor who created it can delete it.');
+  } finally {
+    deletingFeedbackId.value = null;
+  }
+};
+
 const getStatusColor = (status: string) => {
   switch (status) {
     case 'Reviewed':
@@ -202,11 +240,26 @@ const downloadFile = async (studentId: string, phase: string, filename: string, 
 <template>
   <div class="px-4 sm:px-6 pb-6 pt-4 sm:pt-5">
     <!-- Header -->
-    <section class="mb-6">
-      <h1 class="text-2xl font-bold text-slate-900">Feedback & Grading</h1>
-      <p class="mt-1 text-sm text-slate-600">
-        Review and grade student submissions
-      </p>
+    <section class="mb-6 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900">Feedback & Grading</h1>
+        <p class="mt-1 text-sm text-slate-600">
+          Review and grade student submissions
+        </p>
+      </div>
+      <button
+        @click="fetchSubmissions"
+        :disabled="isLoading"
+        class="inline-flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 disabled:opacity-50 transition-colors"
+      >
+        <svg v-if="!isLoading" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+        </svg>
+        <svg v-else class="h-4 w-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+        </svg>
+        {{ isLoading ? 'Refreshing...' : 'Refresh' }}
+      </button>
     </section>
 
     <!-- Student filter banner -->
@@ -347,7 +400,17 @@ const downloadFile = async (studentId: string, phase: string, filename: string, 
               </div>
 
               <div v-if="item.feedback" class="bg-slate-50 rounded p-3 text-xs text-slate-700">
-                <p class="font-medium text-slate-900 mb-1">Your Feedback:</p>
+                <div class="flex items-start justify-between gap-2 mb-1">
+                  <p class="font-medium text-slate-900">Your Feedback:</p>
+                  <button
+                    @click="handleDeleteFeedback(item.id, item.id)"
+                    :disabled="deletingFeedbackId === item.id"
+                    class="inline-flex items-center rounded px-2 py-1 text-[11px] font-medium text-red-700 hover:bg-red-100 bg-red-50 border border-red-200 disabled:opacity-50 transition-colors"
+                    title="Delete feedback"
+                  >
+                    {{ deletingFeedbackId === item.id ? 'Deleting...' : 'Delete' }}
+                  </button>
+                </div>
                 <p>{{ item.feedback }}</p>
               </div>
               <div v-else class="bg-amber-50 rounded p-3 text-xs text-amber-700">

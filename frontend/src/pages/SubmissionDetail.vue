@@ -16,6 +16,8 @@ import {
 import { AcademicCapIcon } from '@heroicons/vue/24/outline';
 import { useSubmissionStore } from '../stores/submissionStore';
 import { useAuthStore } from '../stores/authStore';
+import httpClient from '../services/httpClient';
+import feedbackService from '../services/feedbackService';
 
 const router = useRouter();
 const submissionStore = useSubmissionStore();
@@ -30,9 +32,56 @@ const uploading = ref(false);
 const uploadError = ref<string | null>(null);
 const uploadSuccess = ref<string | null>(null);
 const fileInputRef = ref<HTMLInputElement | null>(null);
+const feedback = ref<any[]>([]);
+const feedbackLoading = ref(false);
+const deletingFeedbackId = ref<string | null>(null);
 
 const goToDashboard = () => {
   router.push('/dashboard');
+};
+
+// Fetch feedback for current submission
+const fetchFeedback = async () => {
+  if (!currentPhase.value) return;
+  
+  feedbackLoading.value = true;
+  try {
+    const response = await httpClient.get(`/feedback/submissions/${currentPhase.value._id}/feedback`);
+    // Handle both response formats
+    if (response.data.data?.feedback) {
+      feedback.value = Array.isArray(response.data.data.feedback) ? response.data.data.feedback : [];
+    } else if (response.data.data && Array.isArray(response.data.data)) {
+      feedback.value = response.data.data;
+    } else {
+      feedback.value = [];
+    }
+    console.log(`Feedback for submission ${currentPhase.value._id}:`, feedback.value);
+  } catch (error) {
+    console.warn('Failed to fetch feedback:', error);
+    feedback.value = [];
+  } finally {
+    feedbackLoading.value = false;
+  }
+};
+
+// Delete feedback
+const deleteFeedback = async (feedbackId: string) => {
+  if (!confirm('Are you sure you want to delete this feedback?')) {
+    return;
+  }
+
+  deletingFeedbackId.value = feedbackId;
+  try {
+    await feedbackService.deleteFeedback(feedbackId);
+    // Remove from feedback list
+    feedback.value = feedback.value.filter(fb => fb._id !== feedbackId);
+    console.log(`Feedback ${feedbackId} deleted successfully`);
+  } catch (error: any) {
+    console.error('Failed to delete feedback:', error);
+    alert('Failed to delete feedback. Only the supervisor who created it can delete it.');
+  } finally {
+    deletingFeedbackId.value = null;
+  }
 };
 
 // Sync checkbox with current phase status
@@ -41,6 +90,10 @@ const currentPhaseIsDeclared = computed(() => currentPhase.value?.status === 'De
 watch(() => submissionStore.selectedPhase, (phase) => {
   declarationChecked.value = phase?.status === 'Declared Not Needed';
   declarationError.value = null;
+  // Fetch feedback for this submission
+  if (phase?._id) {
+    fetchFeedback();
+  }
 }, { immediate: true });
 
 async function handleDeclarationChange(checked: boolean) {
@@ -403,6 +456,65 @@ async function handleDownload(file: any) {
                 id="feedback-heading"
                 class="text-sm font-semibold text-slate-900"
               >
+                Supervisor Feedback
+              </h2>
+
+              <!-- Loading state -->
+              <div v-if="feedbackLoading" class="mt-4 flex items-center justify-center gap-2">
+                <div class="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600"></div>
+                <p class="text-xs text-slate-600">Loading feedback...</p>
+              </div>
+
+              <!-- No feedback yet -->
+              <div v-else-if="feedback.length === 0" class="mt-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                <p class="text-xs text-amber-700">
+                  No feedback provided yet. Your supervisor will leave comments after reviewing your submission.
+                </p>
+              </div>
+
+              <!-- Display feedback -->
+              <div v-else class="mt-4 space-y-3">
+                <div
+                  v-for="(fb, idx) in feedback"
+                  :key="fb._id || idx"
+                  class="rounded-lg border border-slate-200 bg-slate-50 p-3"
+                >
+                  <div class="flex items-start justify-between gap-2 mb-2">
+                    <div>
+                      <p class="text-xs font-semibold text-slate-900">{{ fb.supervisor_id?.fullName || 'Supervisor' }}</p>
+                      <p class="text-[11px] text-slate-500">
+                        {{ fb.createdAt ? new Date(fb.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—' }}
+                      </p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span v-if="fb.grade" class="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                        Grade: {{ fb.grade }}
+                      </span>
+                      <!-- Delete button (only for supervisors) -->
+                      <button
+                        v-if="authStore.userRole === 'Supervisor'"
+                        @click="deleteFeedback(fb._id)"
+                        :disabled="deletingFeedbackId === fb._id"
+                        class="inline-flex items-center rounded px-2 py-1 text-[11px] font-medium text-red-700 hover:bg-red-100 bg-red-50 border border-red-200 disabled:opacity-50 transition-colors"
+                        title="Delete feedback"
+                      >
+                        {{ deletingFeedbackId === fb._id ? 'Deleting...' : 'Delete' }}
+                      </button>
+                    </div>
+                  </div>
+                  <p class="text-xs text-slate-800 whitespace-pre-wrap">{{ fb.feedbackText }}</p>
+                </div>
+              </div>
+            </section>
+
+            <section
+              aria-labelledby="declarations-heading"
+              class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm shadow-slate-200/70"
+            >
+              <h2
+                id="declarations-heading"
+                class="text-sm font-semibold text-slate-900"
+              >
                 Declarations
               </h2>
 
@@ -441,47 +553,6 @@ async function handleDownload(file: any) {
               </div>
               <p v-if="declarationError" class="mt-1 text-[11px] text-red-600">{{ declarationError }}</p>
               <p v-if="declarationSubmitting" class="mt-1 text-[11px] text-blue-600">Submitting declaration...</p>
-
-              <div v-if="!isStudent" class="mt-4 grid gap-4 md:grid-cols-2">
-                <div class="space-y-1 text-xs">
-                  <label class="font-medium text-slate-800">
-                    Visible feedback to student
-                  </label>
-                  <textarea
-                    rows="6"
-                    class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
-                  >You are broadly on track with your data collection, but please prioritise completing at least two weekday and two weekend field observations before the next meeting. Clarify in your report how you will deal with potential weather disruptions.</textarea>
-                  <p class="text-[11px] text-slate-500">
-                    This text box represents supervisor comments visible to the student.
-                  </p>
-                </div>
-
-                <div class="space-y-1 text-xs">
-                  <div class="flex items-center justify-between">
-                    <label class="font-medium text-slate-800">
-                      Confidential supervisor notes
-                    </label>
-                    <span class="inline-flex items-center gap-1 text-[11px] text-slate-500">
-                      <LockClosedIcon class="h-3.5 w-3.5" />
-                      Internal only
-                    </span>
-                  </div>
-                  <div
-                    class="relative rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-700"
-                  >
-                    <EyeSlashIcon class="h-5 w-5 absolute right-2 top-2 text-slate-500" />
-                    <p class="text-[11px]">
-                      Student is engaged and attends meetings consistently. Encourage further
-                      independence in planning fieldwork schedule. No major risk concerns at
-                      this stage. Consider recommending ethics application if intercept surveys
-                      are extended.
-                    </p>
-                    <p class="mt-2 text-[10px] text-slate-500">
-                      In a real system this section would be visible only to supervisors and programme staff.
-                    </p>
-                  </div>
-                </div>
-              </div>
             </section>
           </section>
         </div>

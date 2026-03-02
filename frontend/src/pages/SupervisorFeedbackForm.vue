@@ -53,6 +53,15 @@ onMounted(async () => {
     // Fetch existing feedback for this submission
     try {
       existingFeedback.value = await feedbackService.getSubmissionFeedback(submissionId);
+      
+      // Pre-populate form fields if feedback exists
+      if (existingFeedback.value.length > 0) {
+        const feedback = existingFeedback.value[0];
+        feedbackText.value = feedback.feedbackText || '';
+        selectedGrade.value = feedback.grade || '';
+        pointsInput.value = parseFloat(feedback.grade) || undefined;
+        internalNote.value = feedback.internalNote || '';
+      }
     } catch {
       // No feedback yet — that's fine
     }
@@ -102,15 +111,23 @@ const handleSaveFeedback = async () => {
       ? String(pointsInput.value)
       : selectedGrade.value;
 
-    await feedbackService.addFeedback(submissionId, {
+    const feedbackData = {
       feedbackText: feedbackText.value.trim(),
       grade: gradeValue || undefined,
       gradingStandard_id: applicableStandard.value?._id || undefined,
       internalNote: internalNote.value.trim() || undefined,
-    });
+    };
+
+    // If editing existing feedback, update it; otherwise create new
+    if (existingFeedback.value.length > 0) {
+      await feedbackService.updateFeedback(existingFeedback.value[0]._id, feedbackData);
+    } else {
+      await feedbackService.addFeedback(submissionId, feedbackData);
+    }
 
     alert('Feedback and grade saved successfully!');
-    router.back();
+    // Navigate back to feedback & grading page with a refresh
+    router.push('/supervisor/feedback-grading');
   } catch (e: any) {
     saveError.value = e?.response?.data?.error || 'Failed to save feedback';
   } finally {
@@ -135,7 +152,7 @@ const handleCancel = () => {
       </button>
       <div>
         <p class="text-[11px] uppercase tracking-[0.2em] text-slate-500">Feedback Form</p>
-        <p class="text-sm font-semibold text-slate-900">Add Feedback & Grade</p>
+        <p class="text-sm font-semibold text-slate-900">{{ existingFeedback.length > 0 ? 'Edit Feedback & Grade' : 'Add Feedback & Grade' }}</p>
       </div>
       <button
         @click="router.push('/supervisor')"
@@ -301,7 +318,7 @@ const handleCancel = () => {
             class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <CheckIcon class="h-5 w-5" />
-            {{ isSaving ? 'Saving...' : applicableStandard ? 'Save Feedback & Grade' : 'Save Feedback' }}
+            {{ isSaving ? 'Saving...' : existingFeedback.length > 0 ? (applicableStandard ? 'Update Feedback & Grade' : 'Update Feedback') : (applicableStandard ? 'Save Feedback & Grade' : 'Save Feedback') }}
           </button>
           <button
             @click="handleCancel"

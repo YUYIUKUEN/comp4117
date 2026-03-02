@@ -47,7 +47,7 @@ export default {
    */
   async getSubmissionFeedback(submissionId: string): Promise<FeedbackItem[]> {
     const response = await httpClient.get(`/feedback/submissions/${submissionId}/feedback`)
-    return response.data.data
+    return response.data.data?.feedback || response.data.data || []
   },
 
   /**
@@ -76,6 +76,23 @@ export default {
   },
 
   /**
+   * Update feedback
+   */
+  async updateFeedback(
+    feedbackId: string,
+    data: {
+      feedbackText: string
+      isPrivate?: boolean
+      grade?: string
+      gradingStandard_id?: string
+      internalNote?: string
+    },
+  ): Promise<FeedbackItem> {
+    const response = await httpClient.put(`/feedback/${feedbackId}`, data)
+    return response.data.data
+  },
+
+  /**
    * Get all internal notes (admin only)
    */
   async getAdminInternalNotes(page = 1, limit = 20): Promise<{
@@ -86,5 +103,12 @@ export default {
       params: { page, limit },
     })
     return response.data
+  },
+
+  /**
+   * Delete feedback (supervisor only — must own the feedback)
+   */
+  async deleteFeedback(feedbackId: string): Promise<void> {
+    await httpClient.delete(`/feedback/${feedbackId}`)
   },
 }

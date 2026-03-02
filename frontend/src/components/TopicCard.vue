@@ -79,6 +79,9 @@ const truncateText = (text: string, length: number) => {
   border-radius: 8px;
   padding: 1.5rem;
   transition: all 0.3s ease;
+  overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .topic-card:hover {
@@ -136,6 +139,13 @@ const truncateText = (text: string, length: number) => {
   margin: 0 0 1rem 0;
   line-height: 1.5;
   font-size: 0.95rem;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .metadata {
