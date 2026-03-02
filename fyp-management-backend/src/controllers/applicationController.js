@@ -31,6 +31,19 @@ exports.applyToTopic = async (req, res) => {
       });
     }
 
+    // Check if student already has an approved/active assignment
+    const existingAssignment = await Assignment.findOne({
+      student_id,
+      status: 'Active'
+    });
+
+    if (existingAssignment) {
+      return res.status(400).json({
+        code: 'ALREADY_ASSIGNED',
+        message: 'You already have an active approved topic assignment',
+      });
+    }
+
     // Verify topic exists
     const topic = await Topic.findById(topic_id);
     if (!topic) {

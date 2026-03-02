@@ -37,6 +37,14 @@
       >
         {{ applying ? 'Applying...' : 'Apply' }}
       </button>
+      <button
+        v-else-if="hasApprovedTopic && authStore.userRole === 'Student'"
+        disabled
+        class="btn btn-primary"
+        title="You already have an approved topic assignment"
+      >
+        Already Assigned
+      </button>
       <router-link :to="`/topic/${topic._id}`" class="btn btn-secondary">
         View Details
       </router-link>
@@ -45,9 +53,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
 import topicService from '@/services/topicService'
+import assignmentService from '@/services/assignmentService'
 
 interface Topic {
   _id: string
@@ -72,9 +81,29 @@ const emit = defineEmits<{
 
 const authStore = useAuthStore()
 const applying = ref(false)
+const hasApprovedTopic = ref(false)
+
+onMounted(async () => {
+  // Check if student has an approved assignment
+  if (authStore.userRole === 'Student') {
+    try {
+      const response = await assignmentService.getMyAssignment()
+      if (response.data) {
+        hasApprovedTopic.value = true
+      }
+    } catch (error) {
+      // No active assignment, which is fine
+      hasApprovedTopic.value = false
+    }
+  }
+})
 
 const canApply = computed(() => {
-  return authStore.userRole === 'Student' && props.topic.status === 'Active'
+  return (
+    authStore.userRole === 'Student' && 
+    props.topic.status === 'Active' && 
+    !hasApprovedTopic.value
+  )
 })
 
 const truncateText = (text: string, length: number) => {
