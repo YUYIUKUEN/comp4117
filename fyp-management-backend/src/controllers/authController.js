@@ -235,4 +235,81 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
-module.exports = { login, logout, refresh, requestPasswordReset, resetPassword };
+const register = async (req, res, next) => {
+  try {
+    const { fullName, email, password, role } = req.body;
+
+    // Validation
+    if (!fullName || !email || !password) {
+      return res.status(400).json({
+        error: 'Full name, email, and password are required',
+        code: 'INVALID_INPUT',
+        status: 400,
+      });
+    }
+
+    // Validate role
+    const allowedRoles = ['Student', 'Supervisor'];
+    const userRole = role && allowedRoles.includes(role) ? role : 'Student';
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser) {
+      return res.status(409).json({
+        error: 'An account with this email already exists',
+        code: 'EMAIL_EXISTS',
+        status: 409,
+      });
+    }
+
+    // Validate password strength
+    const strength = validatePasswordStrength(password);
+    if (!strength.valid) {
+      return res.status(400).json({
+        error: `Password must have: ${strength.errors.join(', ')}`,
+        code: 'WEAK_PASSWORD',
+        status: 400,
+      });
+    }
+
+    // Hash password and create user
+    const passwordHash = await hashPassword(password);
+    const user = await User.create({
+      fullName,
+      email: email.toLowerCase(),
+      passwordHash,
+      role: userRole,
+    });
+
+    // Generate tokens
+    const { token, expiresIn, expiresAt } = generateTokens(user._id, user.role);
+
+    // Log registration
+    await ActivityLog.create({
+      user_id: user._id,
+      action: 'register',
+      entityType: 'User',
+      entityId: user._id,
+      ipAddress: req.ip,
+    });
+
+    return res.status(201).json({
+      data: {
+        user: {
+          id: user._id,
+          email: user.email,
+          fullName: user.fullName,
+          role: user.role,
+        },
+        token,
+        expiresIn,
+        expiresAt,
+      },
+      status: 201,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { login, logout, refresh, requestPasswordReset, resetPassword, register };

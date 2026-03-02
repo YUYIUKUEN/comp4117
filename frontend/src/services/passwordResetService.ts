@@ -10,7 +10,8 @@ interface ResetPasswordPayload {
 }
 
 const passwordResetService = {
-  requestReset(data: ForgotPasswordPayload) {
+  requestReset(emailOrData: string | ForgotPasswordPayload) {
+    const data = typeof emailOrData === 'string' ? { email: emailOrData } : emailOrData;
     return client.post('/auth/forgot-password', data);
   },
   resetPassword(data: ResetPasswordPayload) {

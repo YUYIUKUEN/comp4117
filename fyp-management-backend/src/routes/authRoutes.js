@@ -6,14 +6,17 @@ const {
   refresh,
   requestPasswordReset,
   resetPassword,
+  register,
 } = require('../controllers/authController');
 
 const router = express.Router();
 
 router.post('/login', login);
+router.post('/register', register);
 router.post('/logout', authenticate, logout);
 router.post('/refresh', authenticate, refresh);
 router.post('/password-reset-request', requestPasswordReset);
+router.post('/forgot-password', requestPasswordReset);
 router.post('/password-reset', authenticate, resetPassword);
 
 module.exports = router;
