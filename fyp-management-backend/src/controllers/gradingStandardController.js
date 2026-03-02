@@ -40,7 +40,7 @@ const getGradingStandardById = async (req, res, next) => {
  */
 const createGradingStandard = async (req, res, next) => {
   try {
-    const { submissionType, gradingSystem, pointRange, letterGrades, customOptions, description, enabled } = req.body;
+    const { submissionType, gradingSystem, pointRange, letterGrades, customOptions, description, dueDate, enabled } = req.body;
 
     if (!submissionType || !gradingSystem) {
       return res.status(400).json({ error: 'submissionType and gradingSystem are required', code: 'INVALID_REQUEST', status: 400 });
@@ -53,6 +53,7 @@ const createGradingStandard = async (req, res, next) => {
       letterGrades: gradingSystem === 'letter-grade' ? (letterGrades || ['A', 'B', 'C', 'D', 'F']) : undefined,
       customOptions: gradingSystem === 'custom' ? (customOptions || []) : undefined,
       description: description || '',
+      dueDate: dueDate || null,
       enabled: enabled !== false,
       createdBy: req.auth.userId,
     });
@@ -68,7 +69,7 @@ const createGradingStandard = async (req, res, next) => {
  */
 const updateGradingStandard = async (req, res, next) => {
   try {
-    const { submissionType, gradingSystem, pointRange, letterGrades, customOptions, description, enabled } = req.body;
+    const { submissionType, gradingSystem, pointRange, letterGrades, customOptions, description, dueDate, enabled } = req.body;
 
     const standard = await GradingStandard.findById(req.params.id);
     if (!standard) {
@@ -81,6 +82,7 @@ const updateGradingStandard = async (req, res, next) => {
     if (letterGrades !== undefined) standard.letterGrades = letterGrades;
     if (customOptions !== undefined) standard.customOptions = customOptions;
     if (description !== undefined) standard.description = description;
+    if (dueDate !== undefined) standard.dueDate = dueDate;
     if (enabled !== undefined) standard.enabled = enabled;
     standard.updatedAt = new Date();
 

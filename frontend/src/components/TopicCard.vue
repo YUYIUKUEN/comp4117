@@ -53,10 +53,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
 import topicService from '@/services/topicService'
-import assignmentService from '@/services/assignmentService'
 
 interface Topic {
   _id: string
@@ -72,6 +71,7 @@ interface Topic {
 
 const props = defineProps<{
   topic: Topic
+  userHasApprovedAssignment?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -81,28 +81,12 @@ const emit = defineEmits<{
 
 const authStore = useAuthStore()
 const applying = ref(false)
-const hasApprovedTopic = ref(false)
-
-onMounted(async () => {
-  // Check if student has an approved assignment
-  if (authStore.userRole === 'Student') {
-    try {
-      const response = await assignmentService.getMyAssignment()
-      if (response.data) {
-        hasApprovedTopic.value = true
-      }
-    } catch (error) {
-      // No active assignment, which is fine
-      hasApprovedTopic.value = false
-    }
-  }
-})
 
 const canApply = computed(() => {
   return (
     authStore.userRole === 'Student' && 
     props.topic.status === 'Active' && 
-    !hasApprovedTopic.value
+    !props.userHasApprovedAssignment
   )
 })
 

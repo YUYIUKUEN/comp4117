@@ -59,10 +59,17 @@ const handleAddStandard = async () => {
   try {
     saving.value = true
     error.value = ''
+    
+    // Convert dueDate to ISO format if it exists
+    const dataToSave = {
+      ...formData.value,
+      dueDate: formData.value.dueDate ? new Date(formData.value.dueDate).toISOString() : null,
+    }
+    
     if (editingId.value) {
-      await gradingStandardService.update(editingId.value, formData.value)
+      await gradingStandardService.update(editingId.value, dataToSave)
     } else {
-      await gradingStandardService.create(formData.value)
+      await gradingStandardService.create(dataToSave)
     }
     resetForm()
     await fetchStandards()
@@ -75,6 +82,13 @@ const handleAddStandard = async () => {
 
 const startEdit = (standard: GradingStandard) => {
   editingId.value = standard._id
+  // Convert ISO date to YYYY-MM-DD format for the date input
+  let formattedDueDate = null
+  if (standard.dueDate) {
+    const date = new Date(standard.dueDate)
+    formattedDueDate = date.toISOString().split('T')[0]
+  }
+  
   formData.value = {
     submissionType: standard.submissionType,
     gradingSystem: standard.gradingSystem,
@@ -82,7 +96,7 @@ const startEdit = (standard: GradingStandard) => {
     letterGrades: standard.letterGrades || ['A', 'B', 'C', 'D', 'F'],
     customOptions: standard.customOptions || [],
     description: standard.description || '',
-    dueDate: standard.dueDate || null,
+    dueDate: formattedDueDate,
     enabled: standard.enabled,
   }
   showAddForm.value = true
@@ -386,6 +400,12 @@ const updateCustomOption = (index: number, value: string) => {
                   }}
                 </span>
                 <span
+                  v-if="standard.dueDate"
+                  class="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-[11px] font-medium text-orange-700"
+                >
+                  Due: {{ new Date(standard.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) }}
+                </span>
+                <span
                   v-if="!standard.enabled"
                   class="inline-flex items-center rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-[11px] font-medium text-slate-600"
                 >
@@ -409,7 +429,7 @@ const updateCustomOption = (index: number, value: string) => {
                   Options: {{ standard.customOptions?.join(', ') }}
                 </p>
                 <p v-if="standard.dueDate" class="font-medium mt-1">
-                  Due Date: {{ new Date(standard.dueDate).toLocaleDateString() }}
+                  Due: {{ new Date(standard.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) }}
                 </p>
               </div>
             </div>

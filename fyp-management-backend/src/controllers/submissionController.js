@@ -58,7 +58,9 @@ const submitDocument = async (req, res, next) => {
     });
 
     if (!submission) {
-      const dueDate = calculateDueDate(phase);
+      // Use grading standard's dueDate if available
+      const gradingStandard = await GradingStandard.findOne({ submissionType: phase, enabled: true });
+      const dueDate = (gradingStandard && gradingStandard.dueDate) || calculateDueDate(phase);
       submission = await Submission.create({
         student_id: studentId,
         topic_id: assignment.topic_id,
@@ -196,7 +198,9 @@ const declareNotNeeded = async (req, res, next) => {
     });
 
     if (!submission) {
-      const dueDate = calculateDueDate(phase);
+      // Use grading standard's dueDate if available
+      const gradingStandard = await GradingStandard.findOne({ submissionType: phase, enabled: true });
+      const dueDate = (gradingStandard && gradingStandard.dueDate) || calculateDueDate(phase);
       submission = await Submission.create({
         student_id: studentId,
         topic_id: assignment.topic_id,
@@ -251,21 +255,41 @@ const getAllStudentSubmissions = async (req, res, next) => {
       ? enabledStandards.map(s => s.submissionType)
       : ['Initial Statement', 'Progress Report 1', 'Progress Report 2', 'Final Dissertation']; // fallback
 
+    // Build a map of grading-standard due dates keyed by submissionType
+    const standardDueDateMap = {};
+    enabledStandards.forEach(s => {
+      standardDueDateMap[s.submissionType] = s.dueDate || null;
+    });
+
     // Get existing submissions
     const existingSubmissions = await Submission.find({ student_id: studentId });
-    const existingPhases = existingSubmissions.map(s => s.phase);
+    const existingPhaseMap = {};
+    existingSubmissions.forEach(s => { existingPhaseMap[s.phase] = s; });
 
-    // Create placeholder submissions for phases without one
+    // Create placeholder submissions for phases without one, and sync due dates for existing ones
     for (let i = 0; i < phases.length; i++) {
       const phase = phases[i];
-      if (!existingPhases.includes(phase)) {
-        const dueDate = calculateDueDate(phase, i);
+      const gradingDueDate = standardDueDateMap[phase] || null;
+      const existing = existingPhaseMap[phase];
+
+      if (!existing) {
+        // Use the grading standard's dueDate if set, otherwise fall back to synthetic date
+        const dueDate = gradingDueDate || calculateDueDate(phase, i);
         await Submission.create({
           student_id: studentId,
           topic_id: assignment.topic_id,
           phase,
           dueDate,
         });
+      } else if (gradingDueDate) {
+        // Update the existing submission's dueDate if the grading standard has one set
+        // and it differs from the current value
+        const existingDue = existing.dueDate ? new Date(existing.dueDate).getTime() : null;
+        const standardDue = new Date(gradingDueDate).getTime();
+        if (existingDue !== standardDue) {
+          existing.dueDate = gradingDueDate;
+          await existing.save();
+        }
       }
     }
 
