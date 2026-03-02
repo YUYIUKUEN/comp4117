@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, computed, onMounted, nextTick, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   ArrowLeftIcon,
@@ -9,6 +9,7 @@ import {
   Cog6ToothIcon,
   BoltIcon,
   EyeIcon,
+  ChevronRightIcon,
 } from '@heroicons/vue/24/outline';
 import httpClient from '@/services/httpClient';
 import { useAuthStore } from '@/stores/authStore';
@@ -31,6 +32,14 @@ interface ReminderItem {
   reminderSent: number;
   priority: 'High' | 'Medium' | 'Low';
   phase: string;
+}
+
+interface StudentReminderGroup {
+  studentId: string;
+  studentName: string;
+  studentEmail: string;
+  studentConcentration: string;
+  reminders: ReminderItem[];
 }
 
 interface EmailTemplate {
@@ -331,6 +340,37 @@ const toggleStatus = (status: string) => {
 const activeReminders = computed(() =>
   reminders.value.filter(r => !completedIds.value.has(r.id))
 );
+
+// Track which student groups are expanded
+const expandedReminderStudents = ref<Set<string>>(new Set());
+
+// Group reminders by supervised student
+const groupedRemindersByStudent = computed<StudentReminderGroup[]>(() => {
+  const map = new Map<string, StudentReminderGroup>();
+  for (const reminder of activeReminders.value) {
+    const key = reminder.studentEmail || reminder.studentName;
+    if (!map.has(key)) {
+      map.set(key, {
+        studentId: key,
+        studentName: reminder.studentName,
+        studentEmail: reminder.studentEmail,
+        studentConcentration: reminder.studentConcentration,
+        reminders: [],
+      });
+    }
+    const group = map.get(key)!;
+    group.reminders.push(reminder);
+  }
+  // Sort groups by student name
+  return Array.from(map.values()).sort((a, b) => a.studentName.localeCompare(b.studentName));
+});
+
+// Auto-expand all student groups on initial load
+watch(groupedRemindersByStudent, (groups) => {
+  if (expandedReminderStudents.value.size === 0 && groups.length > 0) {
+    groups.forEach(g => expandedReminderStudents.value.add(g.studentId));
+  }
+}, { immediate: true });
 
 /** Open modal to optionally add a custom message before sending */
 const openSendModal = (reminder: ReminderItem) => {
@@ -874,81 +914,114 @@ onMounted(() => {
         </h2>
 
         <div class="space-y-3">
+          <!-- Student Group Headers -->
           <div
-            v-for="reminder in activeReminders"
-            :key="reminder.id"
-            class="border border-slate-200 rounded-lg p-4 hover:border-blue-300 transition-colors"
+            v-for="group in groupedRemindersByStudent"
+            :key="group.studentId"
+            class="border border-slate-200 rounded-lg overflow-hidden"
           >
-            <div class="flex items-start justify-between gap-4 mb-3">
-              <div class="flex-1">
-                <p class="text-xs font-semibold text-blue-600 uppercase tracking-wide">
-                  {{ reminder.type }}
-                </p>
-                <h3 class="text-sm font-semibold text-slate-900 mt-1">{{ reminder.studentName }}</h3>
-                <!-- Student email – clickable mailto link -->
-                <p class="text-xs text-blue-600 mt-0.5">
-                  <a :href="'mailto:' + reminder.studentEmail" class="hover:underline">
-                    {{ reminder.studentEmail || '—' }}
-                  </a>
-                </p>
-                <p v-if="reminder.studentConcentration" class="text-[11px] text-slate-400 mt-0.5">
-                  {{ reminder.studentConcentration }}
-                </p>
-                <p class="text-xs text-slate-600 mt-0.5">{{ reminder.topic }}</p>
-                <p class="text-[11px] text-slate-400 mt-0.5">Phase: {{ reminder.phase }}</p>
+            <!-- Student Group Header -->
+            <button
+              @click="expandedReminderStudents.has(group.studentId) ? expandedReminderStudents.delete(group.studentId) : expandedReminderStudents.add(group.studentId)"
+              class="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors"
+            >
+              <div class="flex items-center gap-3 flex-1 text-left">
+                <div :class="['transition-transform', expandedReminderStudents.has(group.studentId) ? 'rotate-90' : '']">
+                  <ChevronRightIcon class="h-4 w-4 text-slate-500" />
+                </div>
+                <div>
+                  <h3 class="text-sm font-semibold text-slate-900">{{ group.studentName }}</h3>
+                  <p class="text-xs text-blue-600">
+                    <a :href="'mailto:' + group.studentEmail" class="hover:underline">
+                      {{ group.studentEmail }}
+                    </a>
+                  </p>
+                  <p v-if="group.studentConcentration" class="text-[11px] text-slate-400 mt-0.5">
+                    {{ group.studentConcentration }}
+                  </p>
+                </div>
               </div>
-              <div class="flex flex-col gap-2 items-end">
-                <span
-                  :class="['inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium', getPriorityColor(reminder.priority)]"
+              <span class="inline-flex items-center rounded-full bg-slate-200 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+                {{ group.reminders.length }}
+              </span>
+            </button>
+
+            <!-- Student Group Content (Reminders) -->
+            <transition
+              enter-active-class="transition duration-150 ease-out"
+              enter-from-class="opacity-0"
+              enter-to-class="opacity-100"
+              leave-active-class="transition duration-150 ease-in"
+              leave-from-class="opacity-100"
+              leave-to-class="opacity-0"
+            >
+              <div v-show="expandedReminderStudents.has(group.studentId)" class="divide-y divide-slate-100 bg-white">
+                <div
+                  v-for="reminder in group.reminders"
+                  :key="reminder.id"
+                  class="p-4 hover:bg-slate-50 transition-colors"
                 >
-                  {{ reminder.priority }} Priority
-                </span>
-              </div>
-            </div>
+                  <div class="flex items-start justify-between gap-4 mb-3">
+                    <div class="flex-1">
+                      <p class="text-xs font-semibold text-blue-600 uppercase tracking-wide">
+                        {{ reminder.type }}
+                      </p>
+                      <p class="text-xs text-slate-600 mt-1">{{ reminder.topic }}</p>
+                      <p class="text-[11px] text-slate-400 mt-0.5">Phase: {{ reminder.phase }}</p>
+                    </div>
+                    <span
+                      :class="['inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium', getPriorityColor(reminder.priority)]"
+                    >
+                      {{ reminder.priority }} Priority
+                    </span>
+                  </div>
 
-            <div class="grid grid-cols-3 gap-4 mb-4 text-xs">
-              <div>
-                <p class="text-slate-500">Due Date</p>
-                <p class="font-medium text-slate-900">{{ reminder.dueDate }}</p>
-              </div>
-              <div>
-                <p class="text-slate-500">Days Overdue</p>
-                <p :class="['font-medium', reminder.daysOverdue > 0 ? 'text-red-600' : 'text-slate-900']">
-                  {{ reminder.daysOverdue > 0 ? '+' + reminder.daysOverdue : 'On Track' }}
-                </p>
-              </div>
-              <div>
-                <p class="text-slate-500">Reminders Sent</p>
-                <p class="font-medium text-slate-900">{{ reminder.reminderSent }}</p>
-              </div>
-            </div>
+                  <div class="grid grid-cols-3 gap-4 mb-4 text-xs">
+                    <div>
+                      <p class="text-slate-500">Due Date</p>
+                      <p class="font-medium text-slate-900">{{ reminder.dueDate }}</p>
+                    </div>
+                    <div>
+                      <p class="text-slate-500">Days Overdue</p>
+                      <p :class="['font-medium', reminder.daysOverdue > 0 ? 'text-red-600' : 'text-slate-900']">
+                        {{ reminder.daysOverdue > 0 ? '+' + reminder.daysOverdue : 'On Track' }}
+                      </p>
+                    </div>
+                    <div>
+                      <p class="text-slate-500">Reminders Sent</p>
+                      <p class="font-medium text-slate-900">{{ reminder.reminderSent }}</p>
+                    </div>
+                  </div>
 
-            <div class="flex gap-2">
-              <button
-                :disabled="actionLoading[reminder.id]"
-                @click="openSendModal(reminder)"
-                class="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 hover:bg-blue-100 border border-blue-200 disabled:opacity-50"
-              >
-                <BellIcon class="h-4 w-4" />
-                {{ actionLoading[reminder.id] ? 'Sending...' : 'Send Reminder' }}
-              </button>
-              <!-- Direct email link -->
-              <a
-                v-if="reminder.studentEmail"
-                :href="'mailto:' + reminder.studentEmail"
-                class="inline-flex items-center gap-1 rounded-lg bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 border border-slate-200"
-              >
-                <EnvelopeIcon class="h-4 w-4" />
-                Direct Email
-              </a>
-              <button
-                @click="handleMarkComplete(reminder)"
-                class="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
-              >
-                <CheckIcon class="h-4 w-4" />
-                Mark Complete
-              </button>
-            </div>
+                  <div class="flex gap-2">
+                    <button
+                      :disabled="actionLoading[reminder.id]"
+                      @click="openSendModal(reminder)"
+                      class="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 hover:bg-blue-100 border border-blue-200 disabled:opacity-50"
+                    >
+                      <BellIcon class="h-4 w-4" />
+                      {{ actionLoading[reminder.id] ? 'Sending...' : 'Send Reminder' }}
+                    </button>
+                    <!-- Direct email link -->
+                    <a
+                      v-if="reminder.studentEmail"
+                      :href="'mailto:' + reminder.studentEmail"
+                      class="inline-flex items-center gap-1 rounded-lg bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 border border-slate-200"
+                    >
+                      <EnvelopeIcon class="h-4 w-4" />
+                      Direct Email
+                    </a>
+                    <button
+                      @click="handleMarkComplete(reminder)"
+                      class="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
+                    >
+                      <CheckIcon class="h-4 w-4" />
+                      Mark Complete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </transition>
           </div>
         </div>
       </div>
