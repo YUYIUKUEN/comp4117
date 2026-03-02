@@ -18,6 +18,7 @@ const formData = ref<GradingStandardInput>({
   letterGrades: ['A', 'B', 'C', 'D', 'F'],
   customOptions: [],
   description: '',
+  dueDate: null,
   enabled: true,
 })
 
@@ -43,6 +44,7 @@ const resetForm = () => {
     letterGrades: ['A', 'B', 'C', 'D', 'F'],
     customOptions: [],
     description: '',
+    dueDate: null,
     enabled: true,
   }
   editingId.value = null
@@ -80,6 +82,7 @@ const startEdit = (standard: GradingStandard) => {
     letterGrades: standard.letterGrades || ['A', 'B', 'C', 'D', 'F'],
     customOptions: standard.customOptions || [],
     description: standard.description || '',
+    dueDate: standard.dueDate || null,
     enabled: standard.enabled,
   }
   showAddForm.value = true
@@ -315,6 +318,21 @@ const updateCustomOption = (index: number, value: string) => {
             />
           </div>
 
+          <!-- Due Date -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">
+              Due Date
+            </label>
+            <input
+              v-model="formData.dueDate"
+              type="date"
+              class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            />
+            <p class="mt-1 text-xs text-slate-500">
+              Set a deadline for this submission type. Leave blank if no specific deadline applies.
+            </p>
+          </div>
+
           <!-- Actions -->
           <div class="flex gap-2 pt-4">
             <button
@@ -389,6 +407,9 @@ const updateCustomOption = (index: number, value: string) => {
                 </p>
                 <p v-else-if="standard.gradingSystem === 'custom'" class="font-medium">
                   Options: {{ standard.customOptions?.join(', ') }}
+                </p>
+                <p v-if="standard.dueDate" class="font-medium mt-1">
+                  Due Date: {{ new Date(standard.dueDate).toLocaleDateString() }}
                 </p>
               </div>
             </div>

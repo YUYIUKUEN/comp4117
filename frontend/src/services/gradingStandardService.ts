@@ -8,6 +8,7 @@ export interface GradingStandard {
   letterGrades?: string[]
   customOptions?: string[]
   description?: string
+  dueDate?: string | null
   enabled: boolean
   createdBy?: string
   createdAt: string
@@ -21,6 +22,7 @@ export interface GradingStandardInput {
   letterGrades?: string[]
   customOptions?: string[]
   description?: string
+  dueDate?: string | null
   enabled?: boolean
 }
 

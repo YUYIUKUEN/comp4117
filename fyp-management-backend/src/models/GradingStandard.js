@@ -19,6 +19,7 @@ const gradingStandardSchema = new mongoose.Schema({
   letterGrades: [String],
   customOptions: [String],
   description: { type: String, maxlength: 500, default: '' },
+  dueDate: { type: Date, default: null },
   enabled: { type: Boolean, default: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now, immutable: true },
