@@ -13,6 +13,7 @@ import { useAuthStore } from '../stores/authStore';
 import assignmentService from '../services/assignmentService';
 import feedbackService, { type FeedbackItem } from '../services/feedbackService';
 import activityService from '../services/activityService';
+import topicChangeRequestService from '../services/topicChangeRequestService';
 
 const router = useRouter();
 const submissionStore = useSubmissionStore();
@@ -119,9 +120,25 @@ function formatActivityDescription(log: any): string {
 const openTopicChangeModal = () => { isTopicChangeModalOpen.value = true; };
 const closeTopicChangeModal = () => { isTopicChangeModalOpen.value = false; };
 
-const handleTopicChangeSubmit = (data: { newTopic: string; reason: string }) => {
-  console.log('Topic change request submitted:', data);
-  closeTopicChangeModal();
+const handleTopicChangeSubmit = async (data: { newTopic: string; reason: string }) => {
+  if (!assignment.value?.topic_id?._id) {
+    console.error('No current topic assigned');
+    errorMessage.value = 'Please ensure you have a topic assigned before requesting a change.';
+    return;
+  }
+  
+  try {
+    await topicChangeRequestService.createTopicChangeRequest(
+      assignment.value.topic_id._id,
+      data.reason,
+      undefined,
+      data.newTopic
+    );
+    errorMessage.value = null;
+  } catch (error: any) {
+    console.error('Error submitting topic change request:', error);
+    errorMessage.value = error.message || 'Failed to submit topic change request. Please try again.';
+  }
 };
 
 const goToSubmissions = () => { router.push('/submissions'); };
