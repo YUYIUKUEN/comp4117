@@ -9,5 +9,9 @@
     "chat.tools.terminal.autoApprove": {
         ".kittify/scripts/bash/": true,
         ".kittify/scripts/ps/": true
-    }
+    },
+    "appService.zipIgnorePattern": [
+        "node_modules{,/**}",
+        ".vscode{,/**}"
+    ]
 }

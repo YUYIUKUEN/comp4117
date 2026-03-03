@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const corsMiddleware = require('./middleware/cors');
 const loggingMiddleware = require('./middleware/logging');
 const errorHandler = require('./middleware/errorHandler');
@@ -50,8 +51,23 @@ app.use('/api/v1/meetings', meetingRoutes);
 app.use('/api/v1/topic-change-requests', topicChangeRequestRoutes);
 app.use('/api/v1/health', healthRoutes);
 
-// 404 handler
-app.use((req, res) => {
+// --- Serve Vue frontend in production ---
+const frontendDist = path.join(__dirname, '..', 'public');
+app.use(express.static(frontendDist));
+
+// SPA fallback: any non-API route serves index.html (must be after API routes)
+app.get(/^\/(?!api\/).*/, (req, res) => {
+  const indexPath = path.join(frontendDist, 'index.html');
+  const fs = require('fs');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).json({ error: 'Frontend not built. Run: npm run build:frontend' });
+  }
+});
+
+// 404 handler (only for /api routes now)
+app.use('/api', (req, res) => {
   res.status(404).json({
     error: 'Not Found',
     code: 'NOT_FOUND',
