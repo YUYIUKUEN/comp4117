@@ -64,10 +64,11 @@ const getFile = (studentId, phase, filename) => {
   return filepath;
 };
 
-const deleteFile = (studentId, phase, filename) => {
+const deleteFile = (filepath) => {
   try {
-    const filepath = getFile(studentId, phase, filename);
-    fs.unlinkSync(filepath);
+    if (fs.existsSync(filepath)) {
+      fs.unlinkSync(filepath);
+    }
     return true;
   } catch (error) {
     console.error('Error deleting file:', error);
