@@ -68,6 +68,97 @@ const getActivityLogs = async (req, res, next) => {
 };
 
 /**
+ * Get activity logs for a student - shows submissions and supervisor feedback actions
+ * Students can view their own logs, supervisors can view their assigned students' logs
+ */
+const getStudentActivityLog = async (req, res, next) => {
+  try {
+    const { studentId } = req.params;
+    const requestingUser = await User.findById(req.auth.userId);
+
+    // Check permission: student can view own logs, supervisor can view assigned student logs
+    if (requestingUser.role === 'Student' && requestingUser._id.toString() !== studentId) {
+      return res.status(403).json({
+        error: 'Cannot view other students activity',
+        code: 'FORBIDDEN',
+        status: 403,
+      });
+    }
+
+    // If supervisor, verify they are assigned to this student
+    if (requestingUser.role === 'Supervisor') {
+      const Assignment = require('../models/Assignment');
+      const assignment = await Assignment.findOne({
+        student_id: studentId,
+        supervisor_id: requestingUser._id,
+        status: 'Active',
+      });
+
+      if (!assignment) {
+        return res.status(403).json({
+          error: 'You are not assigned to this student',
+          code: 'FORBIDDEN',
+          status: 403,
+        });
+      }
+    }
+
+    const { limit = 50, page = 1, includeAuth } = req.query;
+    const skipAmount = (page - 1) * limit;
+
+    // Get student's submission IDs
+    const Submission = require('../models/Submission');
+    const studentSubmissions = await Submission.find({ student_id: studentId }).select('_id');
+    const submissionIds = studentSubmissions.map(s => s._id);
+
+    // Get feedback on student's submissions
+    const Feedback = require('../models/Feedback');
+    const studentFeedback = await Feedback.find({ submission_id: { $in: submissionIds } }).select('_id');
+    const feedbackIds = studentFeedback.map(f => f._id);
+
+    // Query activities that are either:
+    // 1. Performed by the student
+    // 2. On feedback about their submissions
+    // 3. On their submissions
+    const filter = {
+      $or: [
+        { user_id: studentId },
+        { entityType: 'Feedback', entityId: { $in: feedbackIds } },
+        { entityType: 'Submission', entityId: { $in: submissionIds } },
+      ],
+    };
+
+    // By default exclude noisy login/logout entries
+    if (includeAuth !== 'true') {
+      filter.action = { $nin: ['login', 'logout', 'login_failed'] };
+    }
+
+    const logs = await ActivityLog.find(filter)
+      .populate('user_id', 'fullName email role')
+      .sort({ timestamp: -1 })
+      .skip(skipAmount)
+      .limit(parseInt(limit));
+
+    const total = await ActivityLog.countDocuments(filter);
+
+    res.json({
+      data: {
+        logs,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit),
+        },
+      },
+      status: 200,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Get activity logs for a specific user
  * Users can see their own logs, admins can see any user's logs
  */
@@ -390,6 +481,7 @@ const getSupervisorActivityLog = async (req, res, next) => {
 module.exports = {
   getActivityLogs,
   getUserActivityLog,
+  getStudentActivityLog,
   getEntityActivityLog,
   getSupervisorActivityLog,
   getActivityStats,

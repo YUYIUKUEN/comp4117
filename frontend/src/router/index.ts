@@ -206,9 +206,21 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/activity-logs',
+    name: 'StudentActivityLogs',
+    component: () => import('../pages/StudentActivityLogs.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/meetings',
     name: 'StudentMeetingBooking',
     component: () => import('../pages/StudentMeetingBooking.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/activity-logs',
+    name: 'StudentActivityLogs',
+    component: () => import('../pages/StudentActivityLogs.vue'),
     meta: { requiresAuth: true }
   },
   {

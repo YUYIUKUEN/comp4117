@@ -6,7 +6,6 @@ import {
   CloudArrowUpIcon,
   ArrowPathIcon,
 } from '@heroicons/vue/24/outline';
-import ActivityLogWidget from '../components/ActivityLogWidget.vue';
 import TopicChangeRequestModal from '../components/TopicChangeRequestModal.vue';
 import { useSubmissionStore } from '../stores/submissionStore';
 import { useAuthStore } from '../stores/authStore';
@@ -23,10 +22,8 @@ const isTopicChangeModalOpen = ref(false);
 // Real data refs
 const assignment = ref<any>(null);
 const recentFeedback = ref<FeedbackItem[]>([]);
-const activities = ref<{ _id: string; description: string; createdAt: string }[]>([]);
 const loadingAssignment = ref(true);
 const loadingFeedback = ref(true);
-const loadingActivity = ref(true);
 const errorMessage = ref<string | null>(null);
 
 // Reply state
@@ -98,24 +95,7 @@ const upcomingDeadlines = computed(() => {
     .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
 });
 
-// Map action names to human-readable descriptions
-function formatActivityDescription(log: any): string {
-  const action = log.action;
-  const details = log.details || {};
-  switch (action) {
-    case 'login': return 'Logged in';
-    case 'logout': return 'Logged out';
-    case 'login_failed': return 'Failed login attempt';
-    case 'document_submitted': return `Submitted ${details.phase || 'document'}${details.filename ? ': ' + details.filename : ''}`;
-    case 'submission_declared_not_needed': return `Declared "${details.phase}" not needed`;
-    case 'topic_applied': return `Applied to topic: ${details.topicTitle || ''}`;
-    case 'application_withdrawn': return 'Withdrew topic application';
-    case 'password_changed': return 'Changed password';
-    case 'feedback_added': return 'New supervisor feedback received';
-    case 'submission_file_viewed': return `File downloaded: ${details.filename || ''}`;
-    default: return action.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
-  }
-}
+
 
 const openTopicChangeModal = () => { isTopicChangeModalOpen.value = true; };
 const closeTopicChangeModal = () => { isTopicChangeModalOpen.value = false; };
@@ -172,24 +152,7 @@ onMounted(async () => {
     loadingFeedback.value = false;
   }
 
-  // Fetch activity logs
-  const userId = authStore.user?.id;
-  if (userId) {
-    try {
-      const data = await activityService.getUserActivity(userId, 10);
-      activities.value = data.logs.map(log => ({
-        _id: log._id,
-        description: formatActivityDescription(log),
-        createdAt: log.timestamp,
-      }));
-    } catch (e) {
-      console.error('Activity fetch error:', e);
-    } finally {
-      loadingActivity.value = false;
-    }
-  } else {
-    loadingActivity.value = false;
-  }
+
 });
 </script>
 
@@ -504,25 +467,7 @@ onMounted(async () => {
         </article>
       </section>
 
-      <!-- Activity log -->
-      <section class="mt-5">
-        <article class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm shadow-slate-200/70">
-          <header class="flex items-center justify-between gap-2 mb-4">
-            <div>
-              <h2 class="text-sm font-semibold text-slate-900">Activity log</h2>
-              <p class="mt-1 text-xs text-slate-600">Your recent actions and submissions</p>
-            </div>
-          </header>
-          <div v-if="loadingActivity">
-            <div class="space-y-2">
-              <div class="h-6 animate-pulse rounded bg-slate-100" />
-              <div class="h-6 animate-pulse rounded bg-slate-100" />
-              <div class="h-6 animate-pulse rounded bg-slate-100" />
-            </div>
-          </div>
-          <ActivityLogWidget v-else :activities="activities" />
-        </article>
-      </section>
+
     </main>
 
     <!-- Topic Change Request Modal -->

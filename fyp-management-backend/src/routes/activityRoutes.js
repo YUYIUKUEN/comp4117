@@ -3,6 +3,7 @@ const { authenticate, requireRole } = require('../middleware/authMiddleware');
 const {
   getActivityLogs,
   getUserActivityLog,
+  getStudentActivityLog,
   getEntityActivityLog,
   getSupervisorActivityLog,
   getActivityStats,
@@ -19,6 +20,9 @@ router.get('/stats', authenticate, requireRole('Admin'), getActivityStats);
 
 // Export activity logs - Admin only
 router.get('/export', authenticate, requireRole('Admin'), exportActivityLog);
+
+// Student-specific activity logs (includes student & supervisor actions on their submissions)
+router.get('/student/:studentId', authenticate, getStudentActivityLog);
 
 // Supervisor-specific activity logs (includes feedback replies and topic activities)
 router.get('/supervisor/:supervisorId', authenticate, getSupervisorActivityLog);
