@@ -1,0 +1,57 @@
+name: Deploy to Azure Web App (Full Stack)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - 'fyp-management-backend/**'
+      - '.github/workflows/deploy-azure.yml'
+  workflow_dispatch:
+
+env:
+  AZURE_WEBAPP_NAME: comp4117-fyp-api
+  NODE_VERSION: '20.x'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # ---- Build Vue frontend ----
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+        env:
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+
+      # ---- Copy frontend dist into backend/public ----
+      - name: Copy frontend build to backend
+        run: |
+          rm -rf fyp-management-backend/public
+          cp -r frontend/dist fyp-management-backend/public
+
+      # ---- Install backend production deps ----
+      - name: Install backend dependencies
+        working-directory: fyp-management-backend
+        run: npm ci --omit=dev
+
+      # ---- Deploy to Azure ----
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: fyp-management-backend
