@@ -164,6 +164,74 @@ const downloadFile = async (req, res, next) => {
   }
 };
 
+const deleteSubmissionFile = async (req, res, next) => {
+  try {
+    const { phase, filename } = req.params;
+    const studentId = req.auth.userId;
+
+    const submission = await Submission.findOne({
+      student_id: studentId,
+      phase,
+    });
+
+    if (!submission) {
+      return res.status(404).json({
+        error: 'Submission not found',
+        code: 'NOT_FOUND',
+        status: 404,
+      });
+    }
+
+    const fileIndex = submission.files.findIndex(f => f.filename === filename);
+    if (fileIndex === -1) {
+      return res.status(404).json({
+        error: 'File not found',
+        code: 'FILE_NOT_FOUND',
+        status: 404,
+      });
+    }
+
+    // Remove file from filesystem
+    const filepath = getFile(studentId, phase, filename);
+    deleteFile(filepath);
+
+    // Remove file from database
+    const deletedFile = submission.files[fileIndex];
+    submission.files.splice(fileIndex, 1);
+    submission.markModified('files');
+    
+    // If no more files, change status from Submitted back to Not Submitted
+    if (submission.files.length === 0 && submission.status === 'Submitted') {
+      submission.status = 'Not Submitted';
+      submission.submittedAt = null;
+      submission.markModified('status');
+      submission.markModified('submittedAt');
+    }
+    
+    submission.updatedAt = new Date();
+    await submission.save();
+
+    // Log activity
+    await ActivityLog.create({
+      user_id: studentId,
+      action: 'submission_file_deleted',
+      entityType: 'Submission',
+      entityId: submission._id,
+      details: {
+        phase,
+        filename: deletedFile.originalName,
+      },
+    });
+
+    res.json({
+      data: { success: true },
+      status: 200,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const declareNotNeeded = async (req, res, next) => {
   try {
     const { phase } = req.params;
@@ -537,6 +605,7 @@ module.exports = {
   getSubmission,
   getAllStudentSubmissions,
   downloadFile,
+  deleteSubmissionFile,
   declareNotNeeded,
   getSupervisorSubmissions,
   getSupervisorStudentSubmission,

@@ -6,6 +6,7 @@ const {
   getSubmission,
   getAllStudentSubmissions,
   downloadFile,
+  deleteSubmissionFile,
   declareNotNeeded,
   getSupervisorSubmissions,
   getSupervisorStudentSubmission,
@@ -30,6 +31,7 @@ router.post(
 
 router.get('/:phase', authenticate, requireRole('Student'), getSubmission);
 router.get('/:phase/files/:filename', authenticate, requireRole('Student'), downloadFile);
+router.delete('/:phase/files/:filename', authenticate, requireRole('Student'), deleteSubmissionFile);
 
 router.post(
   '/:phase/declare-not-needed',

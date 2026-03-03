@@ -39,6 +39,7 @@ const ACTION_VERB_MAP: Record<string, string> = {
   'document_submitted': 'submitted',
   'submission_updated': 'updated submission',
   'submission_deleted': 'deleted submission',
+  'submission_file_deleted': 'deleted file on',
 
   // Feedback actions
   'feedback_added': 'added feedback',

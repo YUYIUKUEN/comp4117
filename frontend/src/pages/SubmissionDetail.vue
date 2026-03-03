@@ -12,10 +12,12 @@ import {
   ClipboardDocumentListIcon,
   HomeIcon,
   CheckCircleIcon,
+  TrashIcon,
 } from '@heroicons/vue/24/outline';
 import { AcademicCapIcon } from '@heroicons/vue/24/outline';
 import { useSubmissionStore } from '../stores/submissionStore';
 import { useAuthStore } from '../stores/authStore';
+import submissionService from '../services/submissionService';
 import httpClient from '../services/httpClient';
 import feedbackService from '../services/feedbackService';
 
@@ -32,6 +34,7 @@ const uploading = ref(false);
 const uploadError = ref<string | null>(null);
 const uploadSuccess = ref<string | null>(null);
 const fileInputRef = ref<HTMLInputElement | null>(null);
+const deletingFile = ref<string | null>(null);
 const feedback = ref<any[]>([]);
 const feedbackLoading = ref(false);
 const deletingFeedbackId = ref<string | null>(null);
@@ -199,6 +202,38 @@ async function handleDownload(file: any) {
     await submissionStore.triggerDownload(currentPhase.value.phase, file.filename, file.originalName);
   } catch (err: any) {
     console.error('Download failed:', err);
+  }
+}
+
+async function handleDeleteFile(file: any) {
+  if (!currentPhase.value) return;
+  
+  if (!confirm(`Are you sure you want to delete "${file.originalName}"?`)) {
+    return;
+  }
+
+  deletingFile.value = file.filename;
+  try {
+    await submissionService.deleteSubmissionFile(currentPhase.value.phase, file.filename);
+    
+    // Refresh submission phases to get updated status and files
+    await submissionStore.fetchSubmissionPhases();
+    
+    // Re-select the current phase to ensure it's updated
+    const updatedPhase = submissionStore.phases.find(p => p.phase === currentPhase.value?.phase);
+    if (updatedPhase) {
+      submissionStore.setSelectedPhase(updatedPhase);
+    }
+    
+    uploadSuccess.value = `"${file.originalName}" deleted successfully`;
+    setTimeout(() => {
+      uploadSuccess.value = null;
+    }, 3000);
+  } catch (err: any) {
+    console.error('Delete failed:', err);
+    uploadError.value = err.message || 'Failed to delete file';
+  } finally {
+    deletingFile.value = null;
   }
 }
 </script>
@@ -434,13 +469,25 @@ async function handleDownload(file: any) {
                       </p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    class="inline-flex items-center rounded-full border border-slate-300 bg-white px-2.5 py-1 text-[11px] text-slate-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50"
-                    @click="handleDownload(file)"
-                  >
-                    Download
-                  </button>
+                  <div class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      class="inline-flex items-center rounded-full border border-slate-300 bg-white px-2.5 py-1 text-[11px] text-slate-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                      @click="handleDownload(file)"
+                    >
+                      Download
+                    </button>
+                    <button
+                      type="button"
+                      :disabled="deletingFile === file.filename"
+                      class="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-2.5 py-1 text-[11px] text-red-600 hover:border-red-500 hover:text-red-700 hover:bg-red-50 disabled:text-slate-400 disabled:hover:bg-white disabled:hover:border-slate-300 transition"
+                      @click="handleDeleteFile(file)"
+                      :title="`Delete ${file.originalName}`"
+                    >
+                      <TrashIcon class="h-3.5 w-3.5" />
+                      {{ deletingFile === file.filename ? 'Deleting...' : 'Delete' }}
+                    </button>
+                  </div>
                 </li>
               </ul>
               <p v-else class="mt-4 text-xs text-slate-500 text-center py-2">

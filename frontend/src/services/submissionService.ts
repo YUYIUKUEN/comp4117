@@ -147,6 +147,21 @@ export async function downloadFile(phase: string, filename: string): Promise<Blo
 }
 
 /**
+ * Delete a submitted file
+ */
+export async function deleteSubmissionFile(phase: string, filename: string): Promise<{ success: boolean }> {
+  try {
+    const response = await httpClient.delete(
+      `/submissions/${encodeURIComponent(phase)}/files/${encodeURIComponent(filename)}`
+    )
+    return response.data.data
+  } catch (error) {
+    console.error(`Failed to delete file ${filename}:`, error)
+    throw new Error('File deletion failed')
+  }
+}
+
+/**
  * Download a student submission file (supervisor access)
  */
 export async function downloadSupervisorFile(studentId: string, phase: string, filename: string): Promise<Blob> {
@@ -189,6 +204,7 @@ export default {
   uploadSubmissionFile,
   submitDeclaration,
   downloadFile,
+  deleteSubmissionFile,
   downloadSupervisorFile,
   getSubmissionStats,
   getSupervisorSubmissionById,

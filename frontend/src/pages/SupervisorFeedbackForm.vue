@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import {
   ArrowLeftIcon,
@@ -11,6 +11,7 @@ import { getSupervisorSubmissionById, downloadSupervisorFile } from '../services
 import gradingStandardService from '../services/gradingStandardService';
 import type { GradingStandard } from '../services/gradingStandardService';
 import feedbackService from '../services/feedbackService';
+import httpClient from '../services/httpClient';
 
 const router = useRouter();
 const route = useRoute();
@@ -31,6 +32,11 @@ const isSaving = ref(false);
 const saveError = ref('');
 const internalNote = ref('');
 
+// Autosave state for internal note
+const internalNoteAutoSaveStatus = ref<'unsaved' | 'saving' | 'saved'>('saved');
+const internalNoteSaveError = ref('');
+let autoSaveTimeout: ReturnType<typeof setTimeout> | null = null;
+
 // Reply state - per feedback
 const replyingToFeedbackId = ref<string | null>(null);
 const replyText = ref('');
@@ -44,6 +50,39 @@ const downloadingFile = ref<string | null>(null);
 
 // Edit state
 const editingFeedbackId = ref<string | null>(null);
+
+// Autosave function for internal note
+const autoSaveInternalNote = async () => {
+  if (!editingFeedbackId.value) return;
+  
+  internalNoteAutoSaveStatus.value = 'saving';
+  internalNoteSaveError.value = '';
+  
+  try {
+    // Only send the internal note field to avoid conflicts
+    await httpClient.put(`/feedback/${editingFeedbackId.value}`, {
+      internalNote: internalNote.value.trim(),
+    });
+    internalNoteAutoSaveStatus.value = 'saved';
+  } catch (e: any) {
+    internalNoteSaveError.value = e?.response?.data?.error || 'Failed to save note';
+    internalNoteAutoSaveStatus.value = 'unsaved';
+  }
+};
+
+// Debounced autosave watcher
+watch(internalNote, () => {
+  if (!editingFeedbackId.value) return;
+  
+  internalNoteAutoSaveStatus.value = 'unsaved';
+  internalNoteSaveError.value = '';
+  
+  if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
+  
+  autoSaveTimeout = setTimeout(() => {
+    autoSaveInternalNote();
+  }, 2000); // Autosave 2 seconds after user stops typing
+});
 
 // Fetch data
 onMounted(async () => {
@@ -283,7 +322,7 @@ const handleDownloadFile = async (file: any) => {
       </button>
       <div>
         <p class="text-[11px] uppercase tracking-[0.2em] text-slate-500">Feedback Form</p>
-        <p class="text-sm font-semibold text-slate-900">{{ existingFeedback.length > 0 ? 'Edit Feedback & Grade' : 'Add Feedback & Grade' }}</p>
+        <p class="text-sm font-semibold text-slate-900">{{ editingFeedbackId ? 'Edit Feedback & Grade' : 'Add Feedback & Grade' }}</p>
       </div>
       <button
         @click="router.push('/supervisor')"
@@ -581,10 +620,36 @@ const handleDownloadFile = async (file: any) => {
         <div class="flex items-center gap-2 mb-3">
           <ShieldExclamationIcon class="h-5 w-5 text-amber-600" />
           <h3 class="text-lg font-semibold text-amber-900">Internal Note for Admin</h3>
+          <!-- Autosave Status Indicator -->
+          <div v-if="editingFeedbackId" class="ml-auto flex items-center gap-1.5 text-xs">
+            <span
+              v-if="internalNoteAutoSaveStatus === 'unsaved'"
+              class="text-amber-600 font-medium"
+            >
+              Unsaved
+            </span>
+            <span
+              v-else-if="internalNoteAutoSaveStatus === 'saving'"
+              class="text-amber-600 font-medium flex items-center gap-1"
+            >
+              <span class="inline-block w-1.5 h-1.5 bg-amber-600 rounded-full animate-pulse"></span>
+              Saving...
+            </span>
+            <span
+              v-else
+              class="text-green-600 font-medium flex items-center gap-1"
+            >
+              <CheckIcon class="h-3.5 w-3.5" />
+              Saved
+            </span>
+          </div>
         </div>
         <p class="text-xs text-amber-700 mb-3">
           This note is <strong>only visible to you and the admin</strong>. Students will never see this.
           Use it to communicate concerns, special circumstances, or internal remarks about this student's work.
+          <span v-if="editingFeedbackId" class="block mt-1.5 font-semibold text-green-700">
+            💾 Autosave enabled — changes are saved automatically after you stop typing
+          </span>
         </p>
         <textarea
           v-model="internalNote"
@@ -592,6 +657,10 @@ const handleDownloadFile = async (file: any) => {
           class="block w-full rounded-lg border border-amber-300 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-amber-400/70 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/60"
           rows="4"
         ></textarea>
+        <!-- Error message for autosave -->
+        <div v-if="internalNoteSaveError" class="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+          <p class="text-xs text-red-700">{{ internalNoteSaveError }}</p>
+        </div>
       </div>
       </template>
     </main>
