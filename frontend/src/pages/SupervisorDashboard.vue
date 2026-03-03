@@ -60,7 +60,7 @@ const stats = computed(() => {
   const total = students.value.length;
   const pending = pendingApplications.value.length;
   const overdue = students.value.filter(
-    (s) => s.submissions.progress1 === 'Overdue',
+    (s) => (s as any).submissions?.progress1 === 'Overdue',
   ).length;
   return { total, pending, overdue };
 });

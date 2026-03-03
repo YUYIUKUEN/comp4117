@@ -59,7 +59,7 @@ const handleFileSelect = async (files: FileList | null) => {
   const errors: string[] = []
 
   for (let i = 0; i < files.length; i++) {
-    const file = files[i]
+    const file = files[i]!
     const validation = validateFile(file)
 
     if (validation.valid) {
@@ -106,7 +106,7 @@ const onDragLeave = (e: DragEvent) => {
 const onDrop = (e: DragEvent) => {
   e.preventDefault()
   isDragging.value = false
-  handleFileSelect(e.dataTransfer?.files)
+  handleFileSelect(e.dataTransfer?.files ?? null)
 }
 
 const removeFile = (index: number) => {

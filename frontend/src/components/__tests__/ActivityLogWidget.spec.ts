@@ -18,7 +18,7 @@ describe('ActivityLogWidget', () => {
         description: 'Assignment submitted',
         createdAt: new Date().toISOString(),
       },
-    ]
+    ] as any[]
 
     const wrapper = mount(ActivityLogWidget, {
       props: { activities },
@@ -34,7 +34,7 @@ describe('ActivityLogWidget', () => {
         description: 'Assignment submitted',
         createdAt: new Date().toISOString(),
       },
-    ]
+    ] as any[]
 
     const wrapper = mount(ActivityLogWidget, {
       props: { activities },
@@ -53,7 +53,7 @@ describe('ActivityLogWidget', () => {
         description: 'Assignment submitted',
         createdAt: oneHourAgo.toISOString(),
       },
-    ]
+    ] as any[]
 
     const wrapper = mount(ActivityLogWidget, {
       props: { activities },
@@ -74,7 +74,7 @@ describe('ActivityLogWidget', () => {
         description: 'Activity 2',
         createdAt: new Date().toISOString(),
       },
-    ]
+    ] as any[]
 
     const wrapper = mount(ActivityLogWidget, {
       props: { activities },

@@ -1,6 +1,7 @@
+import type { RouteLocationNormalized, NavigationGuardNext } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 
-export const authGuard = (to, from, next) => {
+export const authGuard = (to: RouteLocationNormalized, _from: RouteLocationNormalized, next: NavigationGuardNext) => {
   const authStore = useAuthStore();
   
   if (to.meta.requiresAuth === false) {
@@ -15,8 +16,8 @@ export const authGuard = (to, from, next) => {
   }
 };
 
-export const roleGuard = (requiredRoles = []) => {
-  return (to, from, next) => {
+export const roleGuard = (requiredRoles: string[] = []) => {
+  return (_to: RouteLocationNormalized, _from: RouteLocationNormalized, next: NavigationGuardNext) => {
     const authStore = useAuthStore();
     
     if (!authStore.isAuthenticated) {
@@ -24,7 +25,7 @@ export const roleGuard = (requiredRoles = []) => {
       return;
     }
     
-    if (requiredRoles.length === 0 || requiredRoles.includes(authStore.userRole)) {
+    if (requiredRoles.length === 0 || requiredRoles.includes(authStore.userRole as string)) {
       next();
     } else {
       next('/dashboard');

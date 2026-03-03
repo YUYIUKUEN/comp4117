@@ -10,6 +10,7 @@
  */
 import { formatActivityDescription, formatActivityTimestamp } from '@/utils/activityFormatter'
 import type { ActivityItem } from '@/services/activityService'
+import activityService from '@/services/activityService'
 
 export function DisplayActivity(activity: ActivityItem) {
   const description = formatActivityDescription(activity)

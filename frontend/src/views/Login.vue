@@ -51,8 +51,9 @@ const handleLogin = async () => {
     console.log('✅ Login response received:', response)
     
     // Store auth state
-    const user = response.data.data?.user
-    const token = response.data.data?.token
+    const resData = response.data as any
+    const user = resData.data?.user || resData.user
+    const token = resData.data?.token || resData.token
     
     if (!user || !token) {
       throw new Error('Invalid response structure: missing user or token')

@@ -65,8 +65,9 @@ export const useTopicStore = defineStore('topic', () => {
         status: filters.value.status
       })
       // Response has structure: { data: { topics: [...], pagination: {...} }, status: 200 }
-      topics.value = response.data?.topics || []
-      pagination.value = response.data?.pagination || { page: 1, limit: 10, total: 0, pages: 1 }
+      const resData = response as any
+      topics.value = resData.data?.topics || resData.topics || []
+      pagination.value = resData.data?.pagination || resData.pagination || { page: 1, limit: 10, total: 0, pages: 1 }
     } catch (err: any) {
       error.value = err.response?.data?.error || 'Failed to fetch topics'
       topics.value = []
@@ -81,7 +82,7 @@ export const useTopicStore = defineStore('topic', () => {
     try {
       const response = await topicService.getTopicById(id)
       // API returns { data: { ...topic }, status: 200 } — unwrap the nested data
-      const topic = response.data || response
+      const topic = (response as any).data || response
       // Map supervisor_id.fullName to supervisorName for template compatibility
       if (topic.supervisor_id && typeof topic.supervisor_id === 'object') {
         topic.supervisorName = topic.supervisor_id.fullName || ''

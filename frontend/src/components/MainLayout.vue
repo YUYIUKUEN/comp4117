@@ -28,9 +28,9 @@ import SidebarSupervisor from './layout/SidebarSupervisor.vue';
 const authStore = useAuthStore();
 const route = useRoute();
 
-const userRole = computed(() => {
+const userRole = computed((): string | undefined => {
   const role = authStore.userRole;
-  if (!role) return null;
+  if (!role) return undefined;
   return role.toLowerCase();
 });
 

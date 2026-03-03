@@ -336,7 +336,7 @@ router.beforeEach((to, _from, next) => {
 
   // Check role requirement
   if (requiredRoles && requiredRoles.length > 0) {
-    if (!requiredRoles.includes(userRole)) {
+    if (!requiredRoles.includes(userRole as string)) {
       next('/dashboard');
       return;
     }

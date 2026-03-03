@@ -77,7 +77,7 @@ export const useGradingStandards = () => {
       gradingStandards.value[index] = {
         ...gradingStandards.value[index],
         ...updates,
-      }
+      } as GradingStandard
     }
   }
 

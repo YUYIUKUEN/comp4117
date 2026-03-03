@@ -148,7 +148,7 @@ const loadTopics = async () => {
   try {
     const response = await topicService.getSupervisorTopics()
     // API returns { data: { topics: [...], count: ... }, status: 200 }
-    supervisorTopics.topics = response.data?.topics || response.topics || []
+    supervisorTopics.topics = (response as any).data?.topics || (response as any).topics || []
   } catch (error: any) {
     supervisorTopics.error = error.response?.data?.error || 'Failed to load topics'
   } finally {

@@ -163,7 +163,7 @@ const formatTime = (ts: string) => {
             <div class="flex-1 min-w-0">
               <p class="text-xs text-slate-500">{{ formatTime(log.timestamp) }}</p>
               <p class="text-sm font-medium text-slate-900 mt-1">
-                {{ formatActivityDescription(log) }}
+                {{ formatActivityDescription(log as any) }}
               </p>
             </div>
           </div>

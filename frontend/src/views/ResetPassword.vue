@@ -128,7 +128,7 @@ const handleResetPassword = async () => {
   loading.value = true;
 
   try {
-    await passwordResetService.resetPassword(token, form.password);
+    await passwordResetService.resetPassword({ token, newPassword: form.password });
     submitted.value = true;
 
     // Redirect to login after 3 seconds
