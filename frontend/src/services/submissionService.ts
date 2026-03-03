@@ -147,6 +147,22 @@ export async function downloadFile(phase: string, filename: string): Promise<Blo
 }
 
 /**
+ * Download a student submission file (supervisor access)
+ */
+export async function downloadSupervisorFile(studentId: string, phase: string, filename: string): Promise<Blob> {
+  try {
+    const response = await httpClient.get(
+      `/submissions/supervisor/student/${encodeURIComponent(studentId)}/${encodeURIComponent(phase)}/files/${encodeURIComponent(filename)}`,
+      { responseType: 'blob' }
+    )
+    return response.data
+  } catch (error) {
+    console.error(`Failed to download file ${filename}:`, error)
+    throw new Error('File download failed')
+  }
+}
+
+/**
  * Get submission statistics (supervisor)
  */
 export async function getSubmissionStats(): Promise<any> {
@@ -173,6 +189,7 @@ export default {
   uploadSubmissionFile,
   submitDeclaration,
   downloadFile,
+  downloadSupervisorFile,
   getSubmissionStats,
   getSupervisorSubmissionById,
 }

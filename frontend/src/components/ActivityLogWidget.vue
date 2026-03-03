@@ -7,8 +7,8 @@
       <div v-for="activity in activities" :key="activity._id" class="activity-entry">
         <div class="activity-dot"></div>
         <div class="activity-content">
-          <span class="activity-text">{{ activity.description }}</span>
-          <span class="activity-time">{{ formatTime(activity.createdAt) }}</span>
+          <span class="activity-text">{{ formatActivityDescription(activity) }}</span>
+          <span class="activity-time">{{ formatActivityTimestamp(activity.timestamp) }}</span>
         </div>
       </div>
     </div>
@@ -16,10 +16,23 @@
 </template>
 
 <script setup lang="ts">
+import { formatActivityDescription, formatActivityTimestamp } from '@/utils/activityFormatter'
+
+interface User {
+  _id: string
+  fullName: string
+  email: string
+  role: string
+}
+
 interface Activity {
   _id: string
-  description: string
-  createdAt: string
+  user_id: User
+  action: string
+  entityType: string
+  entityId?: string
+  details?: Record<string, any>
+  timestamp: string
 }
 
 interface Props {
@@ -29,25 +42,6 @@ interface Props {
 withDefaults(defineProps<Props>(), {
   activities: () => [],
 })
-
-const formatTime = (date: string) => {
-  const now = new Date()
-  const actDate = new Date(date)
-  const diffMs = now.getTime() - actDate.getTime()
-  const diffMins = Math.floor(diffMs / 60000)
-  const diffHours = Math.floor(diffMs / 3600000)
-  const diffDays = Math.floor(diffMs / 86400000)
-
-  if (diffMins < 1) return 'just now'
-  if (diffMins < 60) return `${diffMins}m ago`
-  if (diffHours < 24) return `${diffHours}h ago`
-  if (diffDays < 7) return `${diffDays}d ago`
-  
-  return actDate.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-  })
-}
 </script>
 
 <style scoped>

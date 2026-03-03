@@ -314,10 +314,84 @@ const convertToCSV = (logs) => {
   return csv;
 };
 
+/**
+ * Get activity logs related to a supervisor's work
+ * This includes activities they performed + activities on their feedback/topics
+ */
+const getSupervisorActivityLog = async (req, res, next) => {
+  try {
+    const { supervisorId } = req.params;
+    const requestingUser = await User.findById(req.auth.userId);
+
+    // Users can view own logs, admins can view any supervisor's logs
+    if (requestingUser.role !== 'Admin' && requestingUser._id.toString() !== supervisorId) {
+      return res.status(403).json({
+        error: 'Cannot view other supervisors activity',
+        code: 'FORBIDDEN',
+        status: 403,
+      });
+    }
+
+    const { limit = 50, page = 1, includeAuth } = req.query;
+    const skipAmount = (page - 1) * limit;
+
+    // Get supervisor's feedback IDs
+    const Feedback = require('../models/Feedback');
+    const supervisorFeedback = await Feedback.find({ supervisor_id: supervisorId }).select('_id');
+    const feedbackIds = supervisorFeedback.map(f => f._id);
+
+    // Get supervisor's topic IDs
+    const Topic = require('../models/Topic');
+    const supervisorTopics = await Topic.find({ supervisor_id: supervisorId }).select('_id');
+    const topicIds = supervisorTopics.map(t => t._id);
+
+    // Query activities that are either:
+    // 1. Performed by the supervisor
+    // 2. On feedback they gave
+    // 3. On topics they created
+    const filter = {
+      $or: [
+        { user_id: supervisorId },
+        { entityType: 'Feedback', entityId: { $in: feedbackIds } },
+        { entityType: 'Topic', entityId: { $in: topicIds } },
+      ],
+    };
+
+    // By default exclude noisy login/logout entries; pass ?includeAuth=true to see them
+    if (includeAuth !== 'true') {
+      filter.action = { $nin: ['login', 'logout', 'login_failed'] };
+    }
+
+    const logs = await ActivityLog.find(filter)
+      .populate('user_id', 'fullName email role')
+      .sort({ timestamp: -1 })
+      .skip(skipAmount)
+      .limit(parseInt(limit));
+
+    const total = await ActivityLog.countDocuments(filter);
+
+    res.json({
+      data: {
+        logs,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit),
+        },
+      },
+      status: 200,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getActivityLogs,
   getUserActivityLog,
   getEntityActivityLog,
+  getSupervisorActivityLog,
   getActivityStats,
   exportActivityLog,
 };

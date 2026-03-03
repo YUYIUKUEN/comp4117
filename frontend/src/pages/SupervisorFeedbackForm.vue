@@ -5,8 +5,9 @@ import {
   ArrowLeftIcon,
   CheckIcon,
   ShieldExclamationIcon,
+  ArrowDownTrayIcon,
 } from '@heroicons/vue/24/outline';
-import { getSupervisorSubmissionById } from '../services/submissionService';
+import { getSupervisorSubmissionById, downloadSupervisorFile } from '../services/submissionService';
 import gradingStandardService from '../services/gradingStandardService';
 import type { GradingStandard } from '../services/gradingStandardService';
 import feedbackService from '../services/feedbackService';
@@ -37,6 +38,9 @@ const submittingReply = ref(false);
 
 // Delete state
 const isDeletingFeedback = ref(false);
+
+// Download state
+const downloadingFile = ref<string | null>(null);
 
 // Edit state
 const editingFeedbackId = ref<string | null>(null);
@@ -243,6 +247,28 @@ const handleAddNewFeedback = () => {
   replyingToFeedbackId.value = null;
   replyText.value = '';
 };
+
+const handleDownloadFile = async (file: any) => {
+  downloadingFile.value = file.filename;
+  try {
+    const studentId = submission.value.student_id._id;
+    const phase = submission.value.phase;
+    const blob = await downloadSupervisorFile(studentId, phase, file.filename);
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = file.originalName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (error: any) {
+    console.error('Download error:', error);
+    alert('Failed to download file. Please try again.');
+  } finally {
+    downloadingFile.value = null;
+  }
+};
 </script>
 
 <template>
@@ -299,11 +325,23 @@ const handleAddNewFeedback = () => {
           <!-- Files -->
           <div v-if="submission.files?.length" class="mt-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
             <h3 class="text-sm font-semibold text-slate-900 mb-2">Submitted Files:</h3>
-            <ul class="space-y-1">
-              <li v-for="file in submission.files" :key="file.filename" class="text-sm text-slate-700">
-                {{ file.originalName }} ({{ (file.size / 1024).toFixed(1) }} KB)
-              </li>
-            </ul>
+            <div class="space-y-2">
+              <div v-for="file in submission.files" :key="file.filename" class="flex items-center justify-between">
+                <span class="text-sm text-slate-700">
+                  {{ file.originalName }} ({{ (file.size / 1024).toFixed(1) }} KB)
+                </span>
+                <button
+                  type="button"
+                  @click="handleDownloadFile(file)"
+                  :disabled="downloadingFile === file.filename"
+                  class="inline-flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 disabled:text-slate-400 disabled:hover:bg-transparent rounded transition"
+                  :title="`Download ${file.originalName}`"
+                >
+                  <ArrowDownTrayIcon class="h-4 w-4" />
+                  {{ downloadingFile === file.filename ? 'Downloading...' : 'Download' }}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 

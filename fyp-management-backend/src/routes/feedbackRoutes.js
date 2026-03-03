@@ -74,4 +74,11 @@ router.post(
   replyToFeedback
 );
 
+// Delete a reply - only the reply author can delete
+router.delete(
+  '/:feedbackId/replies/:replyId',
+  authenticate,
+  require('../controllers/feedbackController').deleteReply
+);
+
 module.exports = router;

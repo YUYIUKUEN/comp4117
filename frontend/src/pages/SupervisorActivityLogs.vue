@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 import httpClient from '@/services/httpClient';
+import { formatActivityDescription } from '@/utils/activityFormatter';
 import {
   ArrowLeftIcon,
   CheckCircleIcon,
@@ -41,7 +42,7 @@ const fetchActivityLogs = async () => {
       error.value = 'Not authenticated';
       return;
     }
-    const res = await httpClient.get(`/activity/user/${userId}`, {
+    const res = await httpClient.get(`/activity/supervisor/${userId}`, {
       params: { limit: pageSize, page: currentPage.value },
     });
     activityLogs.value = res.data?.data?.logs || [];
@@ -97,12 +98,6 @@ const formatTime = (ts: string) => {
   return d.toLocaleString('en-HK', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 };
 
-const formatAction = (log: ActivityLog) => {
-  const action = (log.action || '').replace(/_/g, ' ').toLowerCase();
-  const parts = [action];
-  if (log.entityType) parts.push(`on ${log.entityType}`);
-  return parts.join(' ');
-};
 </script>
 
 <template>
@@ -168,11 +163,7 @@ const formatAction = (log: ActivityLog) => {
             <div class="flex-1 min-w-0">
               <p class="text-xs text-slate-500">{{ formatTime(log.timestamp) }}</p>
               <p class="text-sm font-medium text-slate-900 mt-1">
-                <span class="font-semibold">{{ log.user_id?.fullName || 'Unknown User' }}</span>
-                <span class="text-slate-600 ml-1">{{ formatAction(log) }}</span>
-              </p>
-              <p v-if="log.details && Object.keys(log.details).length" class="text-xs text-slate-500 mt-1">
-                {{ JSON.stringify(log.details) }}
+                {{ formatActivityDescription(log) }}
               </p>
             </div>
           </div>

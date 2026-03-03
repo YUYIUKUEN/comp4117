@@ -500,6 +500,18 @@ const replyToFeedback = async (req, res, next) => {
 
     const newReply = feedback.replies[feedback.replies.length - 1];
 
+    // Log activity for the reply
+    await ActivityLog.create({
+      user_id: userId,
+      action: 'feedback_reply_added',
+      entityType: 'Feedback',
+      entityId: feedback._id,
+      details: {
+        submission_id: feedback.submission_id,
+        isStudentReply: isStudent,
+      },
+    });
+
     res.status(201).json({
       data: newReply,
       status: 201,
@@ -548,6 +560,58 @@ const getAdminInternalNotes = async (req, res, next) => {
   }
 };
 
+/**
+ * Delete a reply to feedback
+ * Only the user who made the reply can delete it
+ * DELETE /feedback/:feedbackId/replies/:replyId
+ */
+const deleteReply = async (req, res, next) => {
+  try {
+    const { feedbackId, replyId } = req.params;
+    const userId = req.auth.userId;
+
+    const feedback = await Feedback.findById(feedbackId);
+    if (!feedback) {
+      return res.status(404).json({
+        error: 'Feedback not found',
+        code: 'FEEDBACK_NOT_FOUND',
+        status: 404,
+      });
+    }
+
+    // Find the reply
+    const replyIndex = feedback.replies.findIndex(r => r._id.toString() === replyId);
+    if (replyIndex === -1) {
+      return res.status(404).json({
+        error: 'Reply not found',
+        code: 'REPLY_NOT_FOUND',
+        status: 404,
+      });
+    }
+
+    // Verify ownership - only the reply author can delete
+    if (feedback.replies[replyIndex].user_id.toString() !== userId) {
+      return res.status(403).json({
+        error: 'You can only delete your own replies',
+        code: 'NOT_OWNER',
+        status: 403,
+      });
+    }
+
+    // Remove the reply
+    feedback.replies.splice(replyIndex, 1);
+    feedback.updatedAt = new Date();
+    await feedback.save();
+
+    res.json({
+      data: { success: true },
+      status: 200,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   addFeedback,
   getFeedback,
@@ -556,5 +620,6 @@ module.exports = {
   getFeedbackStats,
   getStudentRecentFeedback,
   replyToFeedback,
+  deleteReply,
   getAdminInternalNotes,
 };

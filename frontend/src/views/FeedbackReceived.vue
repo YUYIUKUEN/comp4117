@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { useAuthStore } from '../stores/authStore';
 import feedbackService, { type FeedbackItem } from '../services/feedbackService';
 
 const feedbackItems = ref<FeedbackItem[]>([]);
@@ -9,6 +10,7 @@ const loading = ref(true);
 const replyingTo = ref<string | null>(null);
 const replyText = ref('');
 const submittingReply = ref(false);
+const deletingReplyId = ref<string | null>(null);
 
 const toggleReply = (feedbackId: string) => {
   if (replyingTo.value === feedbackId) {
@@ -36,6 +38,28 @@ const submitReply = async (feedbackId: string) => {
     console.error('Reply error:', e);
   } finally {
     submittingReply.value = false;
+  }
+};
+
+const isCurrentUserReply = (reply: any) => {
+  return reply.user_id?._id === useAuthStore().user?.id;
+};
+
+const deleteReply = async (feedbackId: string, replyId: string) => {
+  if (!confirm('Are you sure you want to delete this reply?')) return;
+  
+  deletingReplyId.value = replyId;
+  try {
+    await feedbackService.deleteReply(feedbackId, replyId);
+    const fb = feedbackItems.value.find(f => f._id === feedbackId);
+    if (fb) {
+      fb.replies = fb.replies.filter(r => r._id !== replyId);
+    }
+  } catch (e) {
+    console.error('Delete reply error:', e);
+    alert('Failed to delete reply');
+  } finally {
+    deletingReplyId.value = null;
   }
 };
 
@@ -142,6 +166,16 @@ onMounted(async () => {
                     </p>
                     <p class="mt-0.5 text-xs text-slate-600 leading-relaxed">{{ reply.replyText }}</p>
                   </div>
+                  <button
+                    v-if="isCurrentUserReply(reply)"
+                    type="button"
+                    @click="deleteReply(feedback._id, reply._id)"
+                    :disabled="deletingReplyId === reply._id"
+                    class="text-xs font-medium text-red-600 hover:text-red-700 disabled:text-slate-400 shrink-0 px-2 py-1 rounded hover:bg-red-50 disabled:hover:bg-transparent transition"
+                    title="Delete reply"
+                  >
+                    {{ deletingReplyId === reply._id ? 'Deleting...' : 'Delete' }}
+                  </button>
                 </div>
               </div>
             </div>

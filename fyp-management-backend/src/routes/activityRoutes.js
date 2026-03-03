@@ -4,6 +4,7 @@ const {
   getActivityLogs,
   getUserActivityLog,
   getEntityActivityLog,
+  getSupervisorActivityLog,
   getActivityStats,
   exportActivityLog,
 } = require('../controllers/activityController');
@@ -18,6 +19,9 @@ router.get('/stats', authenticate, requireRole('Admin'), getActivityStats);
 
 // Export activity logs - Admin only
 router.get('/export', authenticate, requireRole('Admin'), exportActivityLog);
+
+// Supervisor-specific activity logs (includes feedback replies and topic activities)
+router.get('/supervisor/:supervisorId', authenticate, getSupervisorActivityLog);
 
 // User-specific activity logs - User can view own, admin can view any
 router.get('/user/:userId', authenticate, getUserActivityLog);

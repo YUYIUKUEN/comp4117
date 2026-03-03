@@ -9,7 +9,6 @@ import {
   UserGroupIcon,
   PencilIcon,
   MagnifyingGlassIcon,
-  ChevronRightIcon,
 } from '@heroicons/vue/24/outline';
 
 const router = useRouter();
@@ -86,23 +85,6 @@ onMounted(() => {
 
 const goToFeedbackGrading = () => {
   router.push('/supervisor/feedback-grading');
-};
-
-const goToStudentTopic = (studentId: number) => {
-  router.push(`/supervisor/topic/${studentId}`);
-};
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'Active':
-      return 'bg-green-100 text-green-800';
-    case 'Pending':
-      return 'bg-yellow-100 text-yellow-800';
-    case 'Completed':
-      return 'bg-blue-100 text-blue-800';
-    default:
-      return 'bg-slate-100 text-slate-800';
-  }
 };
 
 const getSubmissionStatusColor = (status: string) => {
@@ -280,12 +262,6 @@ const getSubmissionStatusColor = (status: string) => {
                   <th class="px-4 py-3 text-left font-semibold text-slate-900">
                     Assigned
                   </th>
-                  <th class="px-4 py-3 text-left font-semibold text-slate-900">
-                    Status
-                  </th>
-                  <th class="px-4 py-3 text-center font-semibold text-slate-900">
-                    Action
-                  </th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-200">
@@ -337,23 +313,6 @@ const getSubmissionStatusColor = (status: string) => {
                     <p class="text-xs text-slate-600">
                       {{ student.assignedAt ? new Date(student.assignedAt).toLocaleDateString() : '—' }}
                     </p>
-                  </td>
-                  <td class="px-4 py-3">
-                    <span
-                      :class="['inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', getStatusColor(student.status)]"
-                    >
-                      {{ student.status }}
-                    </span>
-                  </td>
-                  <td class="px-4 py-3 text-center">
-                    <button
-                      type="button"
-                      class="inline-flex items-center justify-center rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors"
-                      @click="goToStudentTopic(student.id)"
-                      :title="`View ${student.name}'s topic details`"
-                    >
-                      <ChevronRightIcon class="h-5 w-5" />
-                    </button>
                   </td>
                 </tr>
               </tbody>

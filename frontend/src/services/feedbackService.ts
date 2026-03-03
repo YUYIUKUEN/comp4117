@@ -59,6 +59,14 @@ export default {
   },
 
   /**
+   * Delete a reply to feedback
+   */
+  async deleteReply(feedbackId: string, replyId: string): Promise<{ success: boolean }> {
+    const response = await httpClient.delete(`/feedback/${feedbackId}/replies/${replyId}`)
+    return response.data.data
+  },
+
+  /**
    * Add feedback (with optional grade and internal note) to a submission
    */
   async addFeedback(
