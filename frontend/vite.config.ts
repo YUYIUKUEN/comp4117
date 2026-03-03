@@ -2,7 +2,10 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
 
+const isGitHubPages = process.env.GITHUB_PAGES === 'true'
+
 export default defineConfig({
+  base: isGitHubPages ? '/comp4117/' : '/',
   plugins: [vue()],
   resolve: {
     alias: {
