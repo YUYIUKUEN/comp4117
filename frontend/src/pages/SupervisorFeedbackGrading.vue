@@ -135,7 +135,7 @@ const feedbackItems = computed(() => {
     submissionDate: sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString() : '—',
     dueDate: sub.dueDate ? new Date(sub.dueDate).toLocaleDateString() : '—',
     status: sub.feedbacks?.length > 0 ? 'Reviewed' : (sub.status === 'Submitted' ? 'Pending Review' : sub.status),
-    feedback: sub.feedbacks?.length > 0 ? sub.feedbacks[0].feedbackText : null,
+    feedback: sub.feedbacks?.length ? sub.feedbacks[0]!.feedbackText : null,
     files: sub.files || [],
     fileCount: sub.files?.length || 0,
   }));

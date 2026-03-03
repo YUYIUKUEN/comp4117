@@ -132,7 +132,7 @@ onMounted(async () => {
   // Select first non-submitted phase, or first phase
   if (submissionStore.phases.length > 0 && !submissionStore.selectedPhase) {
     const pending = submissionStore.phases.find(p => p.status !== 'Submitted' && p.status !== 'Declared Not Needed');
-    submissionStore.setSelectedPhase(pending || submissionStore.phases[0]);
+    submissionStore.setSelectedPhase(pending ?? submissionStore.phases[0] ?? null);
   }
 });
 
@@ -160,7 +160,7 @@ function triggerFileInput() {
 async function handleFileSelect(event: Event) {
   const input = event.target as HTMLInputElement;
   if (!input.files?.length || !currentPhase.value) return;
-  await doUpload(input.files[0]);
+  await doUpload(input.files[0]!);
   input.value = ''; // reset
 }
 

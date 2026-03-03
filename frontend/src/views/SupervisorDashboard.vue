@@ -115,7 +115,7 @@ interface Stats {
 const topics = ref<Topic[]>([])
 const applications = ref<Application[]>([])
 const feedbacks = ref<Feedback[]>([])
-const recentActivities = ref<Activity[]>([])
+const recentActivities = ref<any[]>([])
 const loading = ref(true)
 
 const userName = computed(() => 'Supervisor')

@@ -29,7 +29,7 @@ export const isTokenExpired = (token: string): boolean => {
   if (parts.length !== 3) return true;
 
   try {
-    const payload = JSON.parse(atob(parts[1]));
+    const payload = JSON.parse(atob(parts[1]!));
     if (!payload.exp) return true;
     return payload.exp * 1000 < Date.now();
   } catch {
@@ -41,7 +41,7 @@ export const decodeToken = (token: string) => {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
-    return JSON.parse(atob(parts[1]));
+    return JSON.parse(atob(parts[1]!));
   } catch {
     return null;
   }

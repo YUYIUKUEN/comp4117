@@ -80,7 +80,7 @@ interface Topic {
 }
 
 const users = ref<User[]>([])
-const activities = ref<Activity[]>([])
+const activities = ref<any[]>([])
 const topics = ref<Topic[]>([])
 const loading = ref(true)
 

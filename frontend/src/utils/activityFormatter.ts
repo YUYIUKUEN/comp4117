@@ -124,7 +124,7 @@ function getBaseVerb(action: string): string {
 
   // Extract verb from action pattern (snake_case)
   const parts = action.toLowerCase().split('_')
-  const lastPart = parts[parts.length - 1]
+  const lastPart = parts[parts.length - 1]!
 
   // Map common endings
   const verbMap: Record<string, string> = {

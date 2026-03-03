@@ -60,7 +60,7 @@ const currentRoute = computed(() => {
   if (path === '/admin/students-cohorts') return 'admin-cohorts';
   if (path === '/admin/grading-standards') return 'admin-grading';
   if (path === '/admin/internal-notes') return 'internal-notes';
-  return null;
+  return undefined;
 });
 
 const mainContent = ref<HTMLElement | null>(null);
