@@ -121,6 +121,7 @@ const addFeedback = async (req, res, next) => {
       entityId: feedback._id,
       details: {
         submission_id: submissionId,
+        phase: submission.phase,
         isPrivate: isPrivate === true,
         hasRating: rating !== undefined,
       },
@@ -278,6 +279,9 @@ const updateFeedback = async (req, res, next) => {
     feedback.updatedAt = new Date();
     await feedback.save();
 
+    // Get submission to include phase in activity log
+    const submission = await Submission.findById(feedback.submission_id).select('phase');
+
     // Log activity
     await ActivityLog.create({
       user_id: supervisorId,
@@ -286,6 +290,7 @@ const updateFeedback = async (req, res, next) => {
       entityId: feedback._id,
       details: {
         submission_id: feedback.submission_id,
+        phase: submission?.phase,
       },
     });
 
@@ -329,6 +334,9 @@ const deleteFeedback = async (req, res, next) => {
     const submissionId = feedback.submission_id;
     await Feedback.findByIdAndDelete(feedbackId);
 
+    // Get submission to include phase in activity log
+    const submission = await Submission.findById(submissionId).select('phase');
+
     // Log activity
     await ActivityLog.create({
       user_id: supervisorId,
@@ -337,6 +345,7 @@ const deleteFeedback = async (req, res, next) => {
       entityId: feedbackId,
       details: {
         submission_id: submissionId,
+        phase: submission?.phase,
       },
     });
 
@@ -508,6 +517,7 @@ const replyToFeedback = async (req, res, next) => {
       entityId: feedback._id,
       details: {
         submission_id: feedback.submission_id,
+        phase: submission.phase,
         isStudentReply: isStudent,
       },
     });

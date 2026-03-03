@@ -22,6 +22,7 @@ export interface ActivityItem {
   entityId?: string
   details?: Record<string, any>
   timestamp: string
+  submission_id?: string
 }
 
 // Mapping of actions to their past-tense verbs
@@ -40,6 +41,7 @@ const ACTION_VERB_MAP: Record<string, string> = {
   'submission_updated': 'updated submission',
   'submission_deleted': 'deleted submission',
   'submission_file_deleted': 'deleted file on',
+  'submission_declared_not_needed': 'declared not needed',
 
   // Feedback actions
   'feedback_added': 'added feedback',
@@ -138,7 +140,7 @@ function getBaseVerb(action: string): string {
     'assigned': 'assigned',
   }
 
-  return verbMap[lastPart] || 'performed action on'
+  return verbMap[lastPart] || 'performed'
 }
 
 /**
@@ -175,8 +177,8 @@ function isApprovalAction(action: string): boolean {
  * @returns Formatted activity description as plain text
  * 
  * Examples:
- * "Dr. Samuel Lee added feedback on Feedback"
- * "Bob Chan replied to the feedback on Progress report"
+ * "Dr. Samuel Lee added feedback on Feedback (Progress Report 1)"
+ * "Bob Chan replied to the feedback on Progress report (Initial Statement)"
  * "Alice Johnson approved Topic Change Request"
  */
 export function formatActivityDescription(activity: ActivityItem): string {
@@ -188,22 +190,29 @@ export function formatActivityDescription(activity: ActivityItem): string {
   const verb = getBaseVerb(action)
   const contextType = getContextType(entityType)
 
+  // Get submission phase if available
+  const submissionPhase = activity.details?.phase || activity.details?.submissionType
+  const submissionLabel = submissionPhase ? ` (${submissionPhase})` : ''
+
   // Construct the description
   let description = `${userName} ${verb}`
 
   // Handle special cases for different action/entity combinations
   if (isReplyAction(action)) {
     // For reply actions: "{User} replied to {context_type} on {location}"
-    description = `${userName} replied to the ${contextType.toLowerCase()} on ${contextType}`
+    description = `${userName} replied to the ${contextType.toLowerCase()} on ${contextType}${submissionLabel}`
   } else if (isApprovalAction(action)) {
     // For approval actions: "{User} {approved|rejected} {context_type}"
-    description = `${userName} ${verb} ${contextType}`
+    description = `${userName} ${verb} ${contextType}${submissionLabel}`
   } else if (action.includes('delete') || verb === 'deleted') {
     // For deletion: "{User} deleted {context_type}"
-    description = `${userName} deleted ${contextType}`
+    description = `${userName} deleted ${contextType}${submissionLabel}`
+  } else if (verb.endsWith(' on')) {
+    // If verb already ends with "on", just append contextType
+    description = `${userName} ${verb} ${contextType}${submissionLabel}`
   } else {
     // Default: "{User} {verb} on {context_type}"
-    description = `${userName} ${verb} on ${contextType}`
+    description = `${userName} ${verb} on ${contextType}${submissionLabel}`
   }
 
   return description
