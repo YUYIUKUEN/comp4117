@@ -11,6 +11,28 @@ import {
 import httpClient from '@/services/httpClient';
 import feedbackService from '@/services/feedbackService';
 
+interface FeedbackReply {
+  _id: string;
+  user_id: {
+    _id: string;
+    fullName: string;
+    email: string;
+    role: string;
+  };
+  replyText: string;
+  createdAt: string;
+}
+
+interface FeedbackItem {
+  _id: string;
+  feedbackText: string;
+  createdAt: string;
+  replies?: FeedbackReply[];
+  isPrivate?: boolean;
+  grade?: string;
+  supervisor_id?: { _id: string; fullName: string; email: string };
+}
+
 interface SubmissionItem {
   _id: string;
   student_id: { _id: string; fullName: string; email: string } | null;
@@ -20,7 +42,7 @@ interface SubmissionItem {
   submittedAt: string | null;
   dueDate: string | null;
   files: Array<{ filename: string; originalName: string; size: number }>;
-  feedbacks: Array<{ _id: string; feedbackText: string; createdAt: string }>;
+  feedbacks: FeedbackItem[];
 }
 
 const router = useRouter();
@@ -29,7 +51,6 @@ const submissions = ref<SubmissionItem[]>([]);
 const isLoading = ref(false);
 const errorMessage = ref('');
 const filterStudentId = ref<string | null>(null);
-const deletingFeedbackId = ref<string | null>(null);
 
 const fetchSubmissions = async () => {
   try {
@@ -182,25 +203,6 @@ const handleProvideFeedback = (id: string) => {
   router.push(`/supervisor/feedback-form?id=${id}`);
 };
 
-const handleDeleteFeedback = async (feedbackId: string, submissionId: string) => {
-  if (!confirm('Are you sure you want to delete this feedback?')) {
-    return;
-  }
-
-  deletingFeedbackId.value = feedbackId;
-  try {
-    await feedbackService.deleteFeedback(feedbackId);
-    // Refresh submissions to reflect the deletion
-    await fetchSubmissions();
-    console.log(`Feedback ${feedbackId} deleted successfully`);
-  } catch (error: any) {
-    console.error('Failed to delete feedback:', error);
-    alert('Failed to delete feedback. Only the supervisor who created it can delete it.');
-  } finally {
-    deletingFeedbackId.value = null;
-  }
-};
-
 const getStatusColor = (status: string) => {
   switch (status) {
     case 'Reviewed':
@@ -214,6 +216,18 @@ const getStatusColor = (status: string) => {
     default:
       return 'border-slate-500/50 bg-slate-50 text-slate-700';
   }
+};
+
+const formatDate = (dateStr: string) => {
+  return new Date(dateStr).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
+const avatarUrl = (name: string, bg = '0F172A') => {
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${bg}&color=fff`;
 };
 
 const downloadFile = async (studentId: string, phase: string, filename: string, originalName: string) => {
@@ -402,16 +416,30 @@ const downloadFile = async (studentId: string, phase: string, filename: string, 
               <div v-if="item.feedback" class="bg-slate-50 rounded p-3 text-xs text-slate-700">
                 <div class="flex items-start justify-between gap-2 mb-1">
                   <p class="font-medium text-slate-900">Your Feedback:</p>
-                  <button
-                    @click="handleDeleteFeedback(item.id, item.id)"
-                    :disabled="deletingFeedbackId === item.id"
-                    class="inline-flex items-center rounded px-2 py-1 text-[11px] font-medium text-red-700 hover:bg-red-100 bg-red-50 border border-red-200 disabled:opacity-50 transition-colors"
-                    title="Delete feedback"
-                  >
-                    {{ deletingFeedbackId === item.id ? 'Deleting...' : 'Delete' }}
-                  </button>
                 </div>
                 <p>{{ item.feedback }}</p>
+
+                <!-- Student Replies -->
+                <div v-if="submissions.find(s => s._id === item.id)?.feedbacks[0]?.replies?.length" class="mt-3 space-y-2 border-t border-slate-200 pt-2">
+                  <p class="text-[10px] font-semibold uppercase text-slate-500 tracking-wide">Student Replies</p>
+                  <div
+                    v-for="reply in submissions.find(s => s._id === item.id)?.feedbacks[0]?.replies"
+                    :key="reply._id"
+                    class="flex items-start gap-2 rounded bg-white px-2 py-1.5 border border-slate-200"
+                  >
+                    <img
+                      :src="avatarUrl(reply.user_id?.fullName || 'U', reply.user_id?.role === 'Supervisor' ? '7C3AED' : '3B82F6')"
+                      class="h-6 w-6 rounded-full mt-0.5 flex-shrink-0"
+                    >
+                    <div class="min-w-0 flex-1">
+                      <p class="text-[10px]">
+                        <span class="font-medium text-slate-900">{{ reply.user_id?.fullName ?? 'User' }}</span>
+                        <span class="text-slate-400 ml-1">{{ formatDate(reply.createdAt) }}</span>
+                      </p>
+                      <p class="mt-0.5 text-[10px] text-slate-600 leading-relaxed">{{ reply.replyText }}</p>
+                    </div>
+                  </div>
+                </div>
               </div>
               <div v-else class="bg-amber-50 rounded p-3 text-xs text-amber-700">
                 <p class="font-medium">No feedback provided yet</p>

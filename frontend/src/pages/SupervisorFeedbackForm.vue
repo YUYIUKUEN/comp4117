@@ -30,6 +30,17 @@ const isSaving = ref(false);
 const saveError = ref('');
 const internalNote = ref('');
 
+// Reply state - per feedback
+const replyingToFeedbackId = ref<string | null>(null);
+const replyText = ref('');
+const submittingReply = ref(false);
+
+// Delete state
+const isDeletingFeedback = ref(false);
+
+// Edit state
+const editingFeedbackId = ref<string | null>(null);
+
 // Fetch data
 onMounted(async () => {
   if (!submissionId) {
@@ -53,15 +64,6 @@ onMounted(async () => {
     // Fetch existing feedback for this submission
     try {
       existingFeedback.value = await feedbackService.getSubmissionFeedback(submissionId);
-      
-      // Pre-populate form fields if feedback exists
-      if (existingFeedback.value.length > 0) {
-        const feedback = existingFeedback.value[0];
-        feedbackText.value = feedback.feedbackText || '';
-        selectedGrade.value = feedback.grade || '';
-        pointsInput.value = parseFloat(feedback.grade) || undefined;
-        internalNote.value = feedback.internalNote || '';
-      }
     } catch {
       // No feedback yet — that's fine
     }
@@ -119,15 +121,21 @@ const handleSaveFeedback = async () => {
     };
 
     // If editing existing feedback, update it; otherwise create new
-    if (existingFeedback.value.length > 0) {
-      await feedbackService.updateFeedback(existingFeedback.value[0]._id, feedbackData);
+    if (editingFeedbackId.value) {
+      await feedbackService.updateFeedback(editingFeedbackId.value, feedbackData);
+      // Update the feedback in the list
+      const index = existingFeedback.value.findIndex(fb => fb._id === editingFeedbackId.value);
+      if (index !== -1) {
+        existingFeedback.value[index] = { ...existingFeedback.value[index], ...feedbackData };
+      }
+      editingFeedbackId.value = null;
     } else {
-      await feedbackService.addFeedback(submissionId, feedbackData);
+      const newFeedback = await feedbackService.addFeedback(submissionId, feedbackData);
+      existingFeedback.value.push(newFeedback);
     }
 
     alert('Feedback and grade saved successfully!');
-    // Navigate back to feedback & grading page with a refresh
-    router.push('/supervisor/feedback-grading');
+    handleClearForm();
   } catch (e: any) {
     saveError.value = e?.response?.data?.error || 'Failed to save feedback';
   } finally {
@@ -137,6 +145,103 @@ const handleSaveFeedback = async () => {
 
 const handleCancel = () => {
   router.back();
+};
+
+const handleEditFeedback = (feedback: any) => {
+  editingFeedbackId.value = feedback._id;
+  feedbackText.value = feedback.feedbackText || '';
+  selectedGrade.value = feedback.grade || '';
+  pointsInput.value = parseFloat(feedback.grade) || '';
+  internalNote.value = feedback.internalNote || '';
+  // Scroll to form
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+const handleClearForm = () => {
+  feedbackText.value = '';
+  selectedGrade.value = '';
+  pointsInput.value = '';
+  internalNote.value = '';
+  editingFeedbackId.value = null;
+  replyingToFeedbackId.value = null;
+  replyText.value = '';
+};
+
+const formatDate = (dateStr: string) => {
+  return new Date(dateStr).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
+const avatarUrl = (name: string, bg = '0F172A') => {
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${bg}&color=fff`;
+};
+
+const toggleReplying = (feedbackId: string) => {
+  if (replyingToFeedbackId.value === feedbackId) {
+    replyingToFeedbackId.value = null;
+    replyText.value = '';
+  } else {
+    replyingToFeedbackId.value = feedbackId;
+    replyText.value = '';
+  }
+};
+
+const submitReply = async (feedbackId: string) => {
+  if (!replyText.value.trim() || submittingReply.value) return;
+
+  submittingReply.value = true;
+  try {
+    const newReply = await feedbackService.replyToFeedback(feedbackId, replyText.value.trim());
+    
+    // Update the feedback with the new reply
+    const feedback = existingFeedback.value.find(f => f._id === feedbackId);
+    if (feedback) {
+      if (!feedback.replies) {
+        feedback.replies = [];
+      }
+      feedback.replies.push(newReply);
+    }
+    
+    replyingToFeedbackId.value = null;
+    replyText.value = '';
+  } catch (error: any) {
+    console.error('Reply error:', error);
+    alert('Failed to submit reply. Please try again.');
+  } finally {
+    submittingReply.value = false;
+  }
+};
+
+const handleDeleteFeedback = async (feedbackId: string) => {
+  if (!confirm('Are you sure you want to delete this feedback? This action cannot be undone.')) {
+    return;
+  }
+
+  isDeletingFeedback.value = true;
+  try {
+    await feedbackService.deleteFeedback(feedbackId);
+    alert('Feedback deleted successfully!');
+    // Remove deleted feedback from the list instead of navigating away
+    existingFeedback.value = existingFeedback.value.filter(fb => fb._id !== feedbackId);
+  } catch (error: any) {
+    console.error('Failed to delete feedback:', error);
+    alert(error.response?.data?.error || 'Failed to delete feedback. Only the supervisor who created it can delete it.');
+  } finally {
+    isDeletingFeedback.value = false;
+  }
+};
+
+const handleAddNewFeedback = () => {
+  // Clear form fields to prepare for adding new feedback
+  feedbackText.value = '';
+  selectedGrade.value = '';
+  pointsInput.value = '';
+  internalNote.value = '';
+  replyingToFeedbackId.value = null;
+  replyText.value = '';
 };
 </script>
 
@@ -188,6 +293,7 @@ const handleCancel = () => {
             <h2 class="text-lg font-semibold text-slate-900 mt-2">{{ submission.student_id?.fullName || 'Unknown Student' }}</h2>
             <p class="text-sm text-slate-600 mt-1">{{ submission.topic_id?.title || 'Unknown Topic' }}</p>
             <p class="text-xs text-slate-500 mt-2">Submitted: {{ submission.submittedAt ? new Date(submission.submittedAt).toLocaleDateString() : 'Not yet' }}</p>
+            <div v-if="editingFeedbackId" class="mt-3 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-700 font-medium">✎ Editing feedback</div>
           </div>
 
           <!-- Files -->
@@ -212,7 +318,7 @@ const handleCancel = () => {
 
         <!-- Feedback & Grading Form -->
         <div class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm mb-6">
-          <h3 class="text-lg font-semibold text-slate-900 mb-4">Provide Feedback{{ applicableStandard ? ' & Grade' : '' }}</h3>
+          <h3 class="text-lg font-semibold text-slate-900 mb-4">{{ editingFeedbackId ? 'Edit' : 'Add' }} Feedback{{ applicableStandard ? ' & Grade' : '' }}</h3>
 
           <!-- Grading Standard Info -->
           <div v-if="applicableStandard" class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
@@ -318,9 +424,17 @@ const handleCancel = () => {
             class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <CheckIcon class="h-5 w-5" />
-            {{ isSaving ? 'Saving...' : existingFeedback.length > 0 ? (applicableStandard ? 'Update Feedback & Grade' : 'Update Feedback') : (applicableStandard ? 'Save Feedback & Grade' : 'Save Feedback') }}
+            {{ isSaving ? 'Saving...' : editingFeedbackId ? (applicableStandard ? 'Update Feedback & Grade' : 'Update Feedback') : (applicableStandard ? 'Save Feedback & Grade' : 'Save Feedback') }}
           </button>
           <button
+            v-if="editingFeedbackId"
+            @click="handleClearForm"
+            class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Cancel Edit
+          </button>
+          <button
+            v-else
             @click="handleCancel"
             class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
@@ -332,11 +446,94 @@ const handleCancel = () => {
       <!-- Existing Feedback -->
       <div v-if="existingFeedback.length > 0" class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm mb-6">
         <h3 class="text-lg font-semibold text-slate-900 mb-4">Previous Feedback</h3>
-        <div v-for="fb in existingFeedback" :key="fb._id" class="mb-4 last:mb-0 p-3 bg-slate-50 rounded-lg border border-slate-200">
-          <p class="text-sm text-slate-700 whitespace-pre-wrap">{{ fb.feedbackText }}</p>
-          <div class="mt-2 flex items-center gap-3 text-xs text-slate-500">
-            <span>{{ new Date(fb.createdAt).toLocaleDateString() }}</span>
-            <span v-if="fb.grade" class="font-semibold text-blue-600">Grade: {{ fb.grade }}</span>
+        <div v-for="fb in existingFeedback" :key="fb._id" class="mb-4 last:mb-0 p-4 bg-slate-50 rounded-lg border border-slate-200">
+          <!-- Feedback header with edit and delete buttons -->
+          <div class="flex items-start justify-between gap-3 mb-3">
+            <div class="flex-1">
+              <!-- Feedback text and details -->
+              <p class="text-sm text-slate-700 whitespace-pre-wrap">{{ fb.feedbackText }}</p>
+              <div class="mt-2 flex items-center gap-3 text-xs text-slate-500">
+                <span>{{ formatDate(fb.createdAt) }}</span>
+                <span v-if="fb.grade" class="font-semibold text-blue-600">Grade: {{ fb.grade }}</span>
+              </div>
+            </div>
+            <div class="flex-shrink-0 flex gap-2">
+              <button
+                @click="handleEditFeedback(fb)"
+                class="inline-flex items-center rounded-lg px-3 py-2 text-xs font-medium text-blue-700 hover:bg-blue-100 bg-blue-50 border border-blue-200 transition-colors"
+                title="Edit this feedback"
+              >
+                Edit
+              </button>
+              <button
+                @click="handleDeleteFeedback(fb._id)"
+                :disabled="isDeletingFeedback"
+                class="inline-flex items-center rounded-lg px-3 py-2 text-xs font-medium text-red-700 hover:bg-red-100 bg-red-50 border border-red-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="Delete this feedback"
+              >
+                {{ isDeletingFeedback ? 'Deleting...' : 'Delete' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Student Replies with inline reply form -->
+          <div class="mt-4 space-y-3 border-t border-slate-200 pt-3">
+            <!-- Student replies list -->
+            <div v-if="fb.replies?.length" class="space-y-2">
+              <p class="text-xs font-semibold uppercase text-slate-500 tracking-wide">Student Replies</p>
+              <div
+                v-for="reply in fb.replies"
+                :key="reply._id"
+                class="flex items-start gap-3 rounded-lg border border-slate-200 bg-white p-3"
+              >
+                <img
+                  :src="avatarUrl(reply.user_id?.fullName || 'U', reply.user_id?.role === 'Supervisor' ? '7C3AED' : '3B82F6')"
+                  class="h-7 w-7 rounded-full mt-0.5 flex-shrink-0"
+                >
+                <div class="min-w-0 flex-1">
+                  <p class="text-xs">
+                    <span class="font-medium text-slate-900">{{ reply.user_id?.fullName ?? 'User' }}</span>
+                    <span class="text-slate-400 ml-2">{{ formatDate(reply.createdAt) }}</span>
+                  </p>
+                  <p class="mt-0.5 text-xs text-slate-600 leading-relaxed">{{ reply.replyText }}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Reply button and form -->
+            <div v-if="replyingToFeedbackId !== fb._id" class="pt-2">
+              <button
+                @click="toggleReplying(fb._id)"
+                class="inline-flex items-center rounded-lg border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition"
+              >
+                Reply to Student
+              </button>
+            </div>
+
+            <!-- Reply form -->
+            <div v-if="replyingToFeedbackId === fb._id" class="pt-2 space-y-2">
+              <textarea
+                v-model="replyText"
+                rows="3"
+                placeholder="Write your reply to the student…"
+                class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
+              ></textarea>
+              <div class="flex gap-2 justify-end">
+                <button
+                  @click="submitReply(fb._id)"
+                  :disabled="!replyText.trim() || submittingReply"
+                  class="inline-flex items-center rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  {{ submittingReply ? 'Sending…' : 'Send Reply' }}
+                </button>
+                <button
+                  @click="toggleReplying(fb._id)"
+                  class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
