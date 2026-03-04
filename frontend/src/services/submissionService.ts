@@ -131,6 +131,21 @@ export async function submitDeclaration(
 }
 
 /**
+ * Undo/revert a declaration for a phase
+ */
+export async function undoDeclaration(phase: string): Promise<SubmissionPhase> {
+  try {
+    const response = await httpClient.post(
+      `/submissions/${encodeURIComponent(phase)}/undo-declaration`
+    )
+    return response.data.data
+  } catch (error) {
+    console.error(`Failed to undo declaration for phase ${phase}:`, error)
+    throw new Error('Undo declaration failed')
+  }
+}
+
+/**
  * Download a submitted file
  */
 export async function downloadFile(phase: string, filename: string): Promise<Blob> {
@@ -203,6 +218,7 @@ export default {
   getSubmissionPhase,
   uploadSubmissionFile,
   submitDeclaration,
+  undoDeclaration,
   downloadFile,
   deleteSubmissionFile,
   downloadSupervisorFile,

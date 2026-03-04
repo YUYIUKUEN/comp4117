@@ -299,6 +299,68 @@ const declareNotNeeded = async (req, res, next) => {
   }
 };
 
+const undeclareNotNeeded = async (req, res, next) => {
+  try {
+    const { phase } = req.params;
+    const studentId = req.auth.userId;
+
+    const assignment = await Assignment.findOne({
+      student_id: studentId,
+      status: 'Active',
+    });
+
+    if (!assignment) {
+      return res.status(400).json({
+        error: 'No active assignment found',
+        code: 'NO_ASSIGNMENT',
+        status: 400,
+      });
+    }
+
+    const submission = await Submission.findOne({
+      student_id: studentId,
+      phase,
+      topic_id: assignment.topic_id,
+    });
+
+    if (!submission) {
+      return res.status(404).json({
+        error: 'Submission not found',
+        code: 'NOT_FOUND',
+        status: 404,
+      });
+    }
+
+    if (submission.status !== 'Declared Not Needed') {
+      return res.status(400).json({
+        error: 'Submission is not declared as not needed',
+        code: 'INVALID_STATE',
+        status: 400,
+      });
+    }
+
+    submission.status = 'Not Submitted';
+    submission.declarationReason = null;
+    submission.declaredAt = null;
+    await submission.save();
+
+    await ActivityLog.create({
+      user_id: studentId,
+      action: 'submission_undeclared_not_needed',
+      entityType: 'Submission',
+      entityId: submission._id,
+      details: { phase },
+    });
+
+    res.json({
+      data: submission,
+      status: 200,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getAllStudentSubmissions = async (req, res, next) => {
   try {
     const studentId = req.auth.userId;
@@ -607,6 +669,7 @@ module.exports = {
   downloadFile,
   deleteSubmissionFile,
   declareNotNeeded,
+  undeclareNotNeeded,
   getSupervisorSubmissions,
   getSupervisorStudentSubmission,
   downloadSupervisorFile,

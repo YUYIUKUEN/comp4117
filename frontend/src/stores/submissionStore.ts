@@ -110,6 +110,28 @@ export const useSubmissionStore = defineStore('submission', () => {
     }
   }
 
+  async function undoDeclaration(phase: string) {
+    loading.value = true
+    error.value = null
+    try {
+      const updated = await submissionService.undoDeclaration(phase)
+      const idx = phases.value.findIndex(p => p.phase === phase)
+      if (idx !== -1) {
+        phases.value[idx] = updated
+      }
+      if (selectedPhase.value?.phase === phase) {
+        selectedPhase.value = updated
+      }
+      return updated
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to undo declaration'
+      console.error('Error undoing declaration:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }  }
+
   async function triggerDownload(phase: string, filename: string, originalName: string) {
     try {
       const blob = await submissionService.downloadFile(phase, filename)
@@ -164,6 +186,7 @@ export const useSubmissionStore = defineStore('submission', () => {
     fetchSubmissionPhase,
     uploadFile,
     submitDeclaration,
+    undoDeclaration,
     triggerDownload,
     setSelectedPhase,
     clearError,

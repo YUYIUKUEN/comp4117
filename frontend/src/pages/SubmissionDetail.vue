@@ -97,23 +97,28 @@ watch(() => submissionStore.selectedPhase, (phase) => {
   }
 }, { immediate: true });
 
-async function handleDeclarationChange(checked: boolean) {
+async function toggleDeclaration() {
   if (!currentPhase.value || declarationSubmitting.value) return;
-  if (!checked) {
-    // Cannot uncheck — already declared
-    return;
-  }
+  
   declarationSubmitting.value = true;
   declarationError.value = null;
+  
   try {
-    const reason = 'This report is not required for my project as agreed with my supervisor.';
-    await submissionStore.submitDeclaration(currentPhase.value.phase, reason);
+    if (currentPhaseIsDeclared.value) {
+      // Undo the declaration
+      await submissionStore.undoDeclaration(currentPhase.value.phase);
+    } else {
+      // Submit new declaration
+      const reason = 'This report is not required for my project as agreed with my supervisor.';
+      await submissionStore.submitDeclaration(currentPhase.value.phase, reason);
+    }
+    
     // Refresh phases
     await submissionStore.fetchSubmissionPhases();
     const updated = submissionStore.phases.find(p => p.phase === currentPhase.value?.phase);
     if (updated) submissionStore.setSelectedPhase(updated);
   } catch (err: any) {
-    declarationError.value = err.message || 'Failed to submit declaration';
+    declarationError.value = err.message || 'Failed to update declaration';
   } finally {
     declarationSubmitting.value = false;
   }
@@ -576,18 +581,26 @@ async function handleDeleteFile(file: any) {
                 </div>
               </div>
 
-              <!-- Declaration button (only for students, only if not already declared or submitted) -->
+              <!-- Declaration button (only for students, only if not already submitted) -->
               <div v-if="isStudent && currentPhase?.status !== 'Submitted'" class="mt-4">
                 <p class="text-[11px] text-slate-700 mb-3">
                   If this report is not required for your project as agreed with your supervisor, you can declare it as not needed.
                 </p>
                 <button
-                  :disabled="currentPhaseIsDeclared || declarationSubmitting"
-                  @click="handleDeclarationChange(true)"
-                  class="inline-flex items-center justify-center px-4 py-2 text-[12px] font-medium rounded-lg border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:border-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  :disabled="declarationSubmitting"
+                  @click="toggleDeclaration"
+                  :class="[
+                    'inline-flex items-center justify-center px-4 py-2 text-[12px] font-medium rounded-lg border transition-colors',
+                    currentPhaseIsDeclared 
+                      ? 'border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 hover:border-amber-400' 
+                      : 'border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:border-blue-400',
+                    'disabled:opacity-50 disabled:cursor-not-allowed'
+                  ]"
                 >
-                  <span v-if="!declarationSubmitting">Declare as Not Needed</span>
-                  <span v-else>Submitting...</span>
+                  <span v-if="!declarationSubmitting">
+                    {{ currentPhaseIsDeclared ? 'Undo Declaration' : 'Declare as Not Needed' }}
+                  </span>
+                  <span v-else>{{ currentPhaseIsDeclared ? 'Undoing...' : 'Submitting...' }}</span>
                 </button>
               </div>
               <p v-if="declarationError" class="mt-2 text-[11px] text-red-600">{{ declarationError }}</p>

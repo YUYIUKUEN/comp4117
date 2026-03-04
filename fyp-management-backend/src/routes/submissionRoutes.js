@@ -8,6 +8,7 @@ const {
   downloadFile,
   deleteSubmissionFile,
   declareNotNeeded,
+  undeclareNotNeeded,
   getSupervisorSubmissions,
   getSupervisorStudentSubmission,
   downloadSupervisorFile,
@@ -38,6 +39,13 @@ router.post(
   authenticate,
   requireRole('Student'),
   declareNotNeeded
+);
+
+router.post(
+  '/:phase/undo-declaration',
+  authenticate,
+  requireRole('Student'),
+  undeclareNotNeeded
 );
 
 // Supervisor routes
