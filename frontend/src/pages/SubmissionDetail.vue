@@ -26,7 +26,6 @@ const submissionStore = useSubmissionStore();
 const authStore = useAuthStore();
 const isStudent = computed(() => authStore.userRole === 'Student');
 const sidebarOpen = ref(false);
-const declarationChecked = ref(false);
 const declarationSubmitting = ref(false);
 const declarationError = ref<string | null>(null);
 const activeView = ref<'submissions' | 'checklist'>('submissions');
@@ -91,7 +90,6 @@ const deleteFeedback = async (feedbackId: string) => {
 const currentPhaseIsDeclared = computed(() => currentPhase.value?.status === 'Declared Not Needed');
 
 watch(() => submissionStore.selectedPhase, (phase) => {
-  declarationChecked.value = phase?.status === 'Declared Not Needed';
   declarationError.value = null;
   // Fetch feedback for this submission
   if (phase?._id) {
@@ -103,7 +101,6 @@ async function handleDeclarationChange(checked: boolean) {
   if (!currentPhase.value || declarationSubmitting.value) return;
   if (!checked) {
     // Cannot uncheck — already declared
-    declarationChecked.value = true;
     return;
   }
   declarationSubmitting.value = true;
@@ -111,13 +108,11 @@ async function handleDeclarationChange(checked: boolean) {
   try {
     const reason = 'This report is not required for my project as agreed with my supervisor.';
     await submissionStore.submitDeclaration(currentPhase.value.phase, reason);
-    declarationChecked.value = true;
     // Refresh phases
     await submissionStore.fetchSubmissionPhases();
     const updated = submissionStore.phases.find(p => p.phase === currentPhase.value?.phase);
     if (updated) submissionStore.setSelectedPhase(updated);
   } catch (err: any) {
-    declarationChecked.value = false;
     declarationError.value = err.message || 'Failed to submit declaration';
   } finally {
     declarationSubmitting.value = false;
@@ -581,25 +576,21 @@ async function handleDeleteFile(file: any) {
                 </div>
               </div>
 
-              <!-- Declaration checkbox (only for students, only if not already declared or submitted) -->
-              <div v-if="isStudent && currentPhase?.status !== 'Submitted'" class="mt-3 flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                <input
-                  id="declaration"
-                  :checked="declarationChecked"
-                  type="checkbox"
+              <!-- Declaration button (only for students, only if not already declared or submitted) -->
+              <div v-if="isStudent && currentPhase?.status !== 'Submitted'" class="mt-4">
+                <p class="text-[11px] text-slate-700 mb-3">
+                  If this report is not required for your project as agreed with your supervisor, you can declare it as not needed.
+                </p>
+                <button
                   :disabled="currentPhaseIsDeclared || declarationSubmitting"
-                  class="mt-1 h-3.5 w-3.5 rounded border-slate-300 bg-white text-blue-500 focus:ring-blue-500 disabled:opacity-50"
-                  @change="handleDeclarationChange(($event.target as HTMLInputElement).checked)"
+                  @click="handleDeclarationChange(true)"
+                  class="inline-flex items-center justify-center px-4 py-2 text-[12px] font-medium rounded-lg border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:border-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                <label
-                  for="declaration"
-                  class="text-[11px] text-slate-800"
-                >
-                  This report is not required for my project as agreed with my supervisor.
-                </label>
+                  <span v-if="!declarationSubmitting">Declare as Not Needed</span>
+                  <span v-else>Submitting...</span>
+                </button>
               </div>
-              <p v-if="declarationError" class="mt-1 text-[11px] text-red-600">{{ declarationError }}</p>
-              <p v-if="declarationSubmitting" class="mt-1 text-[11px] text-blue-600">Submitting declaration...</p>
+              <p v-if="declarationError" class="mt-2 text-[11px] text-red-600">{{ declarationError }}</p>
             </section>
           </section>
         </div>
