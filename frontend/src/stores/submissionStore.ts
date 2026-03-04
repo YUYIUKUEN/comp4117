@@ -130,7 +130,7 @@ export const useSubmissionStore = defineStore('submission', () => {
     } finally {
       loading.value = false
     }
-  }  }
+  }
 
   async function triggerDownload(phase: string, filename: string, originalName: string) {
     try {
