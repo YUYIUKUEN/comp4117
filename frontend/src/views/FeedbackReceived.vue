@@ -57,7 +57,14 @@ const deleteReply = async (feedbackId: string, replyId: string) => {
     }
   } catch (e) {
     console.error('Delete reply error:', e);
-    alert('Failed to delete reply');
+    const errorCode = (e as any).response?.data?.code;
+    let errorMessage = 'Failed to delete reply';
+    
+    if (errorCode === 'REPLY_TOO_OLD') {
+      errorMessage = 'Reply cannot be deleted after 30 minutes of creation.';
+    }
+    
+    alert((e as any).response?.data?.error || errorMessage);
   } finally {
     deletingReplyId.value = null;
   }

@@ -97,6 +97,26 @@ export default {
   },
 
   /**
+   * Apply to multiple topics at once
+   * @param topics Array of {topicId, preferenceRank} pairs
+   */
+  async applyToMultipleTopics(
+    topics: Array<{ topicId: string; preferenceRank: number }>
+  ): Promise<Application[]> {
+    try {
+      const results: Application[] = []
+      for (const topic of topics) {
+        const app = await this.applyToTopic(topic.topicId, topic.preferenceRank)
+        results.push(app)
+      }
+      return results
+    } catch (error) {
+      console.error('Error applying to multiple topics:', error)
+      throw error
+    }
+  },
+
+  /**
    * Withdraw application
    */
   async withdrawApplication(applicationId: string): Promise<{ success: boolean }> {

@@ -307,6 +307,7 @@ const updateFeedback = async (req, res, next) => {
 /**
  * Delete feedback
  * Only the creating supervisor can delete
+ * Feedback cannot be deleted after 30 minutes
  */
 const deleteFeedback = async (req, res, next) => {
   try {
@@ -328,6 +329,19 @@ const deleteFeedback = async (req, res, next) => {
       return res.status(403).json({
         error: 'You can only delete your own feedback',
         code: 'NOT_OWNER',
+        status: 403,
+      });
+    }
+
+    // Check if feedback is older than 30 minutes
+    const createdTime = new Date(feedback.createdAt);
+    const currentTime = new Date();
+    const timeDifference = (currentTime - createdTime) / (1000 * 60); // Convert to minutes
+
+    if (timeDifference > 30) {
+      return res.status(403).json({
+        error: 'Feedback cannot be deleted after 30 minutes of creation',
+        code: 'FEEDBACK_TOO_OLD',
         status: 403,
       });
     }

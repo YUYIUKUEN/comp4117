@@ -80,7 +80,14 @@ const deleteFeedback = async (feedbackId: string) => {
     console.log(`Feedback ${feedbackId} deleted successfully`);
   } catch (error: any) {
     console.error('Failed to delete feedback:', error);
-    alert('Failed to delete feedback. Only the supervisor who created it can delete it.');
+    const errorCode = error.response?.data?.code;
+    let errorMessage = 'Failed to delete feedback. Only the supervisor who created it can delete it.';
+    
+    if (errorCode === 'FEEDBACK_TOO_OLD') {
+      errorMessage = 'Feedback cannot be deleted after 30 minutes of creation.';
+    }
+    
+    alert(error.response?.data?.error || errorMessage);
   } finally {
     deletingFeedbackId.value = null;
   }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   ArrowLeftIcon,
@@ -18,6 +18,51 @@ const isLoading = ref(true);
 const loadError = ref('');
 const approving = ref<string | null>(null);
 const rejecting = ref<string | null>(null);
+
+// Group pending applications by topic
+const groupedByTopic = computed(() => {
+  const topicChangeRequests = pendingApprovals.value.filter(item => item.requestType === 'topicChange');
+  const applications = pendingApprovals.value.filter(item => item.requestType === 'application');
+  
+  // Group applications by topic
+  const topicsMap = new Map<string, any>();
+  
+  applications.forEach(app => {
+    const topicKey = app.topic_id?._id || app.topicId || 'unknown';
+    const topicTitle = app.topic_id?.title || app.topic || 'Unknown Topic';
+    
+    if (!topicsMap.has(topicKey)) {
+      topicsMap.set(topicKey, {
+        topicId: topicKey,
+        topicTitle: topicTitle,
+        applications: [],
+        topicChangeRequests: [],
+      });
+    }
+    topicsMap.get(topicKey)!.applications.push(app);
+  });
+  
+  // Add topic change requests to respective topics
+  topicChangeRequests.forEach(req => {
+    const topicKey = req.currentTopic_id?._id || req.currentTopicId || 'unknown';
+    const topicTitle = req.currentTopic_id?.title || req.currentTopic || 'Unknown Topic';
+    
+    if (!topicsMap.has(topicKey)) {
+      topicsMap.set(topicKey, {
+        topicId: topicKey,
+        topicTitle: topicTitle,
+        applications: [],
+        topicChangeRequests: [],
+      });
+    }
+    topicsMap.get(topicKey)!.topicChangeRequests.push(req);
+  });
+  
+  // Return sorted by topic name
+  return Array.from(topicsMap.values()).sort((a, b) => 
+    a.topicTitle.localeCompare(b.topicTitle)
+  );
+});
 
 // Combine topic change requests and pending applications
 const fetchPendingItems = async () => {
@@ -41,6 +86,8 @@ const fetchPendingItems = async () => {
       studentName: request.student_id?.fullName || 'Unknown Student',
       studentId: request.student_id?._id,
       currentTopic: request.current_topic_id?.title || 'Unknown',
+      currentTopic_id: request.current_topic_id,
+      currentTopicId: request.current_topic_id?._id,
       proposedTopic: request.proposed_topic_id?.title || request.proposed_topic_title || 'Not specified',
       reason: request.reason,
       submittedDate: new Date(request.createdAt).toLocaleDateString(),
@@ -56,9 +103,12 @@ const fetchPendingItems = async () => {
       studentName: app.student_id?.fullName || 'Unknown Student',
       studentId: app.student_id?._id,
       topic: app.topic_id?.title || 'Unknown',
+      topic_id: app.topic_id,
+      topicId: app.topic_id?._id,
       submittedDate: new Date(app.createdAt).toLocaleDateString(),
       status: 'Awaiting Approval',
       requestType: 'application',
+      preferenceRank: app.preference_rank,
     }));
 
     // Combine and sort by date
@@ -169,64 +219,118 @@ onMounted(() => {
       </div>
 
       <!-- Pending Items -->
-      <div v-else class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
-        <h2 class="text-sm font-semibold text-slate-900 mb-4">
-          {{ pendingApprovals.length }} Pending Item<span v-if="pendingApprovals.length !== 1">s</span>
-        </h2>
+      <div v-else class="rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div class="border-b border-slate-200 p-4 sm:p-5">
+          <h2 class="text-sm font-semibold text-slate-900">
+            {{ pendingApprovals.length }} Pending Item<span v-if="pendingApprovals.length !== 1">s</span>
+          </h2>
+          <p class="mt-1 text-xs text-slate-600">Organized by topic</p>
+        </div>
 
-        <div class="space-y-3">
+        <div class="divide-y divide-slate-200">
           <div
-            v-for="item in pendingApprovals"
-            :key="item._id"
-            class="border border-slate-200 rounded-lg p-4 hover:border-blue-300 transition-colors"
+            v-for="topicGroup in groupedByTopic"
+            :key="topicGroup.topicId"
+            class="p-4 sm:p-5"
           >
-            <div class="flex items-start justify-between gap-4 mb-3">
-              <div>
-                <p class="text-xs font-semibold text-blue-600 uppercase tracking-wide">
-                  {{ item.type }}
-                </p>
-                <h3 class="text-sm font-semibold text-slate-900 mt-1">{{ item.studentName }}</h3>
+            <!-- Topic Header -->
+            <div class="mb-4">
+              <h3 class="text-sm font-semibold text-slate-900">
+                {{ topicGroup.topicTitle }}
+              </h3>
+              <p class="mt-1 text-xs text-slate-600">
+                {{ topicGroup.applications.length }} application<span v-if="topicGroup.applications.length !== 1">s</span>
+                <span v-if="topicGroup.topicChangeRequests.length > 0">
+                  · {{ topicGroup.topicChangeRequests.length }} change request<span v-if="topicGroup.topicChangeRequests.length !== 1">s</span>
+                </span>
+              </p>
+            </div>
+
+            <!-- Applications for this topic -->
+            <div v-if="topicGroup.applications.length > 0" class="space-y-3 mb-4">
+              <div
+                v-for="item in topicGroup.applications"
+                :key="item._id"
+                class="border border-slate-200 rounded-lg p-3 hover:border-blue-300 transition-colors"
+              >
+                <div class="flex items-start justify-between gap-3 mb-2">
+                  <div>
+                    <p class="text-xs font-medium text-slate-900">{{ item.studentName }}</p>
+                    <p class="text-[11px] text-slate-600">
+                      <span v-if="item.preferenceRank">Preference: #{{ item.preferenceRank }}</span>
+                      Applied {{ item.submittedDate }}
+                    </p>
+                  </div>
+                  <span class="inline-flex items-center gap-1 rounded-full border border-amber-500/50 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700">
+                    <ClockIcon class="h-3 w-3" />
+                    Awaiting
+                  </span>
+                </div>
+
+                <div class="flex gap-2 mt-3">
+                  <button
+                    @click="handleApprove(item)"
+                    :disabled="approving === item._id"
+                    class="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 border border-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <CheckCircleIcon class="h-4 w-4" />
+                    {{ approving === item._id ? 'Approving...' : 'Approve' }}
+                  </button>
+                  <button
+                    @click="handleReject(item)"
+                    :disabled="rejecting === item._id"
+                    class="inline-flex items-center gap-1 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700 hover:bg-red-100 border border-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <XCircleIcon class="h-4 w-4" />
+                    {{ rejecting === item._id ? 'Rejecting...' : 'Reject' }}
+                  </button>
+                </div>
               </div>
-              <span class="inline-flex items-center gap-1 rounded-full border border-amber-500/50 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700">
-                <ClockIcon class="h-3 w-3" />
-                {{ item.status }}
-              </span>
             </div>
 
-            <div class="space-y-2 mb-4">
-              <p v-if="item.currentTopic" class="text-xs text-slate-600">
-                <span class="font-medium text-slate-900">Current Topic:</span> {{ item.currentTopic }}
-              </p>
-              <p v-if="item.proposedTopic && item.requestType === 'topicChange'" class="text-xs text-slate-600">
-                <span class="font-medium text-slate-900">Proposed Topic:</span> {{ item.proposedTopic }}
-              </p>
-              <p v-if="item.topic && item.requestType === 'application'" class="text-xs text-slate-600">
-                <span class="font-medium text-slate-900">Applied Topic:</span> {{ item.topic }}
-              </p>
-              <p v-if="item.reason" class="text-xs text-slate-600">
-                <span class="font-medium text-slate-900">Reason:</span> {{ item.reason }}
-              </p>
-            </div>
-
-            <p class="text-[11px] text-slate-500 mb-3">Submitted: {{ item.submittedDate }}</p>
-
-            <div class="flex gap-2">
-              <button
-                @click="handleApprove(item)"
-                :disabled="approving === item._id"
-                class="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 border border-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            <!-- Topic Change Requests for this topic -->
+            <div v-if="topicGroup.topicChangeRequests.length > 0" class="space-y-3">
+              <p class="text-xs font-medium text-slate-700 mb-2">Change Requests:</p>
+              <div
+                v-for="item in topicGroup.topicChangeRequests"
+                :key="item._id"
+                class="border border-slate-200 rounded-lg p-3 hover:border-blue-300 transition-colors bg-slate-50"
               >
-                <CheckCircleIcon class="h-4 w-4" />
-                {{ approving === item._id ? 'Approving...' : 'Approve' }}
-              </button>
-              <button
-                @click="handleReject(item)"
-                :disabled="rejecting === item._id"
-                class="inline-flex items-center gap-1 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700 hover:bg-red-100 border border-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <XCircleIcon class="h-4 w-4" />
-                {{ rejecting === item._id ? 'Rejecting...' : 'Reject' }}
-              </button>
+                <div class="flex items-start justify-between gap-3 mb-2">
+                  <div>
+                    <p class="text-xs font-medium text-slate-900">{{ item.studentName }}</p>
+                    <p class="text-[11px] text-slate-600">
+                      Propose: {{ item.proposedTopic }} · Submitted {{ item.submittedDate }}
+                    </p>
+                    <p v-if="item.reason" class="text-[11px] text-slate-600 mt-1">
+                      <span class="font-medium">Reason:</span> {{ item.reason }}
+                    </p>
+                  </div>
+                  <span class="inline-flex items-center gap-1 rounded-full border border-amber-500/50 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700 whitespace-nowrap">
+                    <ClockIcon class="h-3 w-3" />
+                    Pending
+                  </span>
+                </div>
+
+                <div class="flex gap-2 mt-3">
+                  <button
+                    @click="handleApprove(item)"
+                    :disabled="approving === item._id"
+                    class="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 border border-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <CheckCircleIcon class="h-4 w-4" />
+                    {{ approving === item._id ? 'Approving...' : 'Approve' }}
+                  </button>
+                  <button
+                    @click="handleReject(item)"
+                    :disabled="rejecting === item._id"
+                    class="inline-flex items-center gap-1 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700 hover:bg-red-100 border border-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <XCircleIcon class="h-4 w-4" />
+                    {{ rejecting === item._id ? 'Rejecting...' : 'Reject' }}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

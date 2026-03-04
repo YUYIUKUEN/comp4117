@@ -1,14 +1,18 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Bars3Icon, UserIcon, UserGroupIcon, CheckCircleIcon, ExclamationCircleIcon } from '@heroicons/vue/24/outline'
+import { useRouter } from 'vue-router'
+import { Bars3Icon, UserIcon, UserGroupIcon, CheckCircleIcon, ExclamationCircleIcon, XMarkIcon } from '@heroicons/vue/24/outline'
+import applicationService from '@/services/applicationService'
 
 type Mode = 'individual' | 'pair'
 
+const router = useRouter()
 const sidebarOpen = ref(false)
 const step = ref<1 | 2 | 3>(1)
 const mode = ref<Mode>('individual')
 const partnerId = ref('')
 const partnerEmail = ref('')
+const isSubmitting = ref(false)
 
 const topics = [
   {
@@ -31,14 +35,107 @@ const topics = [
   },
 ]
 
-const selectedTopicId = ref<number | null>(1)
+// Store selected topics with their preference ranks
+const selectedTopics = ref<Array<{ id: number; title: string; rank: number }>>([])
 
 const canContinueStep1 = computed(() => !!mode.value)
 const canContinueStep2 = computed(() => {
   if (mode.value === 'individual') return true
   return partnerId.value.trim().length > 0 && partnerEmail.value.trim().length > 0
 })
-const canConfirm = computed(() => selectedTopicId.value !== null)
+const canConfirm = computed(() => selectedTopics.value.length > 0)
+
+// Get topics sorted by preference rank
+const rankedTopics = computed(() => {
+  return [...selectedTopics.value].sort((a, b) => a.rank - b.rank)
+})
+
+// Toggle topic selection
+const toggleTopic = (topicId: number) => {
+  const topic = topics.find(t => t.id === topicId)
+  if (!topic) return
+
+  const index = selectedTopics.value.findIndex(t => t.id === topicId)
+  
+  if (index > -1) {
+    // Remove topic
+    selectedTopics.value.splice(index, 1)
+    // Reorder remaining topics' ranks
+    selectedTopics.value.forEach((t, i) => {
+      t.rank = i + 1
+    })
+  } else {
+    // Add topic with next rank
+    selectedTopics.value.push({
+      id: topicId,
+      title: topic.title,
+      rank: selectedTopics.value.length + 1
+    })
+  }
+}
+
+// Check if a topic is selected
+const isTopicSelected = (topicId: number) => {
+  return selectedTopics.value.some(t => t.id === topicId)
+}
+
+// Move topic up in ranking
+const moveTopicUp = (index: number) => {
+  if (index > 0 && selectedTopics.value[index] && selectedTopics.value[index - 1]) {
+    const temp = selectedTopics.value[index]!.rank
+    selectedTopics.value[index]!.rank = selectedTopics.value[index - 1]!.rank
+    selectedTopics.value[index - 1]!.rank = temp
+    // Re-sort
+    selectedTopics.value.sort((a, b) => a.rank - b.rank)
+  }
+}
+
+// Move topic down in ranking
+const moveTopicDown = (index: number) => {
+  if (index < selectedTopics.value.length - 1 && selectedTopics.value[index] && selectedTopics.value[index + 1]) {
+    const temp = selectedTopics.value[index]!.rank
+    selectedTopics.value[index]!.rank = selectedTopics.value[index + 1]!.rank
+    selectedTopics.value[index + 1]!.rank = temp
+    // Re-sort
+    selectedTopics.value.sort((a, b) => a.rank - b.rank)
+  }
+}
+
+// Remove a specific topic from selection
+const removeTopic = (topicId: number) => {
+  const index = selectedTopics.value.findIndex(t => t.id === topicId)
+  if (index > -1) {
+    selectedTopics.value.splice(index, 1)
+    // Reorder remaining topics' ranks
+    selectedTopics.value.forEach((t, i) => {
+      t.rank = i + 1
+    })
+  }
+}
+
+// Submit the application with all selected topics and preferences
+const submitApplications = async () => {
+  isSubmitting.value = true
+  try {
+    // Apply to each selected topic with its preference rank
+    const applicationsToSubmit = selectedTopics.value.map(topic => ({
+      topicId: String(topic.id),
+      preferenceRank: topic.rank
+    }))
+
+    await applicationService.applyToMultipleTopics(applicationsToSubmit)
+    
+    // Show success and redirect
+    alert('Your topic preferences have been submitted successfully!')
+    router.push('/dashboard')
+  } catch (error: any) {
+    console.error('Error submitting applications:', error)
+    const errorMsg = error?.response?.data?.message || error?.message || 'Failed to submit applications'
+    alert(`Error: ${errorMsg}`)
+  } finally {
+    isSubmitting.value = false
+  }
+}
 </script>
 
 <template>
@@ -77,7 +174,15 @@ const canConfirm = computed(() => selectedTopicId.value !== null)
         <ul class="space-y-1 list-disc pl-4">
           <li>Projects are either <span class="font-semibold">individual</span> or in a group of <span class="font-semibold">two</span>.</li>
           <li>No groups larger than two are allowed.</li>
-          <li>You and your partner must submit the same choice.</li>
+          <li>You and your partner must submit the same choices.</li>
+        </ul>
+        <p class="font-medium text-slate-800 mt-3">
+          Topic preferences
+        </p>
+        <ul class="space-y-1 list-disc pl-4">
+          <li>Select <span class="font-semibold">multiple topics</span> that interest you.</li>
+          <li>Rank them by preference (1st choice, 2nd choice, etc.).</li>
+          <li>You can reorder or remove topics anytime.</li>
         </ul>
       </div>
     </aside>
@@ -136,7 +241,7 @@ const canConfirm = computed(() => selectedTopicId.value !== null)
             >
               3
             </span>
-            <span class="hidden sm:inline text-slate-700">Select topic preference</span>
+            <span class="hidden sm:inline text-slate-700">Select & rank topic preferences</span>
           </li>
         </ol>
 
@@ -289,7 +394,7 @@ const canConfirm = computed(() => selectedTopicId.value !== null)
           </div>
         </section>
 
-        <!-- Step 3: select topic -->
+        <!-- Step 3: select & rank topics -->
         <section
           v-else
           class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm shadow-slate-200/70 space-y-4"
@@ -297,41 +402,104 @@ const canConfirm = computed(() => selectedTopicId.value !== null)
           <header class="flex items-start justify-between gap-3">
             <div>
               <h2 class="text-sm font-semibold text-slate-900">
-                Step 3 · Select your topic preference
+                Step 3 · Select & rank your topic preferences
               </h2>
               <p class="mt-1 text-xs text-slate-600">
-                Choose one topic that matches your selected mode (individual or pair).
+                Choose multiple topics and rank them by preference (1st choice, 2nd choice, etc.).
               </p>
             </div>
             <div class="text-[11px] text-right text-slate-500">
               <p class="font-medium text-slate-800">
                 Choice: {{ mode === 'individual' ? 'Individual project' : 'Pair project (2 students)' }}
               </p>
-              <p>Groups larger than 2 are not allowed.</p>
+              <p>{{ selectedTopics.length }} topic<span v-if="selectedTopics.length !== 1">s</span> selected</p>
             </div>
           </header>
 
-          <div class="space-y-2 text-xs">
-            <div
-              v-for="topic in topics"
-              :key="topic.id"
-              class="flex items-start gap-3 rounded-lg border px-3 py-3 cursor-pointer transition hover:border-blue-500 hover:bg-blue-50"
-              :class="selectedTopicId === topic.id ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white'"
-              @click="selectedTopicId = topic.id"
-            >
-              <input
-                type="radio"
-                class="mt-1 h-3.5 w-3.5 text-blue-600 border-slate-300 focus:ring-blue-500"
-                :checked="selectedTopicId === topic.id"
-                @change="selectedTopicId = topic.id"
-              />
-              <div class="flex-1">
-                <p class="text-xs font-medium text-slate-900">
-                  {{ topic.title }}
+          <div class="grid lg:grid-cols-2 gap-6">
+            <!-- Available Topics -->
+            <div>
+              <h3 class="text-xs font-semibold text-slate-900 mb-3 uppercase tracking-wide">Available Topics</h3>
+              <div class="space-y-2 text-xs">
+                <div
+                  v-for="topic in topics"
+                  :key="topic.id"
+                  class="flex items-start gap-3 rounded-lg border px-3 py-3 cursor-pointer transition"
+                  :class="isTopicSelected(topic.id) ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50'"
+                  @click="toggleTopic(topic.id)"
+                >
+                  <input
+                    type="checkbox"
+                    class="mt-1 h-3.5 w-3.5 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                    :checked="isTopicSelected(topic.id)"
+                    @change="toggleTopic(topic.id)"
+                  />
+                  <div class="flex-1">
+                    <p class="font-medium text-slate-900">
+                      {{ topic.title }}
+                    </p>
+                    <p class="mt-0.5 text-[11px] text-slate-600">
+                      {{ topic.type }} · {{ topic.capacity }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Selected Topics with Ranking -->
+            <div>
+              <h3 class="text-xs font-semibold text-slate-900 mb-3 uppercase tracking-wide">Your Preferences</h3>
+              <div v-if="selectedTopics.length === 0" class="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
+                <p class="text-xs text-slate-600">
+                  Select topics on the left to add them to your preferences.
                 </p>
-                <p class="mt-0.5 text-[11px] text-slate-600">
-                  {{ topic.type }} · {{ topic.capacity }}
-                </p>
+              </div>
+              <div v-else class="space-y-2 text-xs">
+                <div
+                  v-for="(topic, index) in rankedTopics"
+                  :key="topic.id"
+                  class="flex items-start gap-2 rounded-lg border border-blue-300 bg-blue-50 p-3"
+                >
+                  <div class="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-blue-600 text-white font-medium text-[10px]">
+                    {{ topic.rank }}
+                  </div>
+                  <div class="flex-1">
+                    <p class="font-medium text-slate-900">
+                      {{ topic.title }}
+                    </p>
+                    <p class="mt-0.5 text-[11px] text-slate-600">
+                      Preference #{{ topic.rank }}
+                    </p>
+                  </div>
+                  <div class="flex flex-col gap-1 flex-shrink-0">
+                    <button
+                      v-if="index > 0"
+                      @click="moveTopicUp(index)"
+                      type="button"
+                      class="p-1 text-slate-600 hover:text-blue-600 hover:bg-blue-100 rounded text-[10px]"
+                      title="Move up"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      v-if="index < rankedTopics.length - 1"
+                      @click="moveTopicDown(index)"
+                      type="button"
+                      class="p-1 text-slate-600 hover:text-blue-600 hover:bg-blue-100 rounded text-[10px]"
+                      title="Move down"
+                    >
+                      ↓
+                    </button>
+                    <button
+                      @click="removeTopic(topic.id)"
+                      type="button"
+                      class="p-1 text-slate-600 hover:text-red-600 hover:bg-red-100 rounded"
+                      title="Remove"
+                    >
+                      <XMarkIcon class="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -341,16 +509,18 @@ const canConfirm = computed(() => selectedTopicId.value !== null)
               type="button"
               class="inline-flex items-center rounded-full border border-slate-300 bg-white px-3 py-1.5 text-slate-700 hover:border-slate-400"
               @click="step = 2"
+              :disabled="isSubmitting"
             >
               Back
             </button>
             <button
               type="button"
+              @click="submitApplications"
               class="inline-flex items-center gap-1 rounded-full border border-emerald-500 bg-emerald-600 px-4 py-1.5 text-xs font-medium text-white hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed"
-              :disabled="!canConfirm"
+              :disabled="!canConfirm || isSubmitting"
             >
               <CheckCircleIcon class="h-4 w-4" />
-              Confirm grouping & topic
+              {{ isSubmitting ? 'Submitting...' : 'Confirm grouping & preferences' }}
             </button>
           </div>
         </section>
