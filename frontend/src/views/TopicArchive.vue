@@ -67,7 +67,7 @@ function getStatusClasses(status: string) {
 // Start editing preferences
 const startEditingPreference = (topicId: string, currentRank: number) => {
   editingId.value = topicId
-  editingRanks.set(topicId, currentRank)
+  editingRanks.value.set(topicId, currentRank)
 }
 
 // Cancel editing
@@ -95,7 +95,7 @@ const increaseRank = (topicId: string) => {
 // Save the updated preference
 const savePreference = async (topicId: string) => {
   const newRank = editingRanks.value.get(topicId)
-  if (!newRank) return
+  if (newRank === undefined) return
 
   try {
     // Find the application to get current data
