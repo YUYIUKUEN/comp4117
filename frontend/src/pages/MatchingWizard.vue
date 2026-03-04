@@ -81,10 +81,10 @@ const isTopicSelected = (topicId: number) => {
 
 // Move topic up in ranking
 const moveTopicUp = (index: number) => {
-  if (index > 0) {
-    const temp = selectedTopics.value[index].rank
-    selectedTopics.value[index].rank = selectedTopics.value[index - 1].rank
-    selectedTopics.value[index - 1].rank = temp
+  if (index > 0 && selectedTopics.value[index] && selectedTopics.value[index - 1]) {
+    const temp = selectedTopics.value[index]!.rank
+    selectedTopics.value[index]!.rank = selectedTopics.value[index - 1]!.rank
+    selectedTopics.value[index - 1]!.rank = temp
     // Re-sort
     selectedTopics.value.sort((a, b) => a.rank - b.rank)
   }
@@ -92,10 +92,10 @@ const moveTopicUp = (index: number) => {
 
 // Move topic down in ranking
 const moveTopicDown = (index: number) => {
-  if (index < selectedTopics.value.length - 1) {
-    const temp = selectedTopics.value[index].rank
-    selectedTopics.value[index].rank = selectedTopics.value[index + 1].rank
-    selectedTopics.value[index + 1].rank = temp
+  if (index < selectedTopics.value.length - 1 && selectedTopics.value[index] && selectedTopics.value[index + 1]) {
+    const temp = selectedTopics.value[index]!.rank
+    selectedTopics.value[index]!.rank = selectedTopics.value[index + 1]!.rank
+    selectedTopics.value[index + 1]!.rank = temp
     // Re-sort
     selectedTopics.value.sort((a, b) => a.rank - b.rank)
   }
