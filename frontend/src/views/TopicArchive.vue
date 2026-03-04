@@ -105,9 +105,10 @@ const savePreference = async (topicId: string) => {
     // Call API to update (you may need to add this endpoint)
     // For now, just update locally and show success
     const index = archivedTopics.value.findIndex(t => t.id === topicId)
-    if (index > -1) {
-      if (newRank !== undefined) {
-        archivedTopics.value[index].preferenceRank = newRank
+    if (index > -1 && newRank !== undefined) {
+      const item = archivedTopics.value[index]
+      if (item) {
+        item.preferenceRank = newRank
       }
     }
 
