@@ -7,6 +7,7 @@ import {
   ChevronRightIcon,
   AcademicCapIcon,
   PencilIcon,
+  ArrowUpTrayIcon,
 } from '@heroicons/vue/24/outline';
 import httpClient from '../services/httpClient';
 
@@ -196,6 +197,56 @@ const getLogType = (action: string) => {
   if (action.includes('reject') || action.includes('deactivat')) return 'rejection';
   return 'other';
 };
+
+// ── Import from Excel ──────────────────────────────────────────────
+const showImportModal = ref(false);
+const importFile = ref<File | null>(null);
+const importing = ref(false);
+const importResult = ref<{ created: number; skipped: number; errors: { row: number; reason: string }[] } | null>(null);
+
+const onImportFileChange = (e: Event) => {
+  const target = e.target as HTMLInputElement;
+  importFile.value = target.files?.[0] || null;
+  importResult.value = null;
+};
+
+const handleImportExcel = async () => {
+  if (!importFile.value) return;
+  importing.value = true;
+  importResult.value = null;
+  try {
+    const formData = new FormData();
+    formData.append('file', importFile.value);
+    const res = await httpClient.post('/admin/users/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    importResult.value = res.data.data;
+    // Refresh the students table
+    const usersRes = await httpClient.get('/admin/users', { params: { role: 'Student', limit: 100 } });
+    const students = usersRes.data?.data?.users || [];
+    stats.value.totalStudents = usersRes.data?.data?.pagination?.total || students.length;
+    rows.value = students.map((s: any, i: number) => ({
+      id: s._id || i + 1,
+      student: s.fullName || 'Unknown',
+      email: s.email || '',
+      programme: s.concentration || 'N/A',
+      supervisor: s.supervisor?.fullName || 'Not assigned',
+      supervisorEmail: s.supervisor?.email || '',
+      topic: s.topicTitle || 'No topic assigned',
+      status: s.deactivatedAt ? 'Inactive' : 'Active',
+    }));
+  } catch (err: any) {
+    importResult.value = { created: 0, skipped: 0, errors: [{ row: 0, reason: err?.response?.data?.error || 'Upload failed' }] };
+  } finally {
+    importing.value = false;
+  }
+};
+
+const closeImportModal = () => {
+  showImportModal.value = false;
+  importFile.value = null;
+  importResult.value = null;
+};
 </script>
 
 <template>
@@ -258,6 +309,14 @@ const getLogType = (action: string) => {
               </p>
             </div>
             <div class="flex flex-col sm:flex-row gap-2 text-[11px]">
+              <button
+                type="button"
+                @click="showImportModal = true"
+                class="inline-flex items-center gap-1.5 rounded-full border border-blue-600 bg-blue-600 px-3 py-1.5 text-white hover:bg-blue-700"
+              >
+                <ArrowUpTrayIcon class="h-3.5 w-3.5" />
+                Import from Excel
+              </button>
               <button
                 type="button"
                 @click="handleExportExcel"
@@ -507,5 +566,67 @@ const getLogType = (action: string) => {
         </section>
       </main>
     </div>
+
+    <!-- Import from Excel Modal -->
+    <Teleport to="body">
+      <div v-if="showImportModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @click.self="closeImportModal">
+        <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+          <h2 class="text-lg font-semibold text-slate-900">Import Users from Excel</h2>
+          <p class="mt-1 text-xs text-slate-500">
+            Upload an <strong>.xlsx</strong> or <strong>.csv</strong> file with columns:
+            <span class="font-medium">email</span>,
+            <span class="font-medium">fullName</span>,
+            <span class="font-medium">role</span> (default: Student),
+            <span class="font-medium">concentration</span> (optional),
+            <span class="font-medium">phone</span> (optional).
+          </p>
+
+          <div class="mt-4">
+            <label class="block">
+              <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                class="block w-full text-sm text-slate-600 file:mr-3 file:rounded-full file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100"
+                @change="onImportFileChange"
+              >
+            </label>
+            <p v-if="importFile" class="mt-2 text-xs text-slate-500">
+              Selected: <strong>{{ importFile.name }}</strong> ({{ (importFile.size / 1024).toFixed(1) }} KB)
+            </p>
+          </div>
+
+          <!-- Result -->
+          <div v-if="importResult" class="mt-4 rounded-lg border p-3 text-xs" :class="importResult.created > 0 ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'">
+            <p class="font-medium" :class="importResult.created > 0 ? 'text-green-800' : 'text-red-800'">
+              {{ importResult.created }} user(s) imported, {{ importResult.skipped }} skipped.
+            </p>
+            <ul v-if="importResult.errors.length" class="mt-1 space-y-0.5 text-red-700">
+              <li v-for="(err, i) in importResult.errors.slice(0, 10)" :key="i">
+                Row {{ err.row }}: {{ err.reason }}
+              </li>
+              <li v-if="importResult.errors.length > 10" class="italic">
+                ...and {{ importResult.errors.length - 10 }} more error(s).
+              </li>
+            </ul>
+          </div>
+
+          <div class="mt-5 flex justify-end gap-2">
+            <button type="button" @click="closeImportModal" class="rounded-lg border border-slate-300 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50">
+              {{ importResult ? 'Close' : 'Cancel' }}
+            </button>
+            <button
+              v-if="!importResult"
+              type="button"
+              :disabled="!importFile || importing"
+              @click="handleImportExcel"
+              class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ArrowUpTrayIcon class="h-3.5 w-3.5" />
+              {{ importing ? 'Importing…' : 'Upload & Import' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
 </template>
 

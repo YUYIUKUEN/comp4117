@@ -64,11 +64,30 @@ const deleteReply = async (feedbackId: string, replyId: string) => {
 };
 
 const formatDate = (dateStr: string) => {
-  return new Date(dateStr).toLocaleDateString('en-GB', {
+  const d = new Date(dateStr);
+  const datePart = d.toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
   });
+  const timePart = d.toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  return `${datePart}, ${timePart}`;
+};
+
+const EDIT_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
+
+const isWithinEditWindow = (dateStr: string) => {
+  return Date.now() - new Date(dateStr).getTime() < EDIT_WINDOW_MS;
+};
+
+const remainingEditTime = (dateStr: string) => {
+  const ms = EDIT_WINDOW_MS - (Date.now() - new Date(dateStr).getTime());
+  if (ms <= 0) return '';
+  const mins = Math.ceil(ms / 60000);
+  return `${mins} min left to edit`;
 };
 
 const avatarUrl = (name: string, bg = '0F172A') => {
@@ -166,16 +185,21 @@ onMounted(async () => {
                     </p>
                     <p class="mt-0.5 text-xs text-slate-600 leading-relaxed">{{ reply.replyText }}</p>
                   </div>
-                  <button
-                    v-if="isCurrentUserReply(reply)"
-                    type="button"
-                    @click="deleteReply(feedback._id, reply._id)"
-                    :disabled="deletingReplyId === reply._id"
-                    class="text-xs font-medium text-red-600 hover:text-red-700 disabled:text-slate-400 shrink-0 px-2 py-1 rounded hover:bg-red-50 disabled:hover:bg-transparent transition"
-                    title="Delete reply"
-                  >
-                    {{ deletingReplyId === reply._id ? 'Deleting...' : 'Delete' }}
-                  </button>
+                  <div v-if="isCurrentUserReply(reply)" class="flex items-center gap-1.5 shrink-0">
+                    <span v-if="isWithinEditWindow(reply.createdAt)" class="text-[10px] text-slate-400 italic">
+                      {{ remainingEditTime(reply.createdAt) }}
+                    </span>
+                    <button
+                      v-if="isWithinEditWindow(reply.createdAt)"
+                      type="button"
+                      @click="deleteReply(feedback._id, reply._id)"
+                      :disabled="deletingReplyId === reply._id"
+                      class="text-xs font-medium text-red-600 hover:text-red-700 disabled:text-slate-400 shrink-0 px-2 py-1 rounded hover:bg-red-50 disabled:hover:bg-transparent transition"
+                      title="Delete reply"
+                    >
+                      {{ deletingReplyId === reply._id ? 'Deleting...' : 'Delete' }}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

@@ -1,5 +1,7 @@
 const User = require('../models/User');
 const ActivityLog = require('../models/ActivityLog');
+const bcrypt = require('bcryptjs');
+const XLSX = require('xlsx');
 
 /**
  * Get all users with filtering and pagination
@@ -328,6 +330,131 @@ const updateUser = async (req, res, next) => {
   }
 };
 
+/**
+ * Import users from an uploaded Excel/CSV file
+ * Admin only
+ * POST /admin/users/import
+ * Expected columns: email, fullName, role, concentration (optional), phone (optional)
+ */
+const importUsersFromExcel = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        error: 'No file uploaded. Please upload an .xlsx or .csv file.',
+        code: 'NO_FILE',
+        status: 400,
+      });
+    }
+
+    const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) {
+      return res.status(400).json({
+        error: 'The uploaded file contains no sheets.',
+        code: 'EMPTY_FILE',
+        status: 400,
+      });
+    }
+
+    const rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
+    if (!rawRows.length) {
+      return res.status(400).json({
+        error: 'The uploaded file contains no data rows.',
+        code: 'EMPTY_FILE',
+        status: 400,
+      });
+    }
+
+    // Normalise header names (case-insensitive, trimmed)
+    const normalise = (key) => key.toString().trim().toLowerCase().replace(/[\s_-]+/g, '');
+    const headerMap = {};
+    Object.keys(rawRows[0]).forEach(k => { headerMap[normalise(k)] = k; });
+
+    const col = (row, ...names) => {
+      for (const n of names) {
+        const original = headerMap[normalise(n)];
+        if (original && row[original] !== undefined && String(row[original]).trim()) {
+          return String(row[original]).trim();
+        }
+      }
+      return '';
+    };
+
+    const defaultHash = await bcrypt.hash('changeme123', 10);
+    const results = { created: 0, skipped: 0, errors: [] };
+
+    for (let i = 0; i < rawRows.length; i++) {
+      const row = rawRows[i];
+      const rowNum = i + 2; // Excel row (1-indexed header + data)
+
+      const email = col(row, 'email', 'e-mail', 'emailaddress');
+      const fullName = col(row, 'fullName', 'full name', 'name', 'student', 'studentname');
+      const role = col(row, 'role') || 'Student';
+      const concentration = col(row, 'concentration', 'programme', 'program', 'major');
+      const phone = col(row, 'phone', 'telephone', 'phonenumber');
+
+      if (!email || !fullName) {
+        results.errors.push({ row: rowNum, reason: 'Missing email or fullName' });
+        results.skipped++;
+        continue;
+      }
+
+      if (!['Student', 'Supervisor', 'Admin'].includes(role)) {
+        results.errors.push({ row: rowNum, reason: `Invalid role "${role}"` });
+        results.skipped++;
+        continue;
+      }
+
+      // Skip if an active user with this email already exists
+      const existing = await User.findOne({ email: email.toLowerCase(), deactivatedAt: null });
+      if (existing) {
+        results.errors.push({ row: rowNum, reason: `Email "${email}" already exists` });
+        results.skipped++;
+        continue;
+      }
+
+      // Reactivate deactivated user or create new
+      const deactivated = await User.findOne({ email: email.toLowerCase(), deactivatedAt: { $ne: null } });
+      if (deactivated) {
+        deactivated.fullName = fullName;
+        deactivated.role = role;
+        deactivated.passwordHash = defaultHash;
+        deactivated.concentration = concentration || undefined;
+        deactivated.phone = phone || undefined;
+        deactivated.deactivatedAt = null;
+        deactivated.updatedAt = new Date();
+        await deactivated.save();
+      } else {
+        await User.create({
+          email: email.toLowerCase(),
+          passwordHash: defaultHash,
+          fullName,
+          role,
+          concentration: concentration || undefined,
+          phone: phone || undefined,
+        });
+      }
+      results.created++;
+    }
+
+    // Log activity
+    await ActivityLog.create({
+      user_id: req.auth.userId,
+      action: 'users_imported',
+      entityType: 'User',
+      entityId: 'bulk',
+      details: { created: results.created, skipped: results.skipped, totalRows: rawRows.length },
+    });
+
+    res.status(200).json({
+      data: results,
+      status: 200,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllUsers,
   getUserById,
@@ -335,4 +462,5 @@ module.exports = {
   updateUser,
   deactivateUser,
   reactivateUser,
+  importUsersFromExcel,
 };

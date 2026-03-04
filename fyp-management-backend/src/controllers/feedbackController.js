@@ -4,6 +4,7 @@ const Submission = require('../models/Submission');
 const Assignment = require('../models/Assignment');
 const ActivityLog = require('../models/ActivityLog');
 const GradingStandard = require('../models/GradingStandard');
+const User = require('../models/User');
 
 /**
  * Add feedback to a submission
@@ -604,6 +605,17 @@ const deleteReply = async (req, res, next) => {
       return res.status(403).json({
         error: 'You can only delete your own replies',
         code: 'NOT_OWNER',
+        status: 403,
+      });
+    }
+
+    // Students cannot delete replies after 30 minutes
+    const EDIT_WINDOW_MS = 30 * 60 * 1000;
+    const user = await User.findById(userId).select('role');
+    if (user && user.role === 'Student' && (Date.now() - new Date(feedback.replies[replyIndex].createdAt).getTime() > EDIT_WINDOW_MS)) {
+      return res.status(403).json({
+        error: 'The 30-minute window to delete this reply has expired',
+        code: 'DELETE_WINDOW_EXPIRED',
         status: 403,
       });
     }
