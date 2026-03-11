@@ -43,7 +43,7 @@ const goToLogin = () => {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1a2744 0%, #2a4073 50%, #1a2744 100%);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   padding: 20px;
 }
@@ -55,8 +55,8 @@ const goToLogin = () => {
 .verify-card {
   background: white;
   padding: 3rem;
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border-radius: 14px;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.35);
   width: 100%;
   max-width: 500px;
   margin: 0 auto;
@@ -110,18 +110,19 @@ const goToLogin = () => {
 .btn-login {
   width: 100%;
   padding: 0.875rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1a2744 0%, #2a4073 100%);
   color: white;
   border: none;
-  border-radius: 6px;
-  font-size: 1rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.3s;
+  transition: all 0.25s ease;
 }
 
 .btn-login:hover {
-  opacity: 0.9;
+  background: linear-gradient(135deg, #24325a 0%, #3552a0 100%);
+  box-shadow: 0 4px 12px rgba(42,64,115,0.3);
 }
 
 .verify-footer {
@@ -132,7 +133,7 @@ const goToLogin = () => {
 }
 
 .verify-footer a {
-  color: #667eea;
+  color: #2a4073;
   text-decoration: none;
   font-weight: 600;
 }

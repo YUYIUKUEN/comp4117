@@ -4,7 +4,8 @@
       <div class="register-card">
         <div class="register-header">
           <h1>Create Account</h1>
-          <p class="subtitle">Join the FYP Management System</p>
+          <p class="subtitle">BSocSc (Hons) in Global and China Studies</p>
+          <p class="subtitle-small">Join the FYP Management System</p>
         </div>
 
         <form @submit.prevent="handleRegister" class="register-form">
@@ -178,7 +179,7 @@ const handleRegister = async () => {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1a2744 0%, #2a4073 50%, #1a2744 100%);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   padding: 20px;
 }
@@ -190,28 +191,36 @@ const handleRegister = async () => {
 .register-card {
   background: white;
   padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border-radius: 14px;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.35);
   width: 100%;
   max-width: 500px;
   margin: 0 auto;
 }
 
 .register-header {
-  margin-bottom: 2rem;
+  margin-bottom: 1.75rem;
   text-align: center;
 }
 
 .register-header h1 {
   margin: 0;
-  font-size: 2rem;
-  color: #333;
+  font-size: 1.5rem;
+  color: #1a2744;
+  font-weight: 700;
 }
 
 .subtitle {
-  margin: 0.5rem 0 0 0;
-  color: #666;
-  font-size: 0.95rem;
+  margin: 0.35rem 0 0 0;
+  color: #2a4073;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.subtitle-small {
+  margin: 0.6rem 0 0 0;
+  color: #888;
+  font-size: 0.85rem;
 }
 
 .register-form {
@@ -245,7 +254,7 @@ const handleRegister = async () => {
 .form-group input:focus,
 .form-group select:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #2a4073;
 }
 
 .form-group input:disabled,
@@ -277,14 +286,14 @@ const handleRegister = async () => {
 
 .btn-submit {
   padding: 0.85rem;
-  background-color: #667eea;
+  background: linear-gradient(135deg, #1a2744 0%, #2a4073 100%);
   color: white;
   border: none;
-  border-radius: 6px;
-  font-size: 1rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: all 0.25s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -293,7 +302,8 @@ const handleRegister = async () => {
 }
 
 .btn-submit:hover:not(:disabled) {
-  background-color: #5568d3;
+  background: linear-gradient(135deg, #24325a 0%, #3552a0 100%);
+  box-shadow: 0 4px 12px rgba(42,64,115,0.3);
 }
 
 .btn-submit:disabled {
@@ -325,7 +335,7 @@ const handleRegister = async () => {
 }
 
 .register-footer a {
-  color: #667eea;
+  color: #2a4073;
   text-decoration: none;
   font-weight: 500;
 }
