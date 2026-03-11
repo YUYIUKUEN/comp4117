@@ -136,12 +136,14 @@ export async function submitDeclaration(
 export async function undoDeclaration(phase: string): Promise<SubmissionPhase> {
   try {
     const response = await httpClient.post(
-      `/submissions/${encodeURIComponent(phase)}/undo-declaration`
+      `/submissions/${encodeURIComponent(phase)}/undo-declaration`,
+      {}
     )
     return response.data.data
-  } catch (error) {
+  } catch (error: any) {
+    const message = error.response?.data?.error || error.message || 'Failed to undo declaration'
     console.error(`Failed to undo declaration for phase ${phase}:`, error)
-    throw new Error('Undo declaration failed')
+    throw new Error(message)
   }
 }
 

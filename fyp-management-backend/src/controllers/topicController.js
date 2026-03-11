@@ -90,8 +90,13 @@ const getTopics = async (req, res, next) => {
     }
 
     if (search) {
-      // Full-text search
-      filter.$text = { $search: search };
+      // Regex-based search across title and description (case-insensitive)
+      const searchRegex = new RegExp(search, 'i');
+      filter.$or = [
+        { title: searchRegex },
+        { description: searchRegex },
+        { keywords: searchRegex }
+      ];
     }
 
     if (keyword && !search) {
