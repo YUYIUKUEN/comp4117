@@ -326,9 +326,10 @@ const archiveTopic = async (req, res, next) => {
 const deleteTopic = async (req, res, next) => {
   try {
     const { topicId } = req.params;
-    const adminId = req.auth.userId;
+    const userId = req.auth.userId;
+    const userRole = req.auth.role;
 
-    const topic = await Topic.findByIdAndDelete(topicId);
+    const topic = await Topic.findById(topicId);
     if (!topic) {
       return res.status(404).json({
         error: 'Topic not found',
@@ -337,8 +338,19 @@ const deleteTopic = async (req, res, next) => {
       });
     }
 
+    // Check authorization: Admin can delete any topic, Supervisor can only delete their own
+    if (userRole !== 'Admin' && topic.supervisor_id.toString() !== userId) {
+      return res.status(403).json({
+        error: 'You are not authorized to delete this topic',
+        code: 'FORBIDDEN',
+        status: 403,
+      });
+    }
+
+    await Topic.findByIdAndDelete(topicId);
+
     await ActivityLog.create({
-      user_id: adminId,
+      user_id: userId,
       action: 'topic_deleted',
       entityType: 'Topic',
       entityId: topicId,

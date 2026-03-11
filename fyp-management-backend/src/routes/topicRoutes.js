@@ -34,6 +34,6 @@ router.post('/:topicId/publish', authenticate, requireRole('Supervisor'), publis
 router.post('/:topicId/archive', authenticate, requireRole('Supervisor'), archiveTopic);
 
 // Admin routes
-router.delete('/:topicId', authenticate, requireRole('Admin'), deleteTopic);
+router.delete('/:topicId', authenticate, requireRole('Admin', 'Supervisor'), deleteTopic);
 
 module.exports = router;
