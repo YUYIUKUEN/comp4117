@@ -429,7 +429,7 @@ const handleDownloadFile = async (file: any) => {
         <!-- Grade Input - Point Range -->
         <div v-if="applicableStandard?.gradingSystem === 'point-range'" class="mb-6">
           <label class="block text-sm font-medium text-slate-900 mb-2">
-            Points *
+            Points * (supports 0.5 increments)
           </label>
           <div class="flex gap-2 items-end">
             <input
@@ -437,6 +437,7 @@ const handleDownloadFile = async (file: any) => {
               type="number"
               :min="applicableStandard.pointRange?.min"
               :max="applicableStandard.pointRange?.max"
+              :step="applicableStandard.pointRange?.step || 0.5"
               :placeholder="`Enter points (${applicableStandard.pointRange?.min} - ${applicableStandard.pointRange?.max})`"
               class="block flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/60"
             />

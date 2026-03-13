@@ -40,18 +40,33 @@ const getGradingStandardById = async (req, res, next) => {
  */
 const createGradingStandard = async (req, res, next) => {
   try {
-    const { submissionType, gradingSystem, pointRange, letterGrades, customOptions, description, dueDate, enabled } = req.body;
+    const { submissionType, gradingSystem, pointRange, letterGrades, customOptions, description, dueDate, enabled, templateName, rubricItems, hkbuGradingScale, gradeRangeMapping } = req.body;
 
     if (!submissionType || !gradingSystem) {
       return res.status(400).json({ error: 'submissionType and gradingSystem are required', code: 'INVALID_REQUEST', status: 400 });
     }
 
+    // Validate pointRange if using point-range system
+    if (gradingSystem === 'point-range' && pointRange) {
+      if (typeof pointRange.min !== 'number' || typeof pointRange.max !== 'number' || pointRange.min >= pointRange.max) {
+        return res.status(400).json({ error: 'Invalid pointRange: min must be less than max', code: 'INVALID_POINT_RANGE', status: 400 });
+      }
+      // Ensure step is valid (default 0.5)
+      if (!pointRange.step) {
+        pointRange.step = 0.5;
+      }
+    }
+
     const standard = await GradingStandard.create({
       submissionType,
       gradingSystem,
-      pointRange: gradingSystem === 'point-range' ? (pointRange || { min: 0, max: 100 }) : undefined,
+      pointRange: gradingSystem === 'point-range' ? (pointRange || { min: 0, max: 100, step: 0.5 }) : undefined,
       letterGrades: gradingSystem === 'letter-grade' ? (letterGrades || ['A', 'B', 'C', 'D', 'F']) : undefined,
       customOptions: gradingSystem === 'custom' ? (customOptions || []) : undefined,
+      hkbuGradingScale: hkbuGradingScale || null,
+      gradeRangeMapping: gradeRangeMapping || null,
+      templateName: templateName || null,
+      rubricItems: rubricItems || [],
       description: description || '',
       dueDate: dueDate || null,
       enabled: enabled !== false,
@@ -69,21 +84,36 @@ const createGradingStandard = async (req, res, next) => {
  */
 const updateGradingStandard = async (req, res, next) => {
   try {
-    const { submissionType, gradingSystem, pointRange, letterGrades, customOptions, description, dueDate, enabled } = req.body;
+    const { submissionType, gradingSystem, pointRange, letterGrades, customOptions, description, dueDate, enabled, templateName, rubricItems, hkbuGradingScale, gradeRangeMapping } = req.body;
 
     const standard = await GradingStandard.findById(req.params.id);
     if (!standard) {
       return res.status(404).json({ error: 'Grading standard not found', code: 'NOT_FOUND', status: 404 });
     }
 
+    // Validate pointRange if provided
+    if (pointRange !== undefined) {
+      if (typeof pointRange.min !== 'number' || typeof pointRange.max !== 'number' || pointRange.min >= pointRange.max) {
+        return res.status(400).json({ error: 'Invalid pointRange: min must be less than max', code: 'INVALID_POINT_RANGE', status: 400 });
+      }
+      if (!pointRange.step) {
+        pointRange.step = 0.5;
+      }
+      standard.pointRange = pointRange;
+    }
+
     if (submissionType) standard.submissionType = submissionType;
     if (gradingSystem) standard.gradingSystem = gradingSystem;
-    if (pointRange !== undefined) standard.pointRange = pointRange;
     if (letterGrades !== undefined) standard.letterGrades = letterGrades;
     if (customOptions !== undefined) standard.customOptions = customOptions;
     if (description !== undefined) standard.description = description;
     if (dueDate !== undefined) standard.dueDate = dueDate;
     if (enabled !== undefined) standard.enabled = enabled;
+    if (templateName !== undefined) standard.templateName = templateName;
+    if (rubricItems !== undefined) standard.rubricItems = rubricItems;
+    if (hkbuGradingScale !== undefined) standard.hkbuGradingScale = hkbuGradingScale;
+    if (gradeRangeMapping !== undefined) standard.gradeRangeMapping = gradeRangeMapping;
+    
     standard.updatedAt = new Date();
 
     await standard.save();

@@ -40,12 +40,16 @@ const resetForm = () => {
   formData.value = {
     submissionType: '',
     gradingSystem: 'point-range',
-    pointRange: { min: 0, max: 100 },
+    pointRange: { min: 0, max: 100, step: 0.5 },
     letterGrades: ['A', 'B', 'C', 'D', 'F'],
     customOptions: [],
     description: '',
     dueDate: null,
     enabled: true,
+    templateName: null,
+    rubricItems: [],
+    hkbuGradingScale: null,
+    gradeRangeMapping: [],
   }
   editingId.value = null
   showAddForm.value = false
@@ -92,12 +96,16 @@ const startEdit = (standard: GradingStandard) => {
   formData.value = {
     submissionType: standard.submissionType,
     gradingSystem: standard.gradingSystem,
-    pointRange: standard.pointRange || { min: 0, max: 100 },
+    pointRange: standard.pointRange || { min: 0, max: 100, step: 0.5 },
     letterGrades: standard.letterGrades || ['A', 'B', 'C', 'D', 'F'],
     customOptions: standard.customOptions || [],
     description: standard.description || '',
     dueDate: formattedDueDate,
     enabled: standard.enabled,
+    templateName: standard.templateName || null,
+    rubricItems: standard.rubricItems || [],
+    hkbuGradingScale: standard.hkbuGradingScale || null,
+    gradeRangeMapping: standard.gradeRangeMapping || [],
   }
   showAddForm.value = true
 }
@@ -238,13 +246,14 @@ const updateCustomOption = (index: number, value: string) => {
           <!-- Point Range Option -->
           <div v-if="formData.gradingSystem === 'point-range'" class="space-y-2">
             <label class="block text-sm font-medium text-slate-700">
-              Point Range
+              Point Range (supports 0.5 increments)
             </label>
             <div class="flex gap-3">
               <div class="flex-1">
                 <input
                   v-model.number="formData.pointRange!.min"
                   type="number"
+                  step="0.5"
                   placeholder="Min points"
                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
@@ -254,6 +263,7 @@ const updateCustomOption = (index: number, value: string) => {
                 <input
                   v-model.number="formData.pointRange!.max"
                   type="number"
+                  step="0.5"
                   placeholder="Max points"
                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
@@ -262,29 +272,46 @@ const updateCustomOption = (index: number, value: string) => {
           </div>
 
           <!-- Letter Grade Option -->
-          <div v-if="formData.gradingSystem === 'letter-grade'" class="space-y-2">
-            <label class="block text-sm font-medium text-slate-700 mb-2">
-              Letter Grades
-            </label>
-            <div class="flex flex-wrap gap-2">
-              <label v-for="grade in ['A', 'B', 'C', 'D', 'F']" :key="grade" class="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  :checked="formData.letterGrades?.includes(grade)"
-                  @change="(e) => {
-                    if (!formData.letterGrades) formData.letterGrades = [];
-                    if ((e.target as HTMLInputElement).checked) {
-                      if (!formData.letterGrades.includes(grade)) {
-                        formData.letterGrades.push(grade);
-                      }
-                    } else {
-                      formData.letterGrades = formData.letterGrades.filter(g => g !== grade);
-                    }
-                  }"
-                  class="h-4 w-4"
-                />
-                <span class="text-sm text-slate-700">{{ grade }}</span>
+          <div v-if="formData.gradingSystem === 'letter-grade'" class="space-y-3">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-2">
+                HKBU Grading Scale
               </label>
+              <select 
+                v-model="formData.hkbuGradingScale"
+                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="">-- Select Template --</option>
+                <option value="hkbu-standard">HKBU Standard (A, B+, B, C+, C, D)</option>
+                <option value="hkbu-honors">HKBU Honors (A+, A, B+, B, C)</option>
+                <option value="custom">Custom Grades</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-2">
+                Letter Grades
+              </label>
+              <div class="flex flex-wrap gap-2">
+                <label v-for="grade in ['A', 'A+', 'B+', 'B', 'C+', 'C', 'D', 'F']" :key="grade" class="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    :checked="formData.letterGrades?.includes(grade)"
+                    @change="(e) => {
+                      if (!formData.letterGrades) formData.letterGrades = [];
+                      if ((e.target as HTMLInputElement).checked) {
+                        if (!formData.letterGrades.includes(grade)) {
+                          formData.letterGrades.push(grade);
+                        }
+                      } else {
+                        formData.letterGrades = formData.letterGrades.filter(g => g !== grade);
+                      }
+                    }"
+                    class="h-4 w-4"
+                  />
+                  <span class="text-sm text-slate-700">{{ grade }}</span>
+                </label>
+              </div>
             </div>
           </div>
 

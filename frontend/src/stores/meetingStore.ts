@@ -134,10 +134,10 @@ export const useMeetingStore = defineStore('meeting', () => {
     }
   }
 
-  async function bookSlot(slotId: string, notes?: string) {
+  async function bookSlot(slotId: string, notes?: string, timeSlotIndex?: number | null) {
     error.value = null
     try {
-      const res = await meetingService.bookSlot(slotId, notes)
+      const res = await meetingService.bookSlot(slotId, notes, timeSlotIndex)
       const idx = studentSlots.value.findIndex((s) => s._id === slotId)
       if (idx !== -1) studentSlots.value[idx] = res.data
       return res.data

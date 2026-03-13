@@ -1,10 +1,18 @@
 import httpClient from './httpClient'
 
+export interface RubricItem {
+  title: string
+  description?: string
+  minScore?: number
+  maxScore?: number
+  levels?: Array<{ name: string; description?: string }>
+}
+
 export interface GradingStandard {
   _id: string
   submissionType: string
   gradingSystem: 'point-range' | 'letter-grade' | 'custom'
-  pointRange?: { min: number; max: number }
+  pointRange?: { min: number; max: number; step?: number }
   letterGrades?: string[]
   customOptions?: string[]
   description?: string
@@ -13,17 +21,27 @@ export interface GradingStandard {
   createdBy?: string
   createdAt: string
   updatedAt: string
+  // New fields
+  templateName?: string | null
+  rubricItems?: RubricItem[]
+  hkbuGradingScale?: 'hkbu-standard' | 'hkbu-honors' | 'custom' | null
+  gradeRangeMapping?: Array<{ grade: string; minPoints: number; maxPoints: number }>
 }
 
 export interface GradingStandardInput {
   submissionType: string
   gradingSystem: 'point-range' | 'letter-grade' | 'custom'
-  pointRange?: { min: number; max: number }
+  pointRange?: { min: number; max: number; step?: number }
   letterGrades?: string[]
   customOptions?: string[]
   description?: string
   dueDate?: string | null
   enabled?: boolean
+  // New fields
+  templateName?: string | null
+  rubricItems?: RubricItem[]
+  hkbuGradingScale?: 'hkbu-standard' | 'hkbu-honors' | 'custom' | null
+  gradeRangeMapping?: Array<{ grade: string; minPoints: number; maxPoints: number }>
 }
 
 export default {

@@ -75,6 +75,7 @@ const handleClose = () => {
           type="number"
           :min="standard.pointRange?.min"
           :max="standard.pointRange?.max"
+          :step="standard.pointRange?.step || 0.5"
           class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
         />
         <p v-if="grade && !isValid" class="mt-1 text-xs text-red-600">

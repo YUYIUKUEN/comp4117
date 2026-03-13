@@ -7,6 +7,7 @@ export interface GradingStandard {
   pointRange?: {
     min: number
     max: number
+    step?: number
   }
   letterGrades?: string[] // ['A', 'B', 'C', 'D', 'F']
   customOptions?: string[] // Custom grading options

@@ -2,6 +2,17 @@ import httpClient from './httpClient'
 
 // ─── Types ───
 
+export interface TimeSlot {
+  startTime: string
+  endTime: string
+}
+
+export interface RecurrencePattern {
+  pattern: 'none' | 'daily' | 'weekly' | 'biweekly' | 'monthly'
+  endDate?: string | null
+  daysOfWeek?: number[] // 0-6 for weekly recurrence
+}
+
 export interface MeetingSlotBooking {
   _id: string
   student_id: {
@@ -11,6 +22,7 @@ export interface MeetingSlotBooking {
   }
   bookedAt: string
   notes: string
+  timeSlotIndex?: number | null
 }
 
 export interface MeetingSlot {
@@ -23,13 +35,15 @@ export interface MeetingSlot {
   title: string
   description: string
   date: string
-  startTime: string
-  endTime: string
+  startTime?: string
+  endTime?: string
+  timeSlots?: TimeSlot[]
   location: string
   meetingType: 'one-to-one' | 'group'
   maxAttendees: number
   status: 'Available' | 'Booked' | 'Completed' | 'Cancelled'
   bookings: MeetingSlotBooking[]
+  recurrence?: RecurrencePattern
   isFullyBooked: boolean
   myBooking?: MeetingSlotBooking | null
   createdAt: string
@@ -40,11 +54,13 @@ export interface CreateSlotPayload {
   title: string
   description?: string
   date: string
-  startTime: string
-  endTime: string
+  startTime?: string
+  endTime?: string
+  timeSlots?: TimeSlot[]
   location?: string
   meetingType?: 'one-to-one' | 'group'
   maxAttendees?: number
+  recurrence?: RecurrencePattern
 }
 
 export interface MeetingNotification {
@@ -125,9 +141,10 @@ export default {
 
   async bookSlot(
     slotId: string,
-    notes?: string
+    notes?: string,
+    timeSlotIndex?: number | null
   ): Promise<{ success: boolean; data: MeetingSlot }> {
-    const response = await httpClient.post(`/meetings/slots/${slotId}/book`, { notes })
+    const response = await httpClient.post(`/meetings/slots/${slotId}/book`, { notes, timeSlotIndex })
     return response.data
   },
 

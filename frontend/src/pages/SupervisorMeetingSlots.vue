@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
 import { useMeetingStore } from '@/stores/meetingStore'
-import type { CreateSlotPayload } from '@/services/meetingService'
+import type { CreateSlotPayload, TimeSlot, RecurrencePattern } from '@/services/meetingService'
 
 const authStore = useAuthStore()
 const meetingStore = useMeetingStore()
@@ -17,15 +17,18 @@ const viewMode = ref<'upcoming' | 'all'>('upcoming')
 
 // ─── Create Slot Form ───
 const showCreateForm = ref(false)
+const useMultipleSlots = ref(false)
 const form = ref<CreateSlotPayload & { meetingType: 'one-to-one' | 'group'; maxAttendees: number }>({
   title: '',
   description: '',
   date: '',
   startTime: '',
   endTime: '',
+  timeSlots: [],
   location: '',
   meetingType: 'one-to-one',
   maxAttendees: 1,
+  recurrence: { pattern: 'none' },
 })
 const formError = ref('')
 const formSuccess = ref('')
@@ -37,38 +40,101 @@ function resetForm() {
     date: '',
     startTime: '',
     endTime: '',
+    timeSlots: [],
     location: '',
     meetingType: 'one-to-one',
     maxAttendees: 1,
+    recurrence: { pattern: 'none' },
   }
+  useMultipleSlots.value = false
   formError.value = ''
   formSuccess.value = ''
+}
+
+// ─── Edit Slot Form ───
+const showEditModal = ref(false)
+const editingSlot = ref<any>(null)
+const editForm = ref<any>(null)
+const editFormError = ref('')
+const editMultipleSlots = ref(false)
+
+function addEditTimeSlot() {
+  if (!editForm.value.timeSlots) {
+    editForm.value.timeSlots = []
+  }
+  editForm.value.timeSlots.push({ startTime: '', endTime: '' })
+}
+
+function removeEditTimeSlot(index: number) {
+  editForm.value.timeSlots?.splice(index, 1)
+}
+
+function addTimeSlot() {
+  if (!form.value.timeSlots) {
+    form.value.timeSlots = []
+  }
+  form.value.timeSlots.push({ startTime: '', endTime: '' })
+}
+
+function removeTimeSlot(index: number) {
+  form.value.timeSlots?.splice(index, 1)
 }
 
 async function handleCreateSlot() {
   formError.value = ''
   formSuccess.value = ''
 
-  if (!form.value.title || !form.value.date || !form.value.startTime || !form.value.endTime) {
-    formError.value = 'Please fill in all required fields'
-    return
-  }
-  if (form.value.startTime >= form.value.endTime) {
-    formError.value = 'End time must be after start time'
+  if (!form.value.title || !form.value.date) {
+    formError.value = 'Please fill in title and date'
     return
   }
 
+  // Validate that either single time or multiple time slots are provided
+  if (!useMultipleSlots.value) {
+    if (!form.value.startTime || !form.value.endTime) {
+      formError.value = 'Please select start and end times'
+      return
+    }
+    if (form.value.startTime >= form.value.endTime) {
+      formError.value = 'End time must be after start time'
+      return
+    }
+  } else {
+    if (!form.value.timeSlots || form.value.timeSlots.length === 0) {
+      formError.value = 'Please add at least one time slot'
+      return
+    }
+    for (const slot of form.value.timeSlots) {
+      if (!slot.startTime || !slot.endTime) {
+        formError.value = 'All time slots must have start and end times'
+        return
+      }
+      if (slot.startTime >= slot.endTime) {
+        formError.value = 'End time must be after start time for all slots'
+        return
+      }
+    }
+  }
+
   try {
-    await meetingStore.createSlot({
+    const payload: CreateSlotPayload = {
       title: form.value.title,
       description: form.value.description,
       date: form.value.date,
-      startTime: form.value.startTime,
-      endTime: form.value.endTime,
       location: form.value.location,
       meetingType: form.value.meetingType,
       maxAttendees: form.value.meetingType === 'one-to-one' ? 1 : form.value.maxAttendees,
-    })
+      recurrence: form.value.recurrence,
+    }
+
+    if (useMultipleSlots.value && form.value.timeSlots) {
+      payload.timeSlots = form.value.timeSlots
+    } else {
+      payload.startTime = form.value.startTime
+      payload.endTime = form.value.endTime
+    }
+
+    await meetingStore.createSlot(payload)
     formSuccess.value = 'Meeting slot created successfully!'
     resetForm()
     showCreateForm.value = false
@@ -96,6 +162,79 @@ async function handleComplete(slotId: string) {
   } catch {
     // error shown via store
   }
+}
+
+// ─── Edit Slot ───
+function openEditModal(slot: any) {
+  editingSlot.value = slot
+  editForm.value = {
+    title: slot.title,
+    description: slot.description,
+    location: slot.location,
+    meetingType: slot.meetingType,
+    maxAttendees: slot.maxAttendees,
+    timeSlots: slot.timeSlots ? JSON.parse(JSON.stringify(slot.timeSlots)) : [],
+  }
+  editMultipleSlots.value = slot.timeSlots && slot.timeSlots.length > 0
+  showEditModal.value = true
+  editFormError.value = ''
+}
+
+async function saveEdit() {
+  if (!editForm.value.title) {
+    editFormError.value = 'Title is required'
+    return
+  }
+
+  if (!editingSlot.value) return
+
+  // Validate time slots if editing multiple slots
+  if (editMultipleSlots.value && editForm.value.timeSlots) {
+    if (editForm.value.timeSlots.length === 0) {
+      editFormError.value = 'Please add at least one time slot'
+      return
+    }
+    for (const slot of editForm.value.timeSlots) {
+      if (!slot.startTime || !slot.endTime) {
+        editFormError.value = 'All time slots must have start and end times'
+        return
+      }
+      if (slot.startTime >= slot.endTime) {
+        editFormError.value = 'End time must be after start time for all slots'
+        return
+      }
+    }
+  }
+
+  try {
+    const payload: any = {
+      title: editForm.value.title,
+      description: editForm.value.description,
+      location: editForm.value.location,
+      meetingType: editForm.value.meetingType,
+      maxAttendees: editForm.value.meetingType === 'one-to-one' ? 1 : editForm.value.maxAttendees,
+    }
+
+    // Include time slots if editing multiple slots
+    if (editMultipleSlots.value && editForm.value.timeSlots && editForm.value.timeSlots.length > 0) {
+      payload.timeSlots = editForm.value.timeSlots
+    }
+
+    await meetingStore.updateSlot(editingSlot.value._id, payload)
+    showEditModal.value = false
+    editingSlot.value = null
+    editForm.value = null
+    await meetingStore.fetchSupervisorSlots()
+  } catch {
+    editFormError.value = meetingStore.error || 'Failed to update slot'
+  }
+}
+
+function cancelEdit() {
+  showEditModal.value = false
+  editingSlot.value = null
+  editForm.value = null
+  editFormError.value = ''
 }
 
 // ─── Computed slots ───
@@ -234,18 +373,61 @@ onMounted(() => {
                 <input v-model="form.date" type="date"
                   class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
               </div>
-              <div class="grid grid-cols-2 gap-3">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Start *</label>
-                  <input v-model="form.startTime" type="time"
-                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">End *</label>
-                  <input v-model="form.endTime" type="time"
-                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
-                </div>
+
+              <!-- Toggle for Multiple Time Slots -->
+              <div class="md:col-span-2">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input v-model="useMultipleSlots" type="checkbox" class="h-4 w-4" />
+                  <span class="text-sm font-medium text-gray-700">Add multiple time slots for this day</span>
+                </label>
               </div>
+
+              <!-- Single Time Slot -->
+              <template v-if="!useMultipleSlots">
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Start *</label>
+                    <input v-model="form.startTime" type="time"
+                      class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">End *</label>
+                    <input v-model="form.endTime" type="time"
+                      class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
+                  </div>
+                </div>
+              </template>
+
+              <!-- Multiple Time Slots -->
+              <template v-else>
+                <div class="md:col-span-2 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <label class="block text-sm font-medium text-gray-700">Time Slots *</label>
+                    <button 
+                      @click="addTimeSlot" 
+                      type="button"
+                      class="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-200">
+                      + Add Slot
+                    </button>
+                  </div>
+                  <div v-for="(slot, idx) in form.timeSlots" :key="idx" class="flex gap-2 items-end">
+                    <div class="flex-1">
+                      <input v-model="slot.startTime" type="time" placeholder="Start"
+                        class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500" />
+                    </div>
+                    <div class="flex-1">
+                      <input v-model="slot.endTime" type="time" placeholder="End"
+                        class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500" />
+                    </div>
+                    <button 
+                      @click="removeTimeSlot(idx)" 
+                      type="button"
+                      class="px-3 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200">
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              </template>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
                 <input v-model="form.location" type="text" placeholder="e.g. Room 301 or Zoom link"
@@ -264,6 +446,26 @@ onMounted(() => {
                 <input v-model.number="form.maxAttendees" type="number" min="2" max="50"
                   class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
               </div>
+
+              <!-- Recurrence Options -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Recurrence</label>
+                <select v-model="form.recurrence!.pattern"
+                  class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                  <option value="none">No Recurrence</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="biweekly">Bi-weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+
+              <div v-if="form.recurrence && form.recurrence.pattern !== 'none'">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Recurrence End Date</label>
+                <input v-model="form.recurrence.endDate" type="date"
+                  class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
+                <p class="text-xs text-gray-500 mt-1">Leave empty for recurring slots with no end date</p>
+              </div>
             </div>
 
             <div class="mt-4 flex justify-end gap-2">
@@ -275,6 +477,93 @@ onMounted(() => {
                 @click="handleCreateSlot()">
                 {{ meetingStore.loading ? 'Creating...' : 'Create Slot' }}
               </button>
+            </div>
+          </div>
+        </Transition>
+
+        <!-- Edit Slot Modal -->
+        <Transition name="fade">
+          <div v-if="showEditModal && editingSlot" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-5">
+              <h2 class="text-lg font-semibold text-gray-900 mb-1">Edit Meeting Slot</h2>
+              <p class="text-sm text-gray-500 mb-4">Update the details of this meeting slot</p>
+
+              <div v-if="editFormError" class="mb-3 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
+                {{ editFormError }}
+              </div>
+
+              <div class="space-y-3 max-h-96 overflow-y-auto">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+                  <input v-model="editForm.title" type="text" placeholder="e.g., Research Discussion"
+                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <textarea v-model="editForm.description" rows="2" placeholder="Optional description..."
+                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500" />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                  <input v-model="editForm.location" type="text" placeholder="e.g., Lab 101"
+                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500" />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Meeting Type</label>
+                  <select v-model="editForm.meetingType"
+                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500">
+                    <option value="one-to-one">One-to-One</option>
+                    <option value="group">Group</option>
+                  </select>
+                </div>
+
+                <div v-if="editForm.meetingType === 'group'">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Max Attendees</label>
+                  <input v-model.number="editForm.maxAttendees" type="number" min="2" max="50"
+                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500" />
+                </div>
+
+                <!-- Time Slots Editing -->
+                <div v-if="editMultipleSlots && editForm.timeSlots" class="border-t pt-3">
+                  <div class="flex items-center justify-between">
+                    <label class="block text-sm font-medium text-gray-700">Time Slots *</label>
+                    <button 
+                      @click="addEditTimeSlot" 
+                      type="button"
+                      class="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-200">
+                      + Add Slot
+                    </button>
+                  </div>
+                  <div v-for="(slot, idx) in editForm.timeSlots" :key="idx" class="flex gap-2 items-end mt-2">
+                    <div class="flex-1">
+                      <input v-model="slot.startTime" type="time" placeholder="Start"
+                        class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500" />
+                    </div>
+                    <div class="flex-1">
+                      <input v-model="slot.endTime" type="time" placeholder="End"
+                        class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500" />
+                    </div>
+                    <button
+                      @click="removeEditTimeSlot(Number(idx))"
+                      type="button"
+                      class="px-2 py-2 text-red-600 hover:bg-red-50 rounded transition">
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex justify-end gap-2 mt-5 border-t pt-4">
+                <button
+                  class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  @click="cancelEdit()">Cancel</button>
+                <button
+                  class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                  @click="saveEdit()">Save Changes</button>
+              </div>
             </div>
           </div>
         </Transition>
@@ -340,7 +629,10 @@ onMounted(() => {
                 <p v-if="slot.description" class="text-xs text-gray-500 mt-1 line-clamp-1">{{ slot.description }}</p>
                 <div class="flex items-center gap-4 mt-2 text-xs text-gray-500">
                   <span>📅 {{ formatDate(slot.date) }}</span>
-                  <span>🕐 {{ slot.startTime }} – {{ slot.endTime }}</span>
+                  <span v-if="slot.timeSlots && slot.timeSlots.length > 0">
+                    🕐 {{ slot.timeSlots.length === 1 ? `${slot.timeSlots[0]!.startTime} – ${slot.timeSlots[0]!.endTime}` : `${slot.timeSlots.length} time slots` }}
+                  </span>
+                  <span v-else>🕐 {{ slot.startTime }} – {{ slot.endTime }}</span>
                   <span v-if="slot.location">📍 {{ slot.location }}</span>
                 </div>
 
@@ -355,16 +647,22 @@ onMounted(() => {
                       :key="booking._id"
                       class="flex items-center justify-between bg-blue-50 rounded-lg px-3 py-1.5"
                     >
-                      <div class="flex items-center gap-2">
-                        <div class="w-6 h-6 rounded-full bg-blue-200 text-blue-700 flex items-center justify-center text-[10px] font-bold">
-                          {{ booking.student_id?.fullName?.charAt(0) || '?' }}
+                      <div class="flex-1">
+                        <div class="flex items-center gap-2">
+                          <div class="w-6 h-6 rounded-full bg-blue-200 text-blue-700 flex items-center justify-center text-[10px] font-bold">
+                            {{ booking.student_id?.fullName?.charAt(0) || '?' }}
+                          </div>
+                          <div>
+                            <p class="text-xs font-medium text-gray-800">{{ booking.student_id?.fullName || 'Unknown' }}</p>
+                            <p class="text-[10px] text-gray-500">{{ booking.student_id?.email || '' }}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p class="text-xs font-medium text-gray-800">{{ booking.student_id?.fullName || 'Unknown' }}</p>
-                          <p class="text-[10px] text-gray-500">{{ booking.student_id?.email || '' }}</p>
+                        <!-- Show booked time slot if applicable -->
+                        <div v-if="slot.timeSlots && slot.timeSlots.length > 0 && booking.timeSlotIndex !== undefined && booking.timeSlotIndex !== null" class="ml-8 text-[10px] text-indigo-600 font-medium mt-0.5">
+                          🕐 {{ slot.timeSlots[booking.timeSlotIndex]?.startTime }} – {{ slot.timeSlots[booking.timeSlotIndex]?.endTime }}
                         </div>
                       </div>
-                      <div class="text-[10px] text-gray-400">
+                      <div class="text-[10px] text-gray-400 shrink-0">
                         {{ new Date(booking.bookedAt).toLocaleDateString() }}
                       </div>
                     </div>
@@ -374,6 +672,11 @@ onMounted(() => {
 
               <!-- Actions -->
               <div class="flex items-center gap-1 shrink-0">
+                <button
+                  v-if="(!slot.bookings || slot.bookings.length === 0) && slot.status === 'Available'"
+                  class="rounded-lg bg-indigo-50 border border-indigo-200 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 transition"
+                  @click="openEditModal(slot)"
+                >✎ Edit</button>
                 <button
                   v-if="slot.status === 'Booked'"
                   class="rounded-lg bg-green-50 border border-green-200 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100 transition"
