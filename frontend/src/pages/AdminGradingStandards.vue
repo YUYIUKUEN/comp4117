@@ -150,6 +150,49 @@ const updateCustomOption = (index: number, value: string) => {
     formData.value.customOptions[index] = value
   }
 }
+
+// Rubric management functions
+const addRubricCriterion = () => {
+  if (!formData.value.rubricItems) {
+    formData.value.rubricItems = []
+  }
+  formData.value.rubricItems.push({
+    title: '',
+    description: '',
+    minScore: 0,
+    maxScore: 10,
+    levels: [
+      { name: 'Poor', description: 'Needs improvement' },
+      { name: 'Fair', description: 'Meets minimum requirements' },
+      { name: 'Good', description: 'Meets expectations' },
+      { name: 'Excellent', description: 'Exceeds expectations' },
+    ],
+  })
+}
+
+const removeRubricCriterion = (index: number) => {
+  if (formData.value.rubricItems) {
+    formData.value.rubricItems.splice(index, 1)
+  }
+}
+
+const addPerformanceLevel = (criterionIndex: number) => {
+  if (formData.value.rubricItems && formData.value.rubricItems[criterionIndex]) {
+    if (!formData.value.rubricItems[criterionIndex].levels) {
+      formData.value.rubricItems[criterionIndex].levels = []
+    }
+    formData.value.rubricItems[criterionIndex].levels.push({
+      name: '',
+      description: '',
+    })
+  }
+}
+
+const removePerformanceLevel = (criterionIndex: number, levelIndex: number) => {
+  if (formData.value.rubricItems && formData.value.rubricItems[criterionIndex]?.levels) {
+    formData.value.rubricItems[criterionIndex].levels!.splice(levelIndex, 1)
+  }
+}
 </script>
 
 <template>
@@ -374,6 +417,142 @@ const updateCustomOption = (index: number, value: string) => {
             </p>
           </div>
 
+          <!-- Rubric Section -->
+          <div class="border-t border-slate-200 pt-4">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-sm font-semibold text-slate-900">Rubric (Optional)</h3>
+                <p class="text-xs text-slate-600 mt-1">Define grading criteria with performance levels for structured evaluation</p>
+              </div>
+              <button
+                @click="addRubricCriterion"
+                type="button"
+                class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+              >
+                + Add Criterion
+              </button>
+            </div>
+
+            <!-- Rubric Criteria -->
+            <div v-if="formData.rubricItems && formData.rubricItems.length > 0" class="space-y-4">
+              <div
+                v-for="(criterion, criterionIndex) in formData.rubricItems"
+                :key="criterionIndex"
+                class="rounded-lg border border-slate-200 bg-slate-50 p-4"
+              >
+                <!-- Criterion Header -->
+                <div class="space-y-3 mb-4">
+                  <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">
+                      Criterion {{ criterionIndex + 1 }} Title *
+                    </label>
+                    <input
+                      v-model="criterion.title"
+                      type="text"
+                      placeholder="e.g. Clarity, Originality, Technical Quality"
+                      class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      v-model="criterion.description"
+                      placeholder="Brief description of what this criterion evaluates"
+                      rows="2"
+                      class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <!-- Performance Levels Header -->
+                <div class="mb-3 flex items-center justify-between">
+                  <h4 class="text-xs font-semibold text-slate-700">Performance Levels</h4>
+                  <button
+                    @click="addPerformanceLevel(criterionIndex)"
+                    type="button"
+                    class="text-xs font-medium text-blue-600 hover:text-blue-700"
+                  >
+                    + Add Level
+                  </button>
+                </div>
+
+                <!-- Performance Levels Table -->
+                <div class="rounded-lg border border-slate-300 overflow-hidden">
+                  <table class="w-full text-xs">
+                    <thead class="bg-slate-200">
+                      <tr>
+                        <th class="px-3 py-2 text-left font-medium text-slate-700">Level Name</th>
+                        <th class="px-3 py-2 text-left font-medium text-slate-700">Description</th>
+                        <th class="px-3 py-2 text-center font-medium text-slate-700 w-16">Points</th>
+                        <th class="px-3 py-2 text-center font-medium text-slate-700 w-12">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr
+                        v-for="(level, levelIndex) in criterion.levels || []"
+                        :key="levelIndex"
+                        class="border-t border-slate-200 hover:bg-slate-100"
+                      >
+                        <td class="px-3 py-2">
+                          <input
+                            v-model="level.name"
+                            type="text"
+                            placeholder="e.g. Excellent"
+                            class="w-full rounded border border-slate-300 px-2 py-1 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                          />
+                        </td>
+                        <td class="px-3 py-2">
+                          <input
+                            v-model="level.description"
+                            type="text"
+                            placeholder="Description"
+                            class="w-full rounded border border-slate-300 px-2 py-1 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                          />
+                        </td>
+                        <td class="px-3 py-2 text-center">
+                          <input
+                            :value="criterion.levels && criterion.levels.length > 0 ? levelIndex * Math.max(1, Math.floor(((criterion.maxScore || 10) - (criterion.minScore || 0)) / Math.max(1, criterion.levels.length - 1))) : 0"
+                            type="number"
+                            disabled
+                            class="w-full rounded border border-slate-300 px-2 py-1 text-xs text-center bg-slate-100 text-slate-600"
+                          />
+                        </td>
+                        <td class="px-3 py-2 text-center">
+                          <button
+                            v-if="criterion.levels && criterion.levels.length > 1"
+                            @click="removePerformanceLevel(criterionIndex, levelIndex)"
+                            type="button"
+                            class="text-red-600 hover:text-red-700 font-medium"
+                          >
+                            ✕
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Criterion Actions -->
+                <div class="mt-4 flex justify-end">
+                  <button
+                    @click="removeRubricCriterion(criterionIndex)"
+                    type="button"
+                    class="rounded-lg border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
+                  >
+                    Remove Criterion
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Empty Rubric State -->
+            <div v-else class="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 text-center">
+              <p class="text-xs text-slate-600">No criteria defined yet. Click "Add Criterion" to start building your rubric.</p>
+            </div>
+          </div>
+
           <!-- Actions -->
           <div class="flex gap-2 pt-4">
             <button
@@ -458,6 +637,22 @@ const updateCustomOption = (index: number, value: string) => {
                 <p v-if="standard.dueDate" class="font-medium mt-1">
                   Due: {{ new Date(standard.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) }}
                 </p>
+              </div>
+
+              <!-- Rubric Preview -->
+              <div v-if="standard.rubricItems && standard.rubricItems.length > 0" class="mt-3 rounded-lg border border-blue-100 bg-blue-50 p-3">
+                <p class="text-xs font-semibold text-blue-900 mb-2">📋 Rubric ({{ standard.rubricItems.length }} criteria)</p>
+                <div class="space-y-2">
+                  <div v-for="(criterion, idx) in standard.rubricItems.slice(0, 2)" :key="idx" class="text-xs text-blue-800">
+                    <p class="font-medium">{{ criterion.title }}</p>
+                    <p v-if="criterion.levels && criterion.levels.length > 0" class="text-blue-700 ml-2">
+                      Levels: {{ criterion.levels.map(l => l.name).join(', ') }}
+                    </p>
+                  </div>
+                  <p v-if="standard.rubricItems.length > 2" class="text-xs text-blue-700 italic">
+                    + {{ standard.rubricItems.length - 2 }} more criteria
+                  </p>
+                </div>
               </div>
             </div>
 
