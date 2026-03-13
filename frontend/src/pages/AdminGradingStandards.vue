@@ -156,17 +156,32 @@ const addRubricCriterion = () => {
   if (!formData.value.rubricItems) {
     formData.value.rubricItems = []
   }
+  
+  // Initialize levels based on grading system
+  let levels = []
+  if (formData.value.gradingSystem === 'letter-grade') {
+    levels = [
+      { name: 'A', description: 'Excellent', points: 0 },
+      { name: 'B', description: 'Good', points: 0 },
+      { name: 'C', description: 'Satisfactory', points: 0 },
+      { name: 'F', description: 'Fail', points: 0 },
+    ]
+  } else {
+    // Default for point-range
+    levels = [
+      { name: 'Poor', description: 'Needs improvement', points: 0 },
+      { name: 'Fair', description: 'Meets minimum requirements', points: 3 },
+      { name: 'Good', description: 'Meets expectations', points: 6 },
+      { name: 'Excellent', description: 'Exceeds expectations', points: 10 },
+    ]
+  }
+  
   formData.value.rubricItems.push({
     title: '',
     description: '',
     minScore: 0,
     maxScore: 10,
-    levels: [
-      { name: 'Poor', description: 'Needs improvement', points: 0 },
-      { name: 'Fair', description: 'Meets minimum requirements', points: 3 },
-      { name: 'Good', description: 'Meets expectations', points: 6 },
-      { name: 'Excellent', description: 'Exceeds expectations', points: 10 },
-    ],
+    levels,
   })
 }
 
@@ -287,8 +302,8 @@ const removePerformanceLevel = (criterionIndex: number, levelIndex: number) => {
             </div>
           </div>
 
-          <!-- Point Range Option -->
-          <div v-if="formData.gradingSystem === 'point-range'" class="space-y-2">
+          <!-- Point Range Option (hide if rubrics exist) -->
+          <div v-if="formData.gradingSystem === 'point-range' && (!formData.rubricItems || formData.rubricItems.length === 0)" class="space-y-2">
             <label class="block text-sm font-medium text-slate-700">
               Point Range (supports 0.5 increments)
             </label>
@@ -315,8 +330,8 @@ const removePerformanceLevel = (criterionIndex: number, levelIndex: number) => {
             </div>
           </div>
 
-          <!-- Letter Grade Option -->
-          <div v-if="formData.gradingSystem === 'letter-grade'" class="space-y-3">
+          <!-- Letter Grade Option (hide if rubrics exist) -->
+          <div v-if="formData.gradingSystem === 'letter-grade' && (!formData.rubricItems || formData.rubricItems.length === 0)" class="space-y-3">
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-2">
                 Letter Grades
@@ -464,8 +479,8 @@ const removePerformanceLevel = (criterionIndex: number, levelIndex: number) => {
                   </button>
                 </div>
 
-                <!-- Performance Levels Table -->
-                <div class="rounded-lg border border-slate-300 overflow-hidden">
+                <!-- Performance Levels Table - Point Range -->
+                <div v-if="formData.gradingSystem === 'point-range'" class="rounded-lg border border-slate-300 overflow-hidden">
                   <table class="w-full text-xs">
                     <thead class="bg-slate-200">
                       <tr>
@@ -503,6 +518,53 @@ const removePerformanceLevel = (criterionIndex: number, levelIndex: number) => {
                             type="number"
                             min="0"
                             class="w-full rounded border border-slate-300 px-2 py-1 text-xs text-center focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                          />
+                        </td>
+                        <td class="px-3 py-2 text-center">
+                          <button
+                            v-if="criterion.levels && criterion.levels.length > 1"
+                            @click="removePerformanceLevel(criterionIndex, levelIndex)"
+                            type="button"
+                            class="text-red-600 hover:text-red-700 font-medium"
+                          >
+                            ✕
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Performance Levels Table - Letter Grade -->
+                <div v-else-if="formData.gradingSystem === 'letter-grade'" class="rounded-lg border border-slate-300 overflow-hidden">
+                  <table class="w-full text-xs">
+                    <thead class="bg-slate-200">
+                      <tr>
+                        <th class="px-3 py-2 text-left font-medium text-slate-700">Grade</th>
+                        <th class="px-3 py-2 text-left font-medium text-slate-700">Description</th>
+                        <th class="px-3 py-2 text-center font-medium text-slate-700 w-12">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr
+                        v-for="(level, levelIndex) in criterion.levels || []"
+                        :key="levelIndex"
+                        class="border-t border-slate-200 hover:bg-slate-100"
+                      >
+                        <td class="px-3 py-2">
+                          <input
+                            v-model="level.name"
+                            type="text"
+                            placeholder="e.g. A, B, C"
+                            class="w-full rounded border border-slate-300 px-2 py-1 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                          />
+                        </td>
+                        <td class="px-3 py-2">
+                          <input
+                            v-model="level.description"
+                            type="text"
+                            placeholder="Description"
+                            class="w-full rounded border border-slate-300 px-2 py-1 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                           />
                         </td>
                         <td class="px-3 py-2 text-center">
