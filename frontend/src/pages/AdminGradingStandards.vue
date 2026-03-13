@@ -132,24 +132,7 @@ const toggleEnabled = async (standard: GradingStandard) => {
   }
 }
 
-const addCustomOption = () => {
-  if (!formData.value.customOptions) {
-    formData.value.customOptions = []
-  }
-  formData.value.customOptions.push('')
-}
 
-const removeCustomOption = (index: number) => {
-  if (formData.value.customOptions) {
-    formData.value.customOptions.splice(index, 1)
-  }
-}
-
-const updateCustomOption = (index: number, value: string) => {
-  if (formData.value.customOptions) {
-    formData.value.customOptions[index] = value
-  }
-}
 
 // Rubric management functions
 const addRubricCriterion = () => {
@@ -290,15 +273,6 @@ const removePerformanceLevel = (criterionIndex: number, levelIndex: number) => {
                 />
                 <span class="text-sm text-slate-700">Letter Grade</span>
               </label>
-              <label class="flex items-center gap-2">
-                <input
-                  type="radio"
-                  v-model="formData.gradingSystem"
-                  value="custom"
-                  class="h-4 w-4"
-                />
-                <span class="text-sm text-slate-700">Custom</span>
-              </label>
             </div>
           </div>
 
@@ -357,37 +331,6 @@ const removePerformanceLevel = (criterionIndex: number, levelIndex: number) => {
                 </label>
               </div>
             </div>
-          </div>
-
-          <!-- Custom Options -->
-          <div v-if="formData.gradingSystem === 'custom'" class="space-y-2">
-            <label class="block text-sm font-medium text-slate-700">
-              Custom Options
-            </label>
-            <div class="space-y-2">
-              <div v-for="(option, index) in formData.customOptions" :key="index" class="flex gap-2">
-                <input
-                  v-model="formData.customOptions![index]"
-                  type="text"
-                  placeholder="Option name"
-                  class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                />
-                <button
-                  @click="removeCustomOption(index)"
-                  type="button"
-                  class="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs font-medium text-red-700 hover:bg-red-100"
-                >
-                  Remove
-                </button>
-              </div>
-            </div>
-            <button
-              @click="addCustomOption"
-              type="button"
-              class="mt-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
-              + Add Option
-            </button>
           </div>
 
           <!-- Description -->
@@ -678,9 +621,6 @@ const removePerformanceLevel = (criterionIndex: number, levelIndex: number) => {
                 </p>
                 <p v-else-if="standard.gradingSystem === 'letter-grade'" class="font-medium">
                   Grades: {{ standard.letterGrades?.join(', ') }}
-                </p>
-                <p v-else-if="standard.gradingSystem === 'custom'" class="font-medium">
-                  Options: {{ standard.customOptions?.join(', ') }}
                 </p>
                 <p v-if="standard.dueDate" class="font-medium mt-1">
                   Due: {{ new Date(standard.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) }}
