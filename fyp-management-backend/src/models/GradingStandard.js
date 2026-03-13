@@ -7,8 +7,10 @@ const rubricItemSchema = new mongoose.Schema({
   minScore: { type: Number, default: 0 }, // min score for this rubric item
   maxScore: { type: Number, default: 10 }, // max score
   levels: [{ // for letter grades or custom options
+    _id: false,
     name: { type: String, required: true },
     description: { type: String, maxlength: 300 },
+    points: { type: Number, default: 0 }, // freely editable points for each level
   }],
 }, { _id: false });
 

@@ -5,7 +5,7 @@ export interface RubricItem {
   description?: string
   minScore?: number
   maxScore?: number
-  levels?: Array<{ name: string; description?: string }>
+  levels?: Array<{ name: string; description?: string; points?: number }>
 }
 
 export interface GradingStandard {
