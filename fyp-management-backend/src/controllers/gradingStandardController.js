@@ -110,7 +110,10 @@ const updateGradingStandard = async (req, res, next) => {
     if (dueDate !== undefined) standard.dueDate = dueDate;
     if (enabled !== undefined) standard.enabled = enabled;
     if (templateName !== undefined) standard.templateName = templateName;
-    if (rubricItems !== undefined) standard.rubricItems = rubricItems;
+    if (rubricItems !== undefined) {
+      standard.rubricItems = rubricItems;
+      standard.markModified('rubricItems'); // Mark nested array as modified so Mongoose saves it
+    }
     if (hkbuGradingScale !== undefined) standard.hkbuGradingScale = hkbuGradingScale;
     if (gradeRangeMapping !== undefined) standard.gradeRangeMapping = gradeRangeMapping;
     
