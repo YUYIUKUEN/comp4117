@@ -84,6 +84,18 @@ const handleAddStandard = async () => {
   }
 }
 
+// Helper function to ensure all rubric levels have points property
+const ensureRubricItemsHavePoints = (items: any[]) => {
+  if (!items) return []
+  return items.map((item: any) => ({
+    ...item,
+    levels: (item.levels || []).map((level: any) => ({
+      ...level,
+      points: level.points ?? 0, // Use 0 if points is undefined or null
+    })),
+  }))
+}
+
 const startEdit = (standard: GradingStandard) => {
   editingId.value = standard._id
   // Convert ISO date to YYYY-MM-DD format for the date input
@@ -103,7 +115,7 @@ const startEdit = (standard: GradingStandard) => {
     dueDate: formattedDueDate,
     enabled: standard.enabled,
     templateName: standard.templateName || null,
-    rubricItems: standard.rubricItems || [],
+    rubricItems: ensureRubricItemsHavePoints(standard.rubricItems || []),
     hkbuGradingScale: standard.hkbuGradingScale || null,
     gradeRangeMapping: standard.gradeRangeMapping || [],
   }
