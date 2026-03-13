@@ -127,6 +127,30 @@ const updateGradingStandard = async (req, res, next) => {
 };
 
 /**
+ * GET /grading-standards/by-type/:submissionType
+ * Get grading standard by submission type (for supervisor feedback form)
+ */
+const getGradingStandardBySubmissionType = async (req, res, next) => {
+  try {
+    const { submissionType } = req.params;
+    
+    // Find enabled standard by submission type
+    const standard = await GradingStandard.findOne({
+      submissionType: submissionType,
+      enabled: true,
+    });
+    
+    if (!standard) {
+      return res.status(404).json({ error: 'No active grading standard found for this submission type', code: 'NOT_FOUND', status: 404 });
+    }
+    
+    res.json({ data: standard, status: 200 });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * DELETE /grading-standards/:id  (Admin only)
  */
 const deleteGradingStandard = async (req, res, next) => {
@@ -145,6 +169,7 @@ const deleteGradingStandard = async (req, res, next) => {
 module.exports = {
   getAllGradingStandards,
   getGradingStandardById,
+  getGradingStandardBySubmissionType,
   createGradingStandard,
   updateGradingStandard,
   deleteGradingStandard,

@@ -101,11 +101,14 @@ onMounted(async () => {
     // Fetch submission details
     submission.value = await getSupervisorSubmissionById(submissionId);
 
-    // Fetch grading standard for this submission's phase
-    const standards = await gradingStandardService.getAll(true);
-    applicableStandard.value = standards.find(
-      (s) => s.submissionType === submission.value.phase
-    ) || null;
+    // Fetch grading standard for this submission's phase using optimized endpoint
+    // This is more efficient than calling getAll() to fetch all standards
+    applicableStandard.value = await gradingStandardService.getBySubmissionType(submission.value.phase);
+
+    // If no standard found, that's okay - supervisor can provide feedback without grading
+    if (!applicableStandard.value) {
+      console.log(`No active grading standard for phase: ${submission.value.phase}`);
+    }
 
     // Fetch existing feedback for this submission
     try {

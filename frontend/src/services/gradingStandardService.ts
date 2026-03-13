@@ -71,7 +71,15 @@ export default {
   },
 
   async getBySubmissionType(submissionType: string): Promise<GradingStandard | null> {
-    const all = await this.getAll(true)
-    return all.find((s) => s.submissionType === submissionType) || null
+    try {
+      const response = await httpClient.get(`/grading-standards/by-type/${submissionType}`)
+      return response.data.data
+    } catch (error: any) {
+      // If 404 (no standard found), return null instead of throwing
+      if (error.response?.status === 404) {
+        return null
+      }
+      throw error
+    }
   },
 }

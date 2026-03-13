@@ -3,6 +3,7 @@ const { authenticate, requireRole } = require('../middleware/authMiddleware');
 const {
   getAllGradingStandards,
   getGradingStandardById,
+  getGradingStandardBySubmissionType,
   createGradingStandard,
   updateGradingStandard,
   deleteGradingStandard,
@@ -12,6 +13,10 @@ const router = express.Router();
 
 // GET all - any authenticated user (supervisors need to read)
 router.get('/', authenticate, getAllGradingStandards);
+
+// GET by submission type - called by supervisor feedback form
+// NOTE: This route must come BEFORE /:id to prevent conflict
+router.get('/by-type/:submissionType', authenticate, getGradingStandardBySubmissionType);
 
 // GET by id
 router.get('/:id', authenticate, getGradingStandardById);
