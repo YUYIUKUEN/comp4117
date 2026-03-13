@@ -457,7 +457,15 @@ const getSupervisorSubmissions = async (req, res, next) => {
 
     const topicIds = assignments.map(a => a.topic_id);
 
-    const filter = { topic_id: { $in: topicIds } };
+    // Fetch enabled grading standards to filter by valid phases
+    const GradingStandard = require('../models/GradingStandard');
+    const enabledStandards = await GradingStandard.find({ enabled: true });
+    const validPhases = enabledStandards.map(s => s.submissionType);
+
+    const filter = { 
+      topic_id: { $in: topicIds },
+      phase: { $in: validPhases } // Only include phases with active grading standards
+    };
     if (phase) {
       filter.phase = phase;
     }
