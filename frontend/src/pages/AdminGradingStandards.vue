@@ -100,6 +100,19 @@ const ensureRubricItemsHavePoints = (items: any[]) => {
   }))
 }
 
+const getGradingTypeLabel = (standard: GradingStandard): string => {
+  switch (standard.gradingSystem) {
+    case 'point-range':
+      return 'Point range'
+    case 'letter-grade':
+      return 'Letter grades'
+    case 'custom':
+      return 'Custom'
+    default:
+      return standard.gradingSystem || 'Unknown'
+  }
+}
+
 const startEdit = (standard: GradingStandard) => {
   editingId.value = standard._id
   // Convert ISO date to YYYY-MM-DD format for the date input
@@ -674,11 +687,8 @@ const loadTemplate = async (templateId: string) => {
 
               <!-- Grading Details -->
               <div class="mt-2 text-xs text-slate-600">
-                <p v-if="standard.gradingSystem === 'point-range'" class="font-medium">
-                  Range: {{ standard.pointRange?.min }} - {{ standard.pointRange?.max }} points
-                </p>
-                <p v-else-if="standard.gradingSystem === 'letter-grade'" class="font-medium">
-                  Grades: {{ standard.letterGrades?.join(', ') }}
+                <p class="font-medium">
+                  Type: {{ getGradingTypeLabel(standard) }}
                 </p>
                 <p v-if="standard.dueDate" class="font-medium mt-1">
                   Due: {{ new Date(standard.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) }}
