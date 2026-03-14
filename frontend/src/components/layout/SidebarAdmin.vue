@@ -17,6 +17,7 @@ const baseItems = [
 
 const adminExtra = [
   { id: 'grading', label: 'Grading Standards', route: '/admin/grading-standards' },
+  { id: 'rubric-templates', label: 'Rubric Templates', route: '/admin/rubric-templates' },
   { id: 'internal-notes', label: 'Internal Notes', route: '/admin/internal-notes' },
   { id: 'system', label: 'System Overview', route: '/admin' },
 ]

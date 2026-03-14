@@ -32,6 +32,7 @@ const activityRoutes = require('./routes/activityRoutes');
 const healthRoutes = require('./routes/healthRoutes');
 const adminReminderRoutes = require('./routes/adminReminderRoutes');
 const gradingStandardRoutes = require('./routes/gradingStandardRoutes');
+const rubricTemplateRoutes = require('./routes/rubricTemplateRoutes');
 const meetingRoutes = require('./routes/meetingRoutes');
 const topicChangeRequestRoutes = require('./routes/topicChangeRequestRoutes');
 
@@ -47,6 +48,7 @@ app.use('/api/v1/admin/topics', topicModerationRoutes);
 app.use('/api/v1/admin/reminders', adminReminderRoutes);
 app.use('/api/v1/activity', activityRoutes);
 app.use('/api/v1/grading-standards', gradingStandardRoutes);
+app.use('/api/v1/rubric-templates', rubricTemplateRoutes);
 app.use('/api/v1/meetings', meetingRoutes);
 app.use('/api/v1/topic-change-requests', topicChangeRequestRoutes);
 app.use('/api/v1/health', healthRoutes);

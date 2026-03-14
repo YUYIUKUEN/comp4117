@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import gradingStandardService from '../services/gradingStandardService'
+import rubricTemplateService from '../services/rubricTemplateService'
 import type { GradingStandard, GradingStandardInput } from '../services/gradingStandardService'
+import type { RubricTemplate } from '../services/rubricTemplateService'
 
 const gradingStandards = ref<GradingStandard[]>([])
+const rubricTemplates = ref<RubricTemplate[]>([])
 const loading = ref(true)
 const saving = ref(false)
 const error = ref('')
@@ -27,6 +30,7 @@ const fetchStandards = async () => {
     loading.value = true
     error.value = ''
     gradingStandards.value = await gradingStandardService.getAll()
+    rubricTemplates.value = await rubricTemplateService.getAll()
   } catch (e: any) {
     error.value = e?.response?.data?.error || 'Failed to load grading standards'
   } finally {
@@ -204,6 +208,27 @@ const removePerformanceLevel = (criterionIndex: number, levelIndex: number) => {
     formData.value.rubricItems[criterionIndex].levels!.splice(levelIndex, 1)
   }
 }
+
+const loadTemplate = async (templateId: string) => {
+  if (!templateId) {
+    // Clear rubric items if no template selected
+    formData.value.rubricItems = []
+    return
+  }
+
+  try {
+    const template = await rubricTemplateService.getById(templateId)
+    if (template) {
+      // Populate rubric items from template
+      const items = JSON.parse(JSON.stringify(template.rubricItems || []))
+      // Ensure all levels have points
+      formData.value.rubricItems = ensureRubricItemsHavePoints(items)
+    }
+  } catch (e) {
+    console.error('Failed to load template:', e)
+    error.value = 'Failed to load template'
+  }
+}
 </script>
 
 <template>
@@ -375,11 +400,32 @@ const removePerformanceLevel = (criterionIndex: number, levelIndex: number) => {
 
           <!-- Rubric Section -->
           <div class="border-t border-slate-200 pt-4">
+            <div class="mb-4">
+              <h3 class="text-sm font-semibold text-slate-900">Rubric (Optional)</h3>
+              <p class="text-xs text-slate-600 mt-1">Define grading criteria with performance levels for structured evaluation</p>
+            </div>
+
+            <!-- Template Selector -->
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-slate-700 mb-2">
+                Use a template (optional)
+              </label>
+              <select
+                @change="(e) => loadTemplate((e.target as HTMLSelectElement).value)"
+                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="">-- Choose a template or create custom --</option>
+                <option v-for="template in rubricTemplates" :key="template._id" :value="template._id">
+                  {{ template.name }}{{ template.isDefault ? ' (Default)' : '' }}
+                </option>
+              </select>
+              <p class="text-xs text-slate-500 mt-1">
+                Selected templates will populate the criteria below. You can still add, edit, or remove criteria.
+              </p>
+            </div>
+
             <div class="flex items-center justify-between mb-4">
-              <div>
-                <h3 class="text-sm font-semibold text-slate-900">Rubric (Optional)</h3>
-                <p class="text-xs text-slate-600 mt-1">Define grading criteria with performance levels for structured evaluation</p>
-              </div>
+              <span></span>
               <button
                 @click="addRubricCriterion"
                 type="button"

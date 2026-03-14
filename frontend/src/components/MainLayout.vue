@@ -59,6 +59,7 @@ const currentRoute = computed(() => {
   if (path === '/admin') return 'admin';
   if (path === '/admin/students-cohorts') return 'admin-cohorts';
   if (path === '/admin/grading-standards') return 'admin-grading';
+  if (path === '/admin/rubric-templates') return 'rubric-templates';
   if (path === '/admin/internal-notes') return 'internal-notes';
   return undefined;
 });
