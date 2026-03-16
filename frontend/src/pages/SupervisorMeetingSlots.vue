@@ -639,7 +639,7 @@ onMounted(() => {
                 <!-- Bookings -->
                 <div v-if="slot.bookings && slot.bookings.length > 0" class="mt-3 border-t border-gray-100 pt-2">
                   <p class="text-[11px] font-medium text-gray-500 uppercase tracking-wider mb-1">
-                    Bookings ({{ slot.bookings.length }}/{{ slot.maxAttendees }})
+                    Bookings
                   </p>
                   <div class="space-y-1">
                     <div
