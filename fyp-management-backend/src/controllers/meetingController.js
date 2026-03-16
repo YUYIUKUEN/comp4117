@@ -359,14 +359,18 @@ exports.deleteSlot = async (req, res) => {
     // If there are bookings, notify students about cancellation
     if (slot.bookings.length > 0) {
       const notifications = slot.bookings.map((b) => {
-        let timeString = slot.startTime || 'unknown time';
+        let timeString = 'unknown time';
         
-        // If slot has multiple time slots, use the one the student booked
-        if (slot.timeSlots && slot.timeSlots.length > 0 && b.timeSlotIndex !== null && b.timeSlotIndex !== undefined) {
+        // For multi-slot meetings, use the specific time slot the student booked
+        if (slot.timeSlots && slot.timeSlots.length > 0 && typeof b.timeSlotIndex === 'number') {
           const bookedTimeSlot = slot.timeSlots[b.timeSlotIndex];
           if (bookedTimeSlot) {
             timeString = `${bookedTimeSlot.startTime}-${bookedTimeSlot.endTime}`;
           }
+        } 
+        // For single-slot or legacy meetings, use startTime
+        else if (slot.startTime) {
+          timeString = slot.startTime;
         }
         
         return {
@@ -757,14 +761,18 @@ exports.cancelBooking = async (req, res) => {
     }
 
     const bookingToCancel = slot.bookings[bookingIndex];
-    let timeString = slot.startTime || 'unknown time';
+    let timeString = 'unknown time';
     
-    // If slot has multiple time slots, use the one the student booked
-    if (slot.timeSlots && slot.timeSlots.length > 0 && bookingToCancel.timeSlotIndex !== null && bookingToCancel.timeSlotIndex !== undefined) {
+    // For multi-slot meetings, use the specific time slot the student booked
+    if (slot.timeSlots && slot.timeSlots.length > 0 && typeof bookingToCancel.timeSlotIndex === 'number') {
       const bookedTimeSlot = slot.timeSlots[bookingToCancel.timeSlotIndex];
       if (bookedTimeSlot) {
         timeString = `${bookedTimeSlot.startTime}-${bookedTimeSlot.endTime}`;
       }
+    }
+    // For single-slot or legacy meetings, use startTime
+    else if (slot.startTime) {
+      timeString = slot.startTime;
     }
 
     slot.bookings.splice(bookingIndex, 1);
