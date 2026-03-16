@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue'
 import gradingStandardService from '../services/gradingStandardService'
+import rubricTemplateService from '../services/rubricTemplateService'
 import type { GradingStandard, GradingStandardInput } from '../services/gradingStandardService'
+import type { RubricTemplate } from '../services/rubricTemplateService'
 
 const gradingStandards = ref<GradingStandard[]>([])
+const rubricTemplates = ref<RubricTemplate[]>([])
 const loading = ref(true)
 const saving = ref(false)
 const error = ref('')
@@ -28,6 +31,7 @@ const fetchStandards = async () => {
     loading.value = true
     error.value = ''
     gradingStandards.value = await gradingStandardService.getAll()
+    rubricTemplates.value = await rubricTemplateService.getAll()
   } catch (e: any) {
     error.value = e?.response?.data?.error || 'Failed to load grading standards'
   } finally {
@@ -41,12 +45,16 @@ const resetForm = () => {
   formData.value = {
     submissionType: '',
     gradingSystem: 'point-range',
-    pointRange: { min: 0, max: 100 },
+    pointRange: { min: 0, max: 100, step: 0.5 },
     letterGrades: ['A', 'B', 'C', 'D', 'F'],
     customOptions: [],
     description: '',
     dueDate: null,
     enabled: true,
+    templateName: null,
+    rubricItems: [],
+    hkbuGradingScale: null,
+    gradeRangeMapping: [],
   }
   editingId.value = null
   showAddForm.value = false
@@ -81,6 +89,31 @@ const handleAddStandard = async () => {
   }
 }
 
+// Helper function to ensure all rubric levels have points property
+const ensureRubricItemsHavePoints = (items: any[]) => {
+  if (!items) return []
+  return items.map((item: any) => ({
+    ...item,
+    levels: (item.levels || []).map((level: any) => ({
+      ...level,
+      points: level.points ?? 0, // Use 0 if points is undefined or null
+    })),
+  }))
+}
+
+const getGradingTypeLabel = (standard: GradingStandard): string => {
+  switch (standard.gradingSystem) {
+    case 'point-range':
+      return 'Point range'
+    case 'letter-grade':
+      return 'Letter grades'
+    case 'custom':
+      return 'Custom'
+    default:
+      return standard.gradingSystem || 'Unknown'
+  }
+}
+
 const startEdit = (standard: GradingStandard) => {
   editingId.value = standard._id
   // Convert ISO date to YYYY-MM-DD format for the date input
@@ -93,12 +126,16 @@ const startEdit = (standard: GradingStandard) => {
   formData.value = {
     submissionType: standard.submissionType,
     gradingSystem: standard.gradingSystem,
-    pointRange: standard.pointRange || { min: 0, max: 100 },
+    pointRange: standard.pointRange || { min: 0, max: 100, step: 0.5 },
     letterGrades: standard.letterGrades || ['A', 'B', 'C', 'D', 'F'],
     customOptions: standard.customOptions || [],
     description: standard.description || '',
     dueDate: formattedDueDate,
     enabled: standard.enabled,
+    templateName: standard.templateName || null,
+    rubricItems: ensureRubricItemsHavePoints(standard.rubricItems || []),
+    hkbuGradingScale: standard.hkbuGradingScale || null,
+    gradeRangeMapping: standard.gradeRangeMapping || [],
   }
   showAddForm.value = true
   
@@ -130,22 +167,85 @@ const toggleEnabled = async (standard: GradingStandard) => {
   }
 }
 
-const addCustomOption = () => {
-  if (!formData.value.customOptions) {
-    formData.value.customOptions = []
+
+
+// Rubric management functions
+const addRubricCriterion = () => {
+  if (!formData.value.rubricItems) {
+    formData.value.rubricItems = []
   }
-  formData.value.customOptions.push('')
+  
+  // Initialize levels based on grading system
+  let levels = []
+  if (formData.value.gradingSystem === 'letter-grade') {
+    levels = [
+      { name: 'A', description: 'Excellent', points: 0 },
+      { name: 'B', description: 'Good', points: 0 },
+      { name: 'C', description: 'Satisfactory', points: 0 },
+      { name: 'F', description: 'Fail', points: 0 },
+    ]
+  } else {
+    // Default for point-range
+    levels = [
+      { name: 'Poor', description: 'Needs improvement', points: 0 },
+      { name: 'Fair', description: 'Meets minimum requirements', points: 3 },
+      { name: 'Good', description: 'Meets expectations', points: 6 },
+      { name: 'Excellent', description: 'Exceeds expectations', points: 10 },
+    ]
+  }
+  
+  formData.value.rubricItems.push({
+    title: '',
+    description: '',
+    minScore: 0,
+    maxScore: 10,
+    levels,
+  })
 }
 
-const removeCustomOption = (index: number) => {
-  if (formData.value.customOptions) {
-    formData.value.customOptions.splice(index, 1)
+const removeRubricCriterion = (index: number) => {
+  if (formData.value.rubricItems) {
+    formData.value.rubricItems.splice(index, 1)
   }
 }
 
-const updateCustomOption = (index: number, value: string) => {
-  if (formData.value.customOptions) {
-    formData.value.customOptions[index] = value
+const addPerformanceLevel = (criterionIndex: number) => {
+  if (formData.value.rubricItems && formData.value.rubricItems[criterionIndex]) {
+    if (!formData.value.rubricItems[criterionIndex].levels) {
+      formData.value.rubricItems[criterionIndex].levels = []
+    }
+    formData.value.rubricItems[criterionIndex].levels.push({
+      name: '',
+      description: '',
+      points: 0,
+    })
+  }
+}
+
+const removePerformanceLevel = (criterionIndex: number, levelIndex: number) => {
+  if (formData.value.rubricItems && formData.value.rubricItems[criterionIndex]?.levels) {
+    formData.value.rubricItems[criterionIndex].levels!.splice(levelIndex, 1)
+  }
+}
+
+const loadTemplate = async (templateId: string) => {
+  if (!templateId) {
+    // Clear rubric items if no template selected
+    formData.value.rubricItems = []
+    return
+  }
+
+  try {
+    const template = await rubricTemplateService.getById(templateId)
+    if (template) {
+      // Populate rubric items from template
+      const items = JSON.parse(JSON.stringify(template.rubricItems || []))
+      // Ensure all levels have points
+      formData.value.rubricItems = ensureRubricItemsHavePoints(items)
+    }
+  } catch (e) {
+    console.error('Failed to load template:', e)
+    error.value = 'Failed to load template'
   }
 }
 </script>
@@ -229,28 +329,20 @@ const updateCustomOption = (index: number, value: string) => {
                 />
                 <span class="text-sm text-slate-700">Letter Grade</span>
               </label>
-              <label class="flex items-center gap-2">
-                <input
-                  type="radio"
-                  v-model="formData.gradingSystem"
-                  value="custom"
-                  class="h-4 w-4"
-                />
-                <span class="text-sm text-slate-700">Custom</span>
-              </label>
             </div>
           </div>
 
-          <!-- Point Range Option -->
-          <div v-if="formData.gradingSystem === 'point-range'" class="space-y-2">
+          <!-- Point Range Option (hide if rubrics exist) -->
+          <div v-if="formData.gradingSystem === 'point-range' && (!formData.rubricItems || formData.rubricItems.length === 0)" class="space-y-2">
             <label class="block text-sm font-medium text-slate-700">
-              Point Range
+              Point Range (supports 0.5 increments)
             </label>
             <div class="flex gap-3">
               <div class="flex-1">
                 <input
                   v-model.number="formData.pointRange!.min"
                   type="number"
+                  step="0.5"
                   placeholder="Min points"
                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
@@ -260,6 +352,7 @@ const updateCustomOption = (index: number, value: string) => {
                 <input
                   v-model.number="formData.pointRange!.max"
                   type="number"
+                  step="0.5"
                   placeholder="Max points"
                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
@@ -267,62 +360,33 @@ const updateCustomOption = (index: number, value: string) => {
             </div>
           </div>
 
-          <!-- Letter Grade Option -->
-          <div v-if="formData.gradingSystem === 'letter-grade'" class="space-y-2">
-            <label class="block text-sm font-medium text-slate-700 mb-2">
-              Letter Grades
-            </label>
-            <div class="flex flex-wrap gap-2">
-              <label v-for="grade in ['A', 'B', 'C', 'D', 'F']" :key="grade" class="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  :checked="formData.letterGrades?.includes(grade)"
-                  @change="(e) => {
-                    if (!formData.letterGrades) formData.letterGrades = [];
-                    if ((e.target as HTMLInputElement).checked) {
-                      if (!formData.letterGrades.includes(grade)) {
-                        formData.letterGrades.push(grade);
-                      }
-                    } else {
-                      formData.letterGrades = formData.letterGrades.filter(g => g !== grade);
-                    }
-                  }"
-                  class="h-4 w-4"
-                />
-                <span class="text-sm text-slate-700">{{ grade }}</span>
+          <!-- Letter Grade Option (hide if rubrics exist) -->
+          <div v-if="formData.gradingSystem === 'letter-grade' && (!formData.rubricItems || formData.rubricItems.length === 0)" class="space-y-3">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-2">
+                Letter Grades
               </label>
-            </div>
-          </div>
-
-          <!-- Custom Options -->
-          <div v-if="formData.gradingSystem === 'custom'" class="space-y-2">
-            <label class="block text-sm font-medium text-slate-700">
-              Custom Options
-            </label>
-            <div class="space-y-2">
-              <div v-for="(option, index) in formData.customOptions" :key="index" class="flex gap-2">
-                <input
-                  v-model="formData.customOptions![index]"
-                  type="text"
-                  placeholder="Option name"
-                  class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                />
-                <button
-                  @click="removeCustomOption(index)"
-                  type="button"
-                  class="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs font-medium text-red-700 hover:bg-red-100"
-                >
-                  Remove
-                </button>
+              <div class="flex flex-wrap gap-2">
+                <label v-for="grade in ['A', 'A+', 'B+', 'B', 'C+', 'C', 'D', 'F']" :key="grade" class="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    :checked="formData.letterGrades?.includes(grade)"
+                    @change="(e) => {
+                      if (!formData.letterGrades) formData.letterGrades = [];
+                      if ((e.target as HTMLInputElement).checked) {
+                        if (!formData.letterGrades.includes(grade)) {
+                          formData.letterGrades.push(grade);
+                        }
+                      } else {
+                        formData.letterGrades = formData.letterGrades.filter(g => g !== grade);
+                      }
+                    }"
+                    class="h-4 w-4"
+                  />
+                  <span class="text-sm text-slate-700">{{ grade }}</span>
+                </label>
               </div>
             </div>
-            <button
-              @click="addCustomOption"
-              type="button"
-              class="mt-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
-              + Add Option
-            </button>
           </div>
 
           <!-- Description -->
@@ -351,6 +415,210 @@ const updateCustomOption = (index: number, value: string) => {
             <p class="mt-1 text-xs text-slate-500">
               Set a deadline for this submission type. Leave blank if no specific deadline applies.
             </p>
+          </div>
+
+          <!-- Rubric Section -->
+          <div class="border-t border-slate-200 pt-4">
+            <div class="mb-4">
+              <h3 class="text-sm font-semibold text-slate-900">Rubric (Optional)</h3>
+              <p class="text-xs text-slate-600 mt-1">Define grading criteria with performance levels for structured evaluation</p>
+            </div>
+
+            <!-- Template Selector -->
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-slate-700 mb-2">
+                Use a template (optional)
+              </label>
+              <select
+                @change="(e) => loadTemplate((e.target as HTMLSelectElement).value)"
+                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="">-- Choose a template or create custom --</option>
+                <option v-for="template in rubricTemplates" :key="template._id" :value="template._id">
+                  {{ template.name }}{{ template.isDefault ? ' (Default)' : '' }}
+                </option>
+              </select>
+              <p class="text-xs text-slate-500 mt-1">
+                Selected templates will populate the criteria below. You can still add, edit, or remove criteria.
+              </p>
+            </div>
+
+            <div class="flex items-center justify-between mb-4">
+              <span></span>
+              <button
+                @click="addRubricCriterion"
+                type="button"
+                class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+              >
+                + Add Criterion
+              </button>
+            </div>
+
+            <!-- Rubric Criteria -->
+            <div v-if="formData.rubricItems && formData.rubricItems.length > 0" class="space-y-4">
+              <div
+                v-for="(criterion, criterionIndex) in formData.rubricItems"
+                :key="criterionIndex"
+                class="rounded-lg border border-slate-200 bg-slate-50 p-4"
+              >
+                <!-- Criterion Header -->
+                <div class="space-y-3 mb-4">
+                  <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">
+                      Criterion {{ criterionIndex + 1 }} Title *
+                    </label>
+                    <input
+                      v-model="criterion.title"
+                      type="text"
+                      placeholder="e.g. Clarity, Originality, Technical Quality"
+                      class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      v-model="criterion.description"
+                      placeholder="Brief description of what this criterion evaluates"
+                      rows="2"
+                      class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <!-- Performance Levels Header -->
+                <div class="mb-3 flex items-center justify-between">
+                  <h4 class="text-xs font-semibold text-slate-700">Performance Levels</h4>
+                  <button
+                    @click="addPerformanceLevel(criterionIndex)"
+                    type="button"
+                    class="text-xs font-medium text-blue-600 hover:text-blue-700"
+                  >
+                    + Add Level
+                  </button>
+                </div>
+
+                <!-- Performance Levels Table - Point Range -->
+                <div v-if="formData.gradingSystem === 'point-range'" class="rounded-lg border border-slate-300 overflow-hidden">
+                  <table class="w-full text-xs">
+                    <thead class="bg-slate-200">
+                      <tr>
+                        <th class="px-3 py-2 text-left font-medium text-slate-700">Level Name</th>
+                        <th class="px-3 py-2 text-left font-medium text-slate-700">Description</th>
+                        <th class="px-3 py-2 text-center font-medium text-slate-700 w-20">Points</th>
+                        <th class="px-3 py-2 text-center font-medium text-slate-700 w-12">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr
+                        v-for="(level, levelIndex) in criterion.levels || []"
+                        :key="levelIndex"
+                        class="border-t border-slate-200 hover:bg-slate-100"
+                      >
+                        <td class="px-3 py-2">
+                          <input
+                            v-model="level.name"
+                            type="text"
+                            placeholder="e.g. Excellent"
+                            class="w-full rounded border border-slate-300 px-2 py-1 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                          />
+                        </td>
+                        <td class="px-3 py-2">
+                          <input
+                            v-model="level.description"
+                            type="text"
+                            placeholder="Description"
+                            class="w-full rounded border border-slate-300 px-2 py-1 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                          />
+                        </td>
+                        <td class="px-3 py-2 text-center">
+                          <input
+                            v-model.number="level.points"
+                            type="number"
+                            min="0"
+                            class="w-full rounded border border-slate-300 px-2 py-1 text-xs text-center focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                          />
+                        </td>
+                        <td class="px-3 py-2 text-center">
+                          <button
+                            v-if="criterion.levels && criterion.levels.length > 1"
+                            @click="removePerformanceLevel(criterionIndex, levelIndex)"
+                            type="button"
+                            class="text-red-600 hover:text-red-700 font-medium"
+                          >
+                            ✕
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Performance Levels Table - Letter Grade -->
+                <div v-else-if="formData.gradingSystem === 'letter-grade'" class="rounded-lg border border-slate-300 overflow-hidden">
+                  <table class="w-full text-xs">
+                    <thead class="bg-slate-200">
+                      <tr>
+                        <th class="px-3 py-2 text-left font-medium text-slate-700">Grade</th>
+                        <th class="px-3 py-2 text-left font-medium text-slate-700">Description</th>
+                        <th class="px-3 py-2 text-center font-medium text-slate-700 w-12">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr
+                        v-for="(level, levelIndex) in criterion.levels || []"
+                        :key="levelIndex"
+                        class="border-t border-slate-200 hover:bg-slate-100"
+                      >
+                        <td class="px-3 py-2">
+                          <input
+                            v-model="level.name"
+                            type="text"
+                            placeholder="e.g. A, B, C"
+                            class="w-full rounded border border-slate-300 px-2 py-1 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                          />
+                        </td>
+                        <td class="px-3 py-2">
+                          <input
+                            v-model="level.description"
+                            type="text"
+                            placeholder="Description"
+                            class="w-full rounded border border-slate-300 px-2 py-1 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                          />
+                        </td>
+                        <td class="px-3 py-2 text-center">
+                          <button
+                            v-if="criterion.levels && criterion.levels.length > 1"
+                            @click="removePerformanceLevel(criterionIndex, levelIndex)"
+                            type="button"
+                            class="text-red-600 hover:text-red-700 font-medium"
+                          >
+                            ✕
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Criterion Actions -->
+                <div class="mt-4 flex justify-end">
+                  <button
+                    @click="removeRubricCriterion(criterionIndex)"
+                    type="button"
+                    class="rounded-lg border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
+                  >
+                    Remove Criterion
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Empty Rubric State -->
+            <div v-else class="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 text-center">
+              <p class="text-xs text-slate-600">No criteria defined yet. Click "Add Criterion" to start building your rubric.</p>
+            </div>
           </div>
 
           <!-- Actions -->
@@ -425,18 +693,28 @@ const updateCustomOption = (index: number, value: string) => {
 
               <!-- Grading Details -->
               <div class="mt-2 text-xs text-slate-600">
-                <p v-if="standard.gradingSystem === 'point-range'" class="font-medium">
-                  Range: {{ standard.pointRange?.min }} - {{ standard.pointRange?.max }} points
-                </p>
-                <p v-else-if="standard.gradingSystem === 'letter-grade'" class="font-medium">
-                  Grades: {{ standard.letterGrades?.join(', ') }}
-                </p>
-                <p v-else-if="standard.gradingSystem === 'custom'" class="font-medium">
-                  Options: {{ standard.customOptions?.join(', ') }}
+                <p class="font-medium">
+                  Type: {{ getGradingTypeLabel(standard) }}
                 </p>
                 <p v-if="standard.dueDate" class="font-medium mt-1">
                   Due: {{ new Date(standard.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) }}
                 </p>
+              </div>
+
+              <!-- Rubric Preview -->
+              <div v-if="standard.rubricItems && standard.rubricItems.length > 0" class="mt-3 rounded-lg border border-blue-100 bg-blue-50 p-3">
+                <p class="text-xs font-semibold text-blue-900 mb-2">📋 Rubric ({{ standard.rubricItems.length }} criteria)</p>
+                <div class="space-y-2">
+                  <div v-for="(criterion, idx) in standard.rubricItems.slice(0, 2)" :key="idx" class="text-xs text-blue-800">
+                    <p class="font-medium">{{ criterion.title }}</p>
+                    <p v-if="criterion.levels && criterion.levels.length > 0" class="text-blue-700 ml-2">
+                      Levels: {{ criterion.levels.map(l => l.name).join(', ') }}
+                    </p>
+                  </div>
+                  <p v-if="standard.rubricItems.length > 2" class="text-xs text-blue-700 italic">
+                    + {{ standard.rubricItems.length - 2 }} more criteria
+                  </p>
+                </div>
               </div>
             </div>
 

@@ -31,39 +31,73 @@ async function isStudentAssignedToSupervisor(studentId, supervisorId) {
 exports.createSlot = async (req, res) => {
   try {
     const supervisorId = req.user._id;
-    const { title, description, date, startTime, endTime, location, meetingType, maxAttendees } =
+    const { title, description, date, startTime, endTime, location, meetingType, maxAttendees, timeSlots, recurrence } =
       req.body;
 
-    if (!title || !date || !startTime || !endTime) {
+    if (!title || !date) {
       return res.status(400).json({
-        error: 'Title, date, startTime, and endTime are required',
+        error: 'Title and date are required',
         code: 'VALIDATION_ERROR',
         status: 400,
       });
     }
 
-    // Validate time order
-    if (startTime >= endTime) {
-      return res.status(400).json({
-        error: 'End time must be after start time',
-        code: 'VALIDATION_ERROR',
-        status: 400,
-      });
+    // Validate timeSlots or legacy single time
+    if (!timeSlots || timeSlots.length === 0) {
+      if (!startTime || !endTime) {
+        return res.status(400).json({
+          error: 'Either timeSlots array or startTime/endTime are required',
+          code: 'VALIDATION_ERROR',
+          status: 400,
+        });
+      }
+      // Validate time order (legacy)
+      if (startTime >= endTime) {
+        return res.status(400).json({
+          error: 'End time must be after start time',
+          code: 'VALIDATION_ERROR',
+          status: 400,
+        });
+      }
+    } else {
+      // Validate each time slot - ensure all have valid start/end times
+      for (let i = 0; i < timeSlots.length; i++) {
+        const ts = timeSlots[i];
+        if (!ts || !ts.startTime || !ts.endTime) {
+          return res.status(400).json({
+            error: `Time slot ${i + 1} must have startTime and endTime`,
+            code: 'VALIDATION_ERROR',
+            status: 400,
+          });
+        }
+        if (ts.startTime >= ts.endTime) {
+          return res.status(400).json({
+            error: `End time must be after start time for slot ${i + 1}`,
+            code: 'VALIDATION_ERROR',
+            status: 400,
+          });
+        }
+      }
     }
 
-    const slot = await MeetingSlot.create({
+    // If recurrence is set, expand the dates
+    let slotData = {
       supervisor_id: supervisorId,
       title,
       description: description || '',
       date: new Date(date),
-      startTime,
-      endTime,
+      startTime: startTime || null,
+      endTime: endTime || null,
+      timeSlots: timeSlots || [],
       location: location || '',
       meetingType: meetingType || 'one-to-one',
-      maxAttendees: meetingType === 'one-to-one' ? 1 : maxAttendees || 1,
+      maxAttendees: meetingType === 'one-to-one' ? 1 : maxAttendees || (timeSlots?.length || 1),
       status: 'Available',
       bookings: [],
-    });
+      recurrence: recurrence || { pattern: 'none' },
+    };
+
+    const slot = await MeetingSlot.create(slotData);
 
     // Notify all assigned students about the new slot
     const studentIds = await getAssignedStudentIds(supervisorId);
@@ -132,19 +166,23 @@ exports.createSlotsBatch = async (req, res) => {
 
     const createdSlots = [];
     for (const s of slots) {
-      if (!s.title || !s.date || !s.startTime || !s.endTime) continue;
+      // Support both legacy and new formats
+      if (!s.title || !s.date || ((s.timeSlots && s.timeSlots.length === 0) && (!s.startTime || !s.endTime))) continue;
+      
       const slot = await MeetingSlot.create({
         supervisor_id: supervisorId,
         title: s.title,
         description: s.description || '',
         date: new Date(s.date),
-        startTime: s.startTime,
-        endTime: s.endTime,
+        startTime: s.startTime || null,
+        endTime: s.endTime || null,
+        timeSlots: s.timeSlots || [],
         location: s.location || '',
         meetingType: s.meetingType || 'one-to-one',
-        maxAttendees: s.meetingType === 'one-to-one' ? 1 : s.maxAttendees || 1,
+        maxAttendees: s.meetingType === 'one-to-one' ? 1 : s.maxAttendees || (s.timeSlots?.length || 1),
         status: 'Available',
         bookings: [],
+        recurrence: s.recurrence || { pattern: 'none' },
       });
       createdSlots.push(slot);
     }
@@ -195,9 +233,20 @@ exports.getSupervisorSlots = async (req, res) => {
       .limit(parseInt(limit))
       .skip((parseInt(page) - 1) * parseInt(limit));
 
+    // Sort bookings within each slot by bookedAt (latest first)
+    const slotsWithSortedBookings = slots.map((slot) => {
+      const slotObj = slot.toObject();
+      if (slotObj.bookings && slotObj.bookings.length > 0) {
+        slotObj.bookings.sort((a, b) => 
+          new Date(b.bookedAt).getTime() - new Date(a.bookedAt).getTime()
+        );
+      }
+      return slotObj;
+    });
+
     res.json({
       success: true,
-      data: slots,
+      data: slotsWithSortedBookings,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -429,9 +478,17 @@ exports.getAvailableSlots = async (req, res) => {
       return a.startTime.localeCompare(b.startTime);
     });
 
-    // For each slot, indicate if this student has booked it
+    // For each slot, indicate if this student has booked it and sort bookings (latest first)
     const slotsWithBookingInfo = slots.map((slot) => {
       const slotObj = slot.toObject();
+      
+      // Sort bookings by bookedAt (latest first)
+      if (slotObj.bookings && slotObj.bookings.length > 0) {
+        slotObj.bookings.sort((a, b) => 
+          new Date(b.bookedAt).getTime() - new Date(a.bookedAt).getTime()
+        );
+      }
+      
       slotObj.myBooking = slot.bookings.find(
         (b) => b.student_id && b.student_id._id.toString() === studentId.toString()
       );
@@ -457,7 +514,7 @@ exports.bookSlot = async (req, res) => {
   try {
     const { slotId } = req.params;
     const studentId = req.user._id;
-    const { notes } = req.body;
+    const { notes, timeSlotIndex } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(slotId)) {
       return res
@@ -503,25 +560,107 @@ exports.bookSlot = async (req, res) => {
       });
     }
 
-    // Check capacity
-    if (slot.bookings.length >= slot.maxAttendees) {
-      return res.status(400).json({
-        error: 'This slot is fully booked',
-        code: 'SLOT_FULL',
-        status: 400,
-      });
+    // Validate timeSlotIndex if provided and multiple slots exist
+    if (slot.timeSlots && slot.timeSlots.length > 0 && timeSlotIndex !== undefined && timeSlotIndex !== null) {
+      if (typeof timeSlotIndex !== 'number' || timeSlotIndex < 0 || timeSlotIndex >= slot.timeSlots.length) {
+        return res.status(400).json({
+          error: 'Invalid time slot index',
+          code: 'INVALID_TIME_SLOT',
+          status: 400,
+        });
+      }
     }
 
-    // Add booking
+    // Check capacity (per time slot if multiple slots, or overall)
+    if (slot.timeSlots && slot.timeSlots.length > 1) {
+      // For meetings with 2+ time slots: require and validate timeSlotIndex
+      if (timeSlotIndex === undefined || timeSlotIndex === null) {
+        return res.status(400).json({
+          error: 'Please select a time slot',
+          code: 'TIME_SLOT_REQUIRED',
+          status: 400,
+        });
+      }
+      if (typeof timeSlotIndex !== 'number' || timeSlotIndex < 0 || timeSlotIndex >= slot.timeSlots.length) {
+        return res.status(400).json({
+          error: 'Invalid time slot index',
+          code: 'INVALID_TIME_SLOT',
+          status: 400,
+        });
+      }
+      
+      // Per-time-slot capacity check
+      const bookingsForTimeSlot = slot.bookings.filter(
+        (b) => b.timeSlotIndex === timeSlotIndex
+      ).length;
+      if (bookingsForTimeSlot >= slot.maxAttendees) {
+        return res.status(400).json({
+          error: `Time slot ${slot.timeSlots[timeSlotIndex].startTime} – ${slot.timeSlots[timeSlotIndex].endTime} is fully booked`,
+          code: 'TIME_SLOT_FULL',
+          status: 400,
+        });
+      }
+    } else if (slot.timeSlots && slot.timeSlots.length === 1) {
+      // For single time slot meetings: validate if timeSlotIndex is provided
+      if (timeSlotIndex !== undefined && timeSlotIndex !== null) {
+        if (typeof timeSlotIndex !== 'number' || timeSlotIndex !== 0) {
+          return res.status(400).json({
+            error: 'Invalid time slot index',
+            code: 'INVALID_TIME_SLOT',
+            status: 400,
+          });
+        }
+      }
+      
+      // Check overall capacity
+      if (slot.bookings.length >= slot.maxAttendees) {
+        return res.status(400).json({
+          error: 'This slot is fully booked',
+          code: 'SLOT_FULL',
+          status: 400,
+        });
+      }
+    } else {
+      // For meetings with no timeSlots (legacy format): check overall capacity
+      if (slot.bookings.length >= slot.maxAttendees) {
+        return res.status(400).json({
+          error: 'This slot is fully booked',
+          code: 'SLOT_FULL',
+          status: 400,
+        });
+      }
+    }
+
+    // Add booking with timeSlotIndex
     slot.bookings.push({
       student_id: studentId,
       bookedAt: new Date(),
       notes: notes || '',
+      timeSlotIndex: timeSlotIndex !== undefined ? timeSlotIndex : null,
     });
 
-    // Auto-set status to Booked if one-to-one or fully booked
-    if (slot.bookings.length >= slot.maxAttendees) {
-      slot.status = 'Booked';
+    // Auto-set status to Booked only when ALL time slots are fully booked
+    if (slot.timeSlots && slot.timeSlots.length > 1) {
+      // For meetings with multiple time slots (2 or more): check if all are fully booked
+      const allSlotsFull = slot.timeSlots.every((_, index) => {
+        const bookingsForThisSlot = slot.bookings.filter(
+          (b) => b.timeSlotIndex === index
+        ).length;
+        return bookingsForThisSlot >= slot.maxAttendees;
+      });
+      if (allSlotsFull) {
+        slot.status = 'Booked';
+      }
+    } else if (slot.timeSlots && slot.timeSlots.length === 1) {
+      // For single time slot meetings (legacy or 1-slot format)
+      if (slot.bookings.length >= slot.maxAttendees) {
+        slot.status = 'Booked';
+      }
+    } else {
+      // For meetings with NO timeSlots (legacy format with startTime/endTime): use original logic
+      if (slot.bookings.length >= slot.maxAttendees) {
+        slot.status = 'Booked';
+      }
     }
 
     await slot.save();
@@ -596,9 +735,30 @@ exports.cancelBooking = async (req, res) => {
 
     slot.bookings.splice(bookingIndex, 1);
 
-    // If it was Booked and now has capacity, set back to Available
-    if (slot.status === 'Booked' && slot.bookings.length < slot.maxAttendees) {
-      slot.status = 'Available';
+    // Recalculate status after cancellation
+    // For multi-slot meetings: revert to Available if any slot has capacity
+    if (slot.timeSlots && slot.timeSlots.length > 1) {
+      // Check if all slots are STILL fully booked
+      const allSlotsFull = slot.timeSlots.every((_, index) => {
+        const bookingsForThisSlot = slot.bookings.filter(
+          (b) => b.timeSlotIndex === index
+        ).length;
+        return bookingsForThisSlot >= slot.maxAttendees;
+      });
+      // If any slot now has capacity, revert to Available
+      if (!allSlotsFull && slot.status === 'Booked') {
+        slot.status = 'Available';
+      }
+    } else if (slot.timeSlots && slot.timeSlots.length === 1) {
+      // For single time slot meetings
+      if (slot.status === 'Booked' && slot.bookings.length < slot.maxAttendees) {
+        slot.status = 'Available';
+      }
+    } else {
+      // For legacy single slot meetings
+      if (slot.status === 'Booked' && slot.bookings.length < slot.maxAttendees) {
+        slot.status = 'Available';
+      }
     }
 
     await slot.save();

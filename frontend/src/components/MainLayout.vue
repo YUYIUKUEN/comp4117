@@ -59,6 +59,7 @@ const currentRoute = computed(() => {
   if (path === '/admin') return 'admin';
   if (path === '/admin/students-cohorts') return 'admin-cohorts';
   if (path === '/admin/grading-standards') return 'admin-grading';
+  if (path === '/admin/rubric-templates') return 'rubric-templates';
   if (path === '/admin/internal-notes') return 'internal-notes';
   return undefined;
 });
@@ -82,6 +83,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  background: #f0f2f5;
 }
 
 .content-wrapper {
@@ -92,8 +94,8 @@ onMounted(() => {
 
 .main-content {
   flex: 1;
-  padding: 2rem;
-  background: #f5f5f5;
+  padding: 1.75rem 2rem;
+  background: #f0f2f5;
   overflow-y: auto;
   min-height: 0;
 }

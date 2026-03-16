@@ -13,6 +13,7 @@ const student = computed(() => ({
 
 // ─── UI State ───
 const selectedSlot = ref<MeetingSlot | null>(null)
+const selectedTimeSlotIndex = ref<number | null>(null)
 const bookingNotes = ref('')
 const showBookingModal = ref(false)
 const actionLoading = ref(false)
@@ -45,6 +46,7 @@ const stats = computed(() => {
 // ─── Actions ───
 function openBookingModal(slot: MeetingSlot) {
   selectedSlot.value = slot
+  selectedTimeSlotIndex.value = null
   bookingNotes.value = ''
   showBookingModal.value = true
   successMsg.value = ''
@@ -52,10 +54,19 @@ function openBookingModal(slot: MeetingSlot) {
 
 async function confirmBooking() {
   if (!selectedSlot.value) return
+  
+  // If slot has multiple timeSlots, require selection
+  if (selectedSlot.value.timeSlots && selectedSlot.value.timeSlots.length > 0) {
+    if (selectedTimeSlotIndex.value === null) {
+      alert('Please select a time slot')
+      return
+    }
+  }
+  
   actionLoading.value = true
   successMsg.value = ''
   try {
-    await meetingStore.bookSlot(selectedSlot.value._id, bookingNotes.value || undefined)
+    await meetingStore.bookSlot(selectedSlot.value._id, bookingNotes.value || undefined, selectedTimeSlotIndex.value ?? undefined)
     successMsg.value = `Successfully booked "${selectedSlot.value.title}"!`
     showBookingModal.value = false
     await meetingStore.fetchAvailableSlots()
@@ -104,6 +115,28 @@ function supervisorName(slot: MeetingSlot) {
     return slot.supervisor_id.fullName
   }
   return 'Supervisor'
+}
+
+function getTimeSlotDisplay(slot: MeetingSlot): string {
+  if (slot.timeSlots && slot.timeSlots.length > 0) {
+    if (slot.timeSlots.length === 1) {
+      const ts = slot.timeSlots[0]!
+      return `${ts.startTime} – ${ts.endTime}`
+    }
+    return `${slot.timeSlots.length} time slots available`
+  }
+  return `${slot.startTime || '--'} – ${slot.endTime || '--'}`
+}
+
+function getBookedTimeSlot(slot: MeetingSlot): string | null {
+  if (!slot.myBooking) return null
+  if (slot.timeSlots && slot.timeSlots.length > 0 && slot.myBooking.timeSlotIndex !== undefined && slot.myBooking.timeSlotIndex !== null) {
+    const ts = slot.timeSlots[slot.myBooking.timeSlotIndex]
+    if (ts) {
+      return `${ts.startTime} – ${ts.endTime}`
+    }
+  }
+  return null
 }
 
 onMounted(() => {
@@ -221,7 +254,10 @@ onMounted(() => {
                 <p v-if="slot.description" class="text-xs text-gray-500 mt-1">{{ slot.description }}</p>
                 <div class="flex items-center gap-4 mt-2 text-xs text-gray-500">
                   <span>📅 {{ formatDate(slot.date) }}</span>
-                  <span>🕐 {{ slot.startTime }} – {{ slot.endTime }}</span>
+                  <span v-if="slot.myBooking && getBookedTimeSlot(slot)" class="text-indigo-600 font-medium">
+                    🕐 {{ getBookedTimeSlot(slot) }}
+                  </span>
+                  <span v-else>🕐 {{ getTimeSlotDisplay(slot) }}</span>
                   <span v-if="slot.location">📍 {{ slot.location }}</span>
                   <span>👤 {{ supervisorName(slot) }}</span>
                 </div>
@@ -279,9 +315,33 @@ onMounted(() => {
             <div class="bg-gray-50 rounded-lg p-3 mb-4 text-sm space-y-1">
               <p><span class="font-medium text-gray-700">Meeting:</span> {{ selectedSlot.title }}</p>
               <p><span class="font-medium text-gray-700">Date:</span> {{ formatDate(selectedSlot.date) }}</p>
-              <p><span class="font-medium text-gray-700">Time:</span> {{ selectedSlot.startTime }} – {{ selectedSlot.endTime }}</p>
               <p v-if="selectedSlot.location"><span class="font-medium text-gray-700">Location:</span> {{ selectedSlot.location }}</p>
               <p><span class="font-medium text-gray-700">Type:</span> {{ selectedSlot.meetingType === 'one-to-one' ? 'One-to-One' : 'Group' }}</p>
+            </div>
+
+            <!-- Time Slot Selection (if multiple slots available) -->
+            <div v-if="selectedSlot.timeSlots && selectedSlot.timeSlots.length > 0" class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Select Time Slot *</label>
+              <div class="space-y-2">
+                <button
+                  v-for="(slot, idx) in selectedSlot.timeSlots"
+                  :key="idx"
+                  @click="selectedTimeSlotIndex = idx"
+                  :class="[
+                    'w-full rounded-lg border-2 p-3 text-sm font-medium transition',
+                    selectedTimeSlotIndex === idx
+                      ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                  ]"
+                >
+                  {{ slot.startTime }} – {{ slot.endTime }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Single time slot display (if only legacy slot) -->
+            <div v-else-if="selectedSlot.startTime" class="bg-gray-50 rounded-lg p-3 mb-4 text-sm">
+              <p><span class="font-medium text-gray-700">Time:</span> {{ selectedSlot.startTime }} – {{ selectedSlot.endTime }}</p>
             </div>
 
             <div class="mb-4">

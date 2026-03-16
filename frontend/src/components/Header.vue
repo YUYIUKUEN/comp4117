@@ -1,25 +1,43 @@
 <template>
-  <header class="header" :style="{ backgroundImage: 'url(/hkbu-banner.webp)' }">
-    <div class="header-overlay"></div>
-    <div class="header-content">
-      <div class="header-left">
-        <h1>FYP Management System</h1>
+  <div class="header-wrapper">
+    <!-- Top Navigation Bar -->
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <div class="brand-logo">
+          <svg class="logo-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="40" height="40" rx="8" fill="white" fill-opacity="0.15"/>
+            <path d="M12 28V12h4v6.5h8V12h4v16h-4v-7h-8v7h-4z" fill="white"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">HKBU FYP Management System</span>
+          <span class="brand-subtitle">BSocSc (Hons) in Global and China Studies</span>
+        </div>
       </div>
-      <div class="header-right">
+      <div class="top-bar-right">
         <span v-if="user" class="welcome-text">Welcome, {{ user.fullName }}</span>
-        <button
-          class="logout-btn"
-          @click="handleLogout"
-        >
+        <button class="logout-btn" @click="handleLogout">
           Logout
         </button>
       </div>
+    </header>
+
+    <!-- Banner Image Strip -->
+    <div class="banner-strip" :class="{ 'banner-no-img': bannerError }">
+      <img
+        v-if="!bannerError"
+        src="/hkbu-banner.jpg"
+        alt="HKBU Campus"
+        class="banner-img"
+        @error="bannerError = true"
+      />
+      <div class="banner-overlay"></div>
     </div>
-  </header>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 import authService from '@/services/authService';
@@ -28,107 +46,126 @@ const router = useRouter();
 const authStore = useAuthStore();
 
 const user = computed(() => authStore.user);
+const bannerError = ref(false);
 
 const handleLogout = () => {
-  // Clear auth and redirect immediately
   authStore.clearAuth();
   router.push('/login');
-  // Fire backend logout in background (don't await)
   authService.logout().catch(() => {});
 };
 </script>
 
 <style scoped>
-.header {
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
+.header-wrapper {
+  flex-shrink: 0;
+}
+
+/* ── Top Navigation Bar ── */
+.top-bar {
+  background: linear-gradient(135deg, #1a2744 0%, #2a4073 100%);
   color: white;
-  padding: 0;
+  padding: 0.65rem 1.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
   position: relative;
-  min-height: 200px;
+  z-index: 10;
 }
 
-.header-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  z-index: 1;
-}
-
-.header-content {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  padding: 2rem;
-  gap: 2rem;
-}
-
-.header-left {
-  flex: 1;
-}
-
-h1 {
-  margin: 0;
-  font-size: 2.5rem;
-  font-weight: bold;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-  letter-spacing: 0.5px;
-}
-
-.header-right {
+.top-bar-left {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
-  white-space: nowrap;
+  gap: 0.75rem;
+}
+
+.brand-logo {
+  flex-shrink: 0;
+}
+
+.logo-icon {
+  width: 36px;
+  height: 36px;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.brand-title {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.brand-subtitle {
+  font-size: 0.7rem;
+  opacity: 0.8;
+  letter-spacing: 0.04em;
+  font-weight: 400;
+}
+
+.top-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
 }
 
 .welcome-text {
-  font-size: 1.1rem;
-  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+  font-size: 0.82rem;
   font-weight: 500;
+  opacity: 0.92;
 }
 
 .logout-btn {
-  background: rgba(231, 76, 60, 0.9);
+  background: rgba(255, 255, 255, 0.12);
   color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 0.38rem 1rem;
+  border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.3s;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 0.78rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  letter-spacing: 0.02em;
 }
 
 .logout-btn:hover {
-  background: rgba(192, 57, 43, 0.9);
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.45);
 }
 
-@media (max-width: 768px) {
-  .header-content {
-    flex-direction: column;
-    text-align: center;
-    padding: 1.5rem;
-  }
+/* ── Banner Image Strip ── */
+.banner-strip {
+  height: 110px;
+  position: relative;
+  overflow: hidden;
+  background: #2a4073;
+}
 
-  h1 {
-    font-size: 1.8rem;
-  }
+.banner-no-img {
+  background: linear-gradient(135deg, #1a2744 0%, #2a4073 40%, #3d5a99 70%, #1a2744 100%);
+  height: 80px;
+}
 
-  .header-right {
-    width: 100%;
-    justify-content: center;
-  }
+.banner-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 35%;
+  display: block;
+}
+
+.banner-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(26, 39, 68, 0.25) 0%,
+    rgba(26, 39, 68, 0.05) 50%,
+    rgba(26, 39, 68, 0.15) 100%
+  );
+  pointer-events: none;
 }
 </style>

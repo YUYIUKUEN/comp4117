@@ -1,10 +1,18 @@
 import httpClient from './httpClient'
 
+export interface RubricItem {
+  title: string
+  description?: string
+  minScore?: number
+  maxScore?: number
+  levels?: Array<{ name: string; description?: string; points?: number }>
+}
+
 export interface GradingStandard {
   _id: string
   submissionType: string
   gradingSystem: 'point-range' | 'letter-grade' | 'custom'
-  pointRange?: { min: number; max: number }
+  pointRange?: { min: number; max: number; step?: number }
   letterGrades?: string[]
   customOptions?: string[]
   description?: string
@@ -13,17 +21,27 @@ export interface GradingStandard {
   createdBy?: string
   createdAt: string
   updatedAt: string
+  // New fields
+  templateName?: string | null
+  rubricItems?: RubricItem[]
+  hkbuGradingScale?: 'hkbu-standard' | 'hkbu-honors' | 'custom' | null
+  gradeRangeMapping?: Array<{ grade: string; minPoints: number; maxPoints: number }>
 }
 
 export interface GradingStandardInput {
   submissionType: string
   gradingSystem: 'point-range' | 'letter-grade' | 'custom'
-  pointRange?: { min: number; max: number }
+  pointRange?: { min: number; max: number; step?: number }
   letterGrades?: string[]
   customOptions?: string[]
   description?: string
   dueDate?: string | null
   enabled?: boolean
+  // New fields
+  templateName?: string | null
+  rubricItems?: RubricItem[]
+  hkbuGradingScale?: 'hkbu-standard' | 'hkbu-honors' | 'custom' | null
+  gradeRangeMapping?: Array<{ grade: string; minPoints: number; maxPoints: number }>
 }
 
 export default {
@@ -53,7 +71,15 @@ export default {
   },
 
   async getBySubmissionType(submissionType: string): Promise<GradingStandard | null> {
-    const all = await this.getAll(true)
-    return all.find((s) => s.submissionType === submissionType) || null
+    try {
+      const response = await httpClient.get(`/grading-standards/by-type/${submissionType}`)
+      return response.data.data
+    } catch (error: any) {
+      // If 404 (no standard found), return null instead of throwing
+      if (error.response?.status === 404) {
+        return null
+      }
+      throw error
+    }
   },
 }

@@ -10,6 +10,7 @@ const authStore = useAuthStore()
 const email = ref('')
 const password = ref('')
 const loading = ref(false)
+const bannerError = ref(false)
 
 const errors = reactive({
   email: '',
@@ -90,9 +91,15 @@ const handleLogin = async () => {
   <div class="login-page">
     <div class="login-container">
       <div class="login-card">
+        <div class="login-banner" :class="{ 'login-banner-fallback': bannerError }">
+          <img v-if="!bannerError" src="/hkbu-banner.jpg" alt="HKBU Campus" class="login-banner-img" @error="bannerError = true" />
+          <div class="login-banner-overlay"></div>
+        </div>
+        <div class="login-body">
         <div class="login-header">
-          <h1>Welcome Back</h1>
-          <p class="subtitle">Sign in to your account</p>
+          <h1>FYP Management System</h1>
+          <p class="subtitle">BSocSc (Hons) in Global and China Studies</p>
+          <p class="subtitle-small">Sign in to your account</p>
         </div>
 
         <form @submit.prevent="handleLogin" class="login-form">
@@ -143,6 +150,7 @@ const handleLogin = async () => {
             <router-link to="/register">Register here</router-link>
           </p>
         </div>
+        </div>
       </div>
     </div>
   </div>
@@ -154,7 +162,7 @@ const handleLogin = async () => {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1a2744 0%, #2a4073 50%, #1a2744 100%);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   padding: 20px;
 }
@@ -165,29 +173,67 @@ const handleLogin = async () => {
 
 .login-card {
   background: white;
-  padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border-radius: 14px;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.35);
   width: 100%;
-  max-width: 500px;
+  max-width: 460px;
   margin: 0 auto;
+  overflow: hidden;
+}
+
+.login-banner {
+  height: 120px;
+  position: relative;
+  overflow: hidden;
+  background: #2a4073;
+}
+
+.login-banner-fallback {
+  background: linear-gradient(135deg, #1a2744 0%, #2a4073 40%, #3d5a99 70%, #1a2744 100%);
+  height: 70px;
+}
+
+.login-banner-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 35%;
+}
+
+.login-banner-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(26,39,68,0.2) 0%, rgba(26,39,68,0.05) 100%);
+  pointer-events: none;
+}
+
+.login-body {
+  padding: 2rem;
 }
 
 .login-header {
-  margin-bottom: 2rem;
+  margin-bottom: 1.75rem;
   text-align: center;
 }
 
 .login-header h1 {
   margin: 0;
-  font-size: 2rem;
-  color: #333;
+  font-size: 1.5rem;
+  color: #1a2744;
+  font-weight: 700;
 }
 
 .subtitle {
-  margin: 0.5rem 0 0 0;
-  color: #666;
-  font-size: 0.95rem;
+  margin: 0.35rem 0 0 0;
+  color: #2a4073;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.subtitle-small {
+  margin: 0.75rem 0 0 0;
+  color: #888;
+  font-size: 0.85rem;
 }
 
 .login-form {
@@ -219,7 +265,7 @@ const handleLogin = async () => {
 
 .form-group input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #2a4073;
 }
 
 .form-group input:disabled {
@@ -250,14 +296,14 @@ const handleLogin = async () => {
 
 .btn-submit {
   padding: 0.85rem;
-  background-color: #667eea;
+  background: linear-gradient(135deg, #1a2744 0%, #2a4073 100%);
   color: white;
   border: none;
-  border-radius: 6px;
-  font-size: 1rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: all 0.25s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -266,7 +312,8 @@ const handleLogin = async () => {
 }
 
 .btn-submit:hover:not(:disabled) {
-  background-color: #5568d3;
+  background: linear-gradient(135deg, #24325a 0%, #3552a0 100%);
+  box-shadow: 0 4px 12px rgba(42,64,115,0.3);
 }
 
 .btn-submit:disabled {
@@ -302,7 +349,7 @@ const handleLogin = async () => {
 }
 
 .login-footer a {
-  color: #667eea;
+  color: #2a4073;
   text-decoration: none;
   font-weight: 500;
 }

@@ -37,10 +37,10 @@ function setRole(r: Role) {
       </div>
       <div>
         <p class="text-xs uppercase tracking-[0.2em] text-slate-500">
-          Final Year Project Management System
+          HKBU FYP Management System
         </p>
         <p class="text-xs text-slate-500">
-          HKBU Faculty of Social Sciences · Shared Data Across Roles
+          BSocSc (Hons) in Global and China Studies
         </p>
       </div>
     </div>

@@ -72,8 +72,7 @@ const filteredTopics = computed(() =>
   topics.value.filter((t) => {
     const matchKeyword =
       !keyword.value ||
-      t.title.toLowerCase().includes(keyword.value.toLowerCase()) ||
-      t.description.toLowerCase().includes(keyword.value.toLowerCase())
+      t.title.toLowerCase().includes(keyword.value.toLowerCase())
     const matchConc =
       selectedConcentration.value === 'All' ||
       t.concentration === selectedConcentration.value

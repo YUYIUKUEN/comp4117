@@ -86,6 +86,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/admin/rubric-templates',
+    name: 'AdminRubricTemplates',
+    component: () => import('../pages/AdminRubricTemplates.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/admin/reminders',
     name: 'AdminReminders',
     component: () => import('../pages/SupervisorRemindersQueue.vue'),

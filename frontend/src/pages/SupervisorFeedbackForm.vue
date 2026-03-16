@@ -32,6 +32,9 @@ const isSaving = ref(false);
 const saveError = ref('');
 const internalNote = ref('');
 
+// Rubric grading state - map of criterion index to selected performance level name
+const selectedRubricLevels = ref<Map<number, string>>(new Map());
+
 // Autosave state for internal note
 const internalNoteAutoSaveStatus = ref<'unsaved' | 'saving' | 'saved'>('saved');
 const internalNoteSaveError = ref('');
@@ -98,11 +101,14 @@ onMounted(async () => {
     // Fetch submission details
     submission.value = await getSupervisorSubmissionById(submissionId);
 
-    // Fetch grading standard for this submission's phase
-    const standards = await gradingStandardService.getAll(true);
-    applicableStandard.value = standards.find(
-      (s) => s.submissionType === submission.value.phase
-    ) || null;
+    // Fetch grading standard for this submission's phase using optimized endpoint
+    // This is more efficient than calling getAll() to fetch all standards
+    applicableStandard.value = await gradingStandardService.getBySubmissionType(submission.value.phase);
+
+    // If no standard found, that's okay - supervisor can provide feedback without grading
+    if (!applicableStandard.value) {
+      console.log(`No active grading standard for phase: ${submission.value.phase}`);
+    }
 
     // Fetch existing feedback for this submission
     try {
@@ -123,6 +129,13 @@ const isValid = computed(() => {
   
   // If no grading standard, just need feedback text
   if (!applicableStandard.value) return true;
+
+  // Rubric-based grading: all criteria must have a selected level
+  if (applicableStandard.value.rubricItems && applicableStandard.value.rubricItems.length > 0) {
+    const rubricItemCount = applicableStandard.value.rubricItems.filter(item => item.levels && item.levels.length > 0).length;
+    const selectedCount = selectedRubricLevels.value.size;
+    return selectedCount === rubricItemCount;
+  }
 
   if (applicableStandard.value.gradingSystem === 'point-range') {
     const points = parseFloat(String(pointsInput.value));
@@ -152,14 +165,33 @@ const handleSaveFeedback = async () => {
   saveError.value = '';
 
   try {
-    const gradeValue = applicableStandard.value?.gradingSystem === 'point-range'
-      ? String(pointsInput.value)
-      : selectedGrade.value;
+    let gradeValue = '';
+
+    // Handle rubric-based grading
+    if (applicableStandard.value?.rubricItems && applicableStandard.value.rubricItems.length > 0) {
+      let totalPoints = 0;
+      applicableStandard.value.rubricItems.forEach((item, index) => {
+        const selectedLevelName = selectedRubricLevels.value.get(index);
+        if (selectedLevelName && item.levels) {
+          const level = item.levels.find(l => l.name === selectedLevelName);
+          if (level && level.points !== undefined) {
+            totalPoints += level.points;
+          }
+        }
+      });
+      gradeValue = String(totalPoints);
+    } else {
+      // Handle other grading systems
+      gradeValue = applicableStandard.value?.gradingSystem === 'point-range'
+        ? String(pointsInput.value)
+        : selectedGrade.value;
+    }
 
     const feedbackData = {
       feedbackText: feedbackText.value.trim(),
       grade: gradeValue || undefined,
       gradingStandard_id: applicableStandard.value?._id || undefined,
+      rubricSelections: selectedRubricLevels.value.size > 0 ? Object.fromEntries(selectedRubricLevels.value) : undefined,
       internalNote: internalNote.value.trim() || undefined,
     };
 
@@ -205,9 +237,35 @@ const handleClearForm = () => {
   selectedGrade.value = '';
   pointsInput.value = '';
   internalNote.value = '';
+  selectedRubricLevels.value.clear();
   editingFeedbackId.value = null;
   replyingToFeedbackId.value = null;
   replyText.value = '';
+};
+
+// Rubric helper functions
+const selectRubricLevel = (criterionIndex: number, levelName: string) => {
+  selectedRubricLevels.value.set(criterionIndex, levelName);
+};
+
+const isRubricLevelSelected = (criterionIndex: number, levelName: string): boolean => {
+  return selectedRubricLevels.value.get(criterionIndex) === levelName;
+};
+
+const calculateRubricTotal = (): number => {
+  let total = 0;
+  if (applicableStandard.value?.rubricItems) {
+    applicableStandard.value.rubricItems.forEach((item, index) => {
+      const selectedLevelName = selectedRubricLevels.value.get(index);
+      if (selectedLevelName && item.levels) {
+        const level = item.levels.find(l => l.name === selectedLevelName);
+        if (level && level.points !== undefined) {
+          total += level.points;
+        }
+      }
+    });
+  }
+  return total;
 };
 
 const formatDate = (dateStr: string) => {
@@ -426,10 +484,60 @@ const handleDownloadFile = async (file: any) => {
           ></textarea>
         </div>
 
+        <!-- Grade Input - Rubric-based -->
+        <div v-if="applicableStandard?.rubricItems && applicableStandard.rubricItems.length > 0" class="mb-6">
+          <label class="block text-sm font-medium text-slate-900 mb-4">
+            Performance Assessment (Rubric) *
+          </label>
+          <div class="space-y-6">
+            <div
+              v-for="(criterion, criterionIndex) in applicableStandard.rubricItems"
+              :key="criterionIndex"
+              class="border border-slate-200 rounded-lg p-4 bg-slate-50"
+            >
+              <!-- Criterion header -->
+              <div class="mb-4">
+                <h4 class="font-semibold text-slate-900">{{ criterion.title }}</h4>
+                <p v-if="criterion.description" class="text-sm text-slate-600 mt-1">
+                  {{ criterion.description }}
+                </p>
+              </div>
+
+              <!-- Performance levels as clickable buttons -->
+              <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                <button
+                  v-for="(level, levelIndex) in (criterion.levels || [])"
+                  :key="levelIndex"
+                  @click="selectRubricLevel(criterionIndex, level.name)"
+                  type="button"
+                  :class="[
+                    'px-3 py-4 rounded-lg border-2 transition text-center',
+                    isRubricLevelSelected(criterionIndex, level.name)
+                      ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-500/50'
+                      : 'border-slate-300 bg-white hover:border-blue-400 hover:bg-blue-50'
+                  ]"
+                >
+                  <div class="font-semibold text-sm text-slate-900">{{ level.name }}</div>
+                  <div class="text-xs text-slate-600 mt-1">{{ level.description }}</div>
+                  <div class="text-xs font-semibold text-blue-600 mt-1">{{ level.points }} pts</div>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Rubric total score -->
+          <div class="mt-4 p-3 bg-white border border-slate-200 rounded-lg">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-medium text-slate-700">Rubric Total Points:</span>
+              <span class="text-lg font-bold text-blue-600">{{ calculateRubricTotal() }} pts</span>
+            </div>
+          </div>
+        </div>
+
         <!-- Grade Input - Point Range -->
-        <div v-if="applicableStandard?.gradingSystem === 'point-range'" class="mb-6">
+        <div v-if="applicableStandard?.gradingSystem === 'point-range' && (!applicableStandard.rubricItems || applicableStandard.rubricItems.length === 0)" class="mb-6">
           <label class="block text-sm font-medium text-slate-900 mb-2">
-            Points *
+            Points * (supports 0.5 increments)
           </label>
           <div class="flex gap-2 items-end">
             <input
@@ -437,6 +545,7 @@ const handleDownloadFile = async (file: any) => {
               type="number"
               :min="applicableStandard.pointRange?.min"
               :max="applicableStandard.pointRange?.max"
+              :step="applicableStandard.pointRange?.step || 0.5"
               :placeholder="`Enter points (${applicableStandard.pointRange?.min} - ${applicableStandard.pointRange?.max})`"
               class="block flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/60"
             />
