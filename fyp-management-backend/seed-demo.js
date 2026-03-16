@@ -53,7 +53,7 @@ const run = async () => {
     const hash = await bcrypt.hash(PASSWORD, 10);
 
     const [admin, supervisor, emilyLee, student1, student2, student3] = await User.create([
-      { email: 'admin@demo.edu', passwordHash: hash, fullName: 'Alice Admin', role: 'Admin' },
+      { email: 'admin@demo.edu', passwordHash: hash, fullName: 'Boris Admin', role: 'Admin' },
       { email: 'supervisor@demo.edu', passwordHash: hash, fullName: 'Dr. Samuel Lee', role: 'Supervisor', concentration: 'Health and Social Wellness Concentration (HSW)', phone: '+852-2345-6789', officeHours: 'Tue & Thu 2-4 pm' },
       { email: 'emily.lee@demo.edu', passwordHash: hash, fullName: 'Emily Lee', role: 'Supervisor', concentration: 'Health Technology and Informatics Concentration (HTI)', phone: '+852-9777-8888', officeHours: 'Mon & Wed 10-12 pm' },
       { email: 'student1@demo.edu', passwordHash: hash, fullName: 'Bob Chan', role: 'Student', concentration: 'Health and Social Wellness Concentration (HSW)', phone: '+852-9111-2222' },

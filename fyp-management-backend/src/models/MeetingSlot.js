@@ -64,7 +64,7 @@ const meetingSlotSchema = new mongoose.Schema(
     },
     maxAttendees: {
       type: Number,
-      default: 1,
+      default: 2,
       min: 1,
       max: 50,
     },

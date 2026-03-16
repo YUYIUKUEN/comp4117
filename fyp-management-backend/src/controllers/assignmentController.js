@@ -72,7 +72,7 @@ exports.getSupervisorAssignments = async (req, res) => {
 
     // Fetch assignments with pagination (sort by _id desc, always indexed in Cosmos DB)
     const assignments = await Assignment.find(query)
-      .populate({ path: 'student_id', select: '-passwordHash deactivatedAt' })
+      .populate({ path: 'student_id', select: '-passwordHash' })
       .populate('topic_id')
       .sort({ _id: -1 })
       .limit(parseInt(limit))
