@@ -504,9 +504,9 @@ const loadTemplate = async (templateId: string) => {
                   <table class="w-full text-xs">
                     <thead class="bg-slate-200">
                       <tr>
-                        <th class="px-3 py-2 text-left font-medium text-slate-700">Level Name</th>
-                        <th class="px-3 py-2 text-left font-medium text-slate-700">Description</th>
-                        <th class="px-3 py-2 text-center font-medium text-slate-700 w-20">Points</th>
+                        <th class="px-3 py-2 text-left font-medium text-slate-700">Level Name (Optional)</th>
+                        <th class="px-3 py-2 text-left font-medium text-slate-700">Description (Optional)</th>
+                        <th class="px-3 py-2 text-center font-medium text-slate-700 w-20">Points *</th>
                         <th class="px-3 py-2 text-center font-medium text-slate-700 w-12">Action</th>
                       </tr>
                     </thead>
@@ -560,8 +560,8 @@ const loadTemplate = async (templateId: string) => {
                   <table class="w-full text-xs">
                     <thead class="bg-slate-200">
                       <tr>
-                        <th class="px-3 py-2 text-left font-medium text-slate-700">Grade</th>
-                        <th class="px-3 py-2 text-left font-medium text-slate-700">Description</th>
+                        <th class="px-3 py-2 text-left font-medium text-slate-700">Grade (Optional)</th>
+                        <th class="px-3 py-2 text-left font-medium text-slate-700">Description (Optional)</th>
                         <th class="px-3 py-2 text-center font-medium text-slate-700 w-12">Action</th>
                       </tr>
                     </thead>
