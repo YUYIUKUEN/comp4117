@@ -152,17 +152,20 @@ exports.getMyApplications = async (req, res) => {
       .limit(parseInt(limit))
       .skip((parseInt(page) - 1) * parseInt(limit));
 
+    // Filter out applications from deactivated students
+    const activeApplications = applications.filter(app => !app.student_id?.deactivatedAt);
+
     // Sort in JS to avoid Cosmos DB index issues
-    applications.sort((a, b) => (a.preference_rank || 99) - (b.preference_rank || 99));
+    activeApplications.sort((a, b) => (a.preference_rank || 99) - (b.preference_rank || 99));
 
     res.json({
       success: true,
-      data: applications,
+      data: activeApplications,
       pagination: {
         page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / parseInt(limit)),
+        limit: appCount,
+        total: activeApplications.length,
+        pages: Math.ceil(activeApplications.length / appCount),
       },
     });
   } catch (error) {
@@ -246,12 +249,15 @@ exports.getSupervisorApplications = async (req, res) => {
       })
     );
 
-    const total = applications.length;
-    console.log('Returning enriched applications:', enrichedApplications.length);
+    // Filter out applications from deactivated students
+    const activeApplications = enrichedApplications.filter(app => !app.student_id?.deactivatedAt);
+
+    const total = activeApplications.length;
+    console.log('Returning enriched applications (deactivated filtered):', activeApplications.length);
     
     res.json({
       success: true,
-      data: enrichedApplications,
+      data: activeApplications,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),

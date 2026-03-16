@@ -85,6 +85,17 @@ const getStudentActivityLog = async (req, res, next) => {
       });
     }
 
+    // Check if student is deactivated
+    const User = require('../models/User');
+    const student = await User.findById(studentId).select('deactivatedAt');
+    if (student?.deactivatedAt) {
+      return res.status(404).json({
+        error: 'Student not found or account deactivated',
+        code: 'NOT_FOUND',
+        status: 404,
+      });
+    }
+
     // If supervisor, verify they are assigned to this student
     if (requestingUser.role === 'Supervisor') {
       const Assignment = require('../models/Assignment');

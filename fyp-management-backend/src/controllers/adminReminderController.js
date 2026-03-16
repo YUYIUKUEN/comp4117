@@ -33,13 +33,16 @@ const getAdminReminders = async (req, res, next) => {
     }
 
     const submissions = await Submission.find(filter)
-      .populate('student_id', 'fullName email concentration phone')
+      .populate('student_id', 'fullName email concentration phone deactivatedAt')
       .populate('topic_id', 'title')
       .sort({ _id: -1 });
 
+    // Filter out submissions from deactivated students
+    const activeSubmissions = submissions.filter(sub => !sub.student_id?.deactivatedAt);
+
     const now = new Date();
 
-    const reminders = submissions.map((sub) => {
+    const reminders = activeSubmissions.map((sub) => {
       const due = sub.dueDate ? new Date(sub.dueDate) : null;
       const daysOverdue = due
         ? Math.floor((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24))
@@ -468,13 +471,16 @@ const runAutoReminders = async (req, res, next) => {
     ];
 
     const submissions = await Submission.find(filter)
-      .populate('student_id', 'fullName email')
+      .populate('student_id', 'fullName email deactivatedAt')
       .populate('topic_id', 'title');
+
+    // Filter out submissions from deactivated students
+    const activeSubmissions = submissions.filter(sub => !sub.student_id?.deactivatedAt);
 
     let successCount = 0;
     let failCount = 0;
 
-    for (const submission of submissions) {
+    for (const submission of activeSubmissions) {
       const student = submission.student_id;
       if (!student || !student.email) { failCount++; continue; }
 

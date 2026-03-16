@@ -72,20 +72,23 @@ exports.getSupervisorAssignments = async (req, res) => {
 
     // Fetch assignments with pagination (sort by _id desc, always indexed in Cosmos DB)
     const assignments = await Assignment.find(query)
-      .populate({ path: 'student_id', select: '-passwordHash' })
+      .populate({ path: 'student_id', select: '-passwordHash deactivatedAt' })
       .populate('topic_id')
       .sort({ _id: -1 })
       .limit(parseInt(limit))
       .skip((parseInt(page) - 1) * parseInt(limit));
 
+    // Filter out assignments for deactivated students
+    const activeAssignments = assignments.filter(a => !a.student_id?.deactivatedAt);
+
     res.json({
       success: true,
-      data: assignments,
+      data: activeAssignments,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / parseInt(limit)),
+        total: activeAssignments.length,
+        pages: Math.ceil(activeAssignments.length / parseInt(limit)),
       },
     });
   } catch (error) {

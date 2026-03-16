@@ -474,12 +474,15 @@ const getSupervisorSubmissions = async (req, res, next) => {
     }
 
     const submissions = await Submission.find(filter)
-      .populate('student_id', 'fullName email')
+      .populate('student_id', 'fullName email deactivatedAt')
       .populate('topic_id', 'title')
       .sort({ _id: -1 });
 
+    // Filter out submissions from deactivated students
+    const activeSubmissions = submissions.filter(sub => !sub.student_id?.deactivatedAt);
+
     res.json({
-      data: submissions,
+      data: activeSubmissions,
       status: 200,
     });
   } catch (error) {

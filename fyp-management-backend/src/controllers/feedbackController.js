@@ -196,14 +196,29 @@ const getFeedback = async (req, res, next) => {
       .populate('supervisor_id', 'fullName email')
       .populate('replies.user_id', 'fullName email role');
 
+    // Get submission and student info to filter out deactivated users
+    const Submission = require('../models/Submission');
+    const User = require('../models/User');
+    const submissionIds = Array.from(new Set(feedbackDocs.map(f => f.submission_id?.toString()).filter(Boolean)));
+    const submissions = await Submission.find({ _id: { $in: submissionIds } }).select('student_id').lean();
+    const studentIds = submissions.map(s => s.student_id);
+    const students = await User.find({ _id: { $in: studentIds } }).select('deactivatedAt').lean();
+    const deactivatedStudentIds = new Set(students.filter(s => s.deactivatedAt).map(s => s._id.toString()));
+
     // Strip internalNote from student responses — they should never see it
-    const feedback = feedbackDocs.map(fb => {
-      const obj = fb.toObject();
-      if (userRole === 'Student') {
-        delete obj.internalNote;
-      }
-      return obj;
-    });
+    // Also filter out feedback for deactivated students
+    const feedback = feedbackDocs
+      .filter(fb => {
+        const submission = submissions.find(s => s._id.toString() === fb.submission_id?.toString());
+        return submission && !deactivatedStudentIds.has(submission.student_id.toString());
+      })
+      .map(fb => {
+        const obj = fb.toObject();
+        if (userRole === 'Student') {
+          delete obj.internalNote;
+        }
+        return obj;
+      });
 
     res.json({
       data: {
