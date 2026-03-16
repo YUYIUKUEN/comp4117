@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import {
   Bars3Icon,
   MagnifyingGlassIcon,
@@ -7,79 +7,52 @@ import {
   ChevronDownIcon,
   AcademicCapIcon,
 } from '@heroicons/vue/24/outline'
+import { useAuthStore } from '../stores/authStore'
+import topicService from '../services/topicService'
 
+const authStore = useAuthStore()
 const sidebarOpen = ref(false)
 
 const keyword = ref('')
-const selectedConcentration = ref<'All' | 'Geography' | 'Sociology' | 'Psychology'>('All')
-const selectedSupervisor = ref<'All' | 'Lee' | 'Chan' | 'Ng' | 'Wong'>('All')
-
-const concentrations = ['All', 'Geography', 'Sociology', 'Psychology'] as const
+const selectedSupervisor = ref<string>('All')
 const supervisors = ['All', 'Lee', 'Chan', 'Ng', 'Wong'] as const
 
-const topics = ref([
-  {
-    id: 1,
-    title: 'Digital Platforms and Youth Political Participation in Hong Kong',
-    supervisor: 'Dr. Kelvin Chan',
-    supervisorCode: 'Chan',
-    concentration: 'Sociology',
-    recommended: true,
-    description:
-      'Explores how social media and messaging apps influence political engagement among Hong Kong youth, using mixed‑methods research.',
-    capacity: { taken: 2, total: 4 },
-    tags: ['Youth Studies', 'Social Media', 'Quantitative + Qualitative'],
-  },
-  {
-    id: 2,
-    title: 'Mapping Thermal Inequality: Urban Heat Island Effects in Sham Shui Po',
-    supervisor: 'Dr. Emily Lee',
-    supervisorCode: 'Lee',
-    concentration: 'Geography',
-    recommended: false,
-    description:
-      'Uses remote sensing and field measurements to examine micro‑climate variations and the social distribution of heat stress.',
-    capacity: { taken: 3, total: 3 },
-    tags: ['GIS', 'Climate Justice', 'Fieldwork'],
-  },
-  {
-    id: 3,
-    title: 'Work‑from‑Home and Family Dynamics in Post‑Pandemic Hong Kong',
-    supervisor: 'Prof. Agnes Ng',
-    supervisorCode: 'Ng',
-    concentration: 'Sociology',
-    recommended: false,
-    description:
-      'Investigates how hybrid work arrangements reshape domestic labour, parenting, and inter‑generational relationships.',
-    capacity: { taken: 1, total: 3 },
-    tags: ['Family Studies', 'Qualitative Interviews'],
-  },
-  {
-    id: 4,
-    title: 'Gamified Mental Health Interventions for First‑Year University Students',
-    supervisor: 'Dr. Henry Wong',
-    supervisorCode: 'Wong',
-    concentration: 'Psychology',
-    recommended: false,
-    description:
-      'Designs and evaluates a low‑intensity gamified intervention to support stress management and adjustment in first‑year students.',
-    capacity: { taken: 0, total: 2 },
-    tags: ['Experimental Design', 'App Prototype'],
-  },
-])
+const topics = ref<any[]>([])
+const loading = ref(false)
+const error = ref('')
+
+onMounted(async () => {
+  loading.value = true
+  try {
+    const studentConcentration = authStore.user?.concentration
+    if (!studentConcentration) {
+      error.value = 'Unable to determine your concentration'
+      loading.value = false
+      return
+    }
+
+    const response = await topicService.getTopicsByConcentration(studentConcentration, {
+      page: 1,
+      limit: 100
+    })
+    topics.value = response.data
+  } catch (e: any) {
+    error.value = e?.response?.data?.error || 'Failed to load topics'
+  } finally {
+    loading.value = false
+  }
+})
 
 const filteredTopics = computed(() =>
   topics.value.filter((t) => {
     const matchKeyword =
       !keyword.value ||
-      t.title.toLowerCase().includes(keyword.value.toLowerCase())
-    const matchConc =
-      selectedConcentration.value === 'All' ||
-      t.concentration === selectedConcentration.value
+      t.title.toLowerCase().includes(keyword.value.toLowerCase()) ||
+      (t.description && t.description.toLowerCase().includes(keyword.value.toLowerCase()))
     const matchSup =
       selectedSupervisor.value === 'All' ||
-      t.supervisorCode === selectedSupervisor.value
-    return matchKeyword && matchConc && matchSup
+      t.supervisorName?.includes(selectedSupervisor.value)
+    return matchKeyword && matchSup
   }),
 )
 </script>
@@ -173,33 +146,6 @@ const filteredTopics = computed(() =>
             <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <div class="space-y-1.5 text-xs">
                 <label class="font-medium text-slate-800">
-                  Concentration
-                </label>
-                <button
-                  type="button"
-                  class="inline-flex w-44 items-center justify-between gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-left text-xs text-slate-700 hover:border-blue-500 hover:bg-blue-50"
-                >
-                  <span>{{ selectedConcentration }}</span>
-                  <ChevronDownIcon class="h-4 w-4 text-slate-400" />
-                </button>
-                <div class="flex flex-wrap gap-1.5">
-                  <button
-                    v-for="c in concentrations"
-                    :key="c"
-                    type="button"
-                    class="rounded-full px-2.5 py-0.5 text-[11px] border"
-                    :class="selectedConcentration === c
-                      ? 'bg-blue-50 text-blue-700 border-blue-500/60'
-                      : 'bg-slate-50 text-slate-600 border-slate-300 hover:border-blue-500/60 hover:text-blue-700'"
-                    @click="selectedConcentration = c"
-                  >
-                    {{ c }}
-                  </button>
-                </div>
-              </div>
-
-              <div class="space-y-1.5 text-xs">
-                <label class="font-medium text-slate-800">
                   Supervisor
                 </label>
                 <button
@@ -227,100 +173,78 @@ const filteredTopics = computed(() =>
             </div>
           </div>
 
-          <div class="mt-4 flex items-center justify-between text-[11px] text-slate-500">
-            <div class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1">
-              <FunnelIcon class="h-3.5 w-3.5 text-slate-500" />
-              <span>Filters are illustrative only · No backend</span>
-            </div>
-          </div>
         </section>
 
-        <section
-          class="mt-4 sm:mt-6 space-y-3"
-          aria-label="Available topics"
-        >
+        <!-- Loading State -->
+        <div v-if="loading" class="mt-4 sm:mt-6 flex items-center justify-center py-12">
+          <span class="loading loading-spinner loading-md text-blue-600"></span>
+          <span class="ml-2 text-sm text-slate-600">Loading topics...</span>
+        </div>
+
+        <!-- Error State -->
+        <div v-else-if="error" class="mt-4 sm:mt-6 rounded-xl border border-red-200 bg-red-50 p-4">
+          <p class="text-sm font-medium text-red-700">{{ error }}</p>
+        </div>
+
+        <!-- Topics Section -->
+        <section v-else class="mt-4 sm:mt-6 space-y-3" aria-label="Available topics">
           <div class="flex items-center justify-between">
             <h2 class="text-sm font-semibold text-slate-900">
-              Matching suggestions for you
+              Available topics for your concentration
             </h2>
-            <span class="text-[11px] text-slate-500">
-              Based on your concentration and indicated interests.
-            </span>
           </div>
 
-          <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div v-if="filteredTopics.length === 0" class="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+            <p class="text-sm text-slate-600">No topics found matching your filters.</p>
+          </div>
+
+          <div v-else class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <article
               v-for="topic in filteredTopics"
-              :key="topic.id"
+              :key="topic._id"
               class="group flex flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-200/70 transition hover:-translate-y-0.5 hover:border-blue-500/70 hover:shadow-blue-200/70"
             >
-              <header class="flex items-start justify-between gap-2">
-                <div>
-                  <p class="text-[11px] uppercase tracking-[0.18em] text-sky-600">
-                    {{ topic.concentration }}
-                  </p>
-                  <h3 class="mt-1 text-sm font-semibold text-slate-900 leading-snug">
-                    {{ topic.title }}
-                  </h3>
-                </div>
-                <span
-                  v-if="topic.recommended"
-                  class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-medium text-blue-700 border border-blue-200"
-                >
-                  Recommended
-                </span>
+              <header>
+                <h3 class="text-sm font-semibold text-slate-900 leading-snug">
+                  {{ topic.title }}
+                </h3>
               </header>
 
               <p class="mt-2 text-xs text-slate-600 line-clamp-3">
                 {{ topic.description }}
               </p>
 
-              <div class="mt-3 flex items-center justify-between gap-3 text-[11px] text-slate-500">
+              <div class="mt-3 flex items-center gap-3 text-[11px] text-slate-500">
                 <div class="flex items-center gap-2">
                   <div
                     class="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-700 text-[11px] font-medium"
                   >
-                    {{ topic.supervisor.split(' ')[1]?.[0] ?? '' }}{{ topic.supervisor.split(' ')[1]?.[1] ?? '' }}
+                    {{ topic.supervisorName?.split(' ')[0]?.[0] ?? '' }}
                   </div>
                   <div>
                     <p class="font-medium text-slate-900">
-                      {{ topic.supervisor }}
+                      {{ topic.supervisorName || 'Unknown' }}
                     </p>
-                    <p class="text-slate-500">Dept. of Social Sciences</p>
                   </div>
-                </div>
-                <div class="text-right">
-                  <p class="text-slate-500">Capacity</p>
-                  <p class="font-medium text-slate-900">
-                    {{ topic.capacity.taken }}/{{ topic.capacity.total }} taken
-                  </p>
                 </div>
               </div>
 
-              <div class="mt-2 flex items-center gap-2 text-[11px] flex-wrap">
+              <div v-if="topic.keywords && topic.keywords.length > 0" class="mt-2 flex items-center gap-2 text-[11px] flex-wrap">
                 <span
-                  v-for="tag in topic.tags"
-                  :key="tag"
+                  v-for="keyword in topic.keywords.slice(0, 3)"
+                  :key="keyword"
                   class="rounded-full bg-slate-100 px-2 py-0.5 text-slate-700 border border-slate-200"
                 >
-                  {{ tag }}
+                  {{ keyword }}
                 </span>
               </div>
 
-              <div class="mt-3 flex items-center justify-between text-[11px]">
-                <div class="flex items-center gap-1.5 text-slate-500">
-                  <span class="inline-flex h-1.5 w-1.5 rounded-full"
-                    :class="topic.capacity.taken >= topic.capacity.total ? 'bg-rose-400' : 'bg-emerald-400'"
-                  ></span>
-                  <span>
-                    {{ topic.capacity.taken >= topic.capacity.total ? 'Waitlist only' : 'Slots available' }}
-                  </span>
-                </div>
+              <div class="mt-3 flex items-center justify-end gap-2">
                 <button
                   type="button"
-                  class="inline-flex items-center justify-center rounded-full border border-blue-500/70 bg-blue-600 px-3 py-1.5 text-[11px] font-medium text-white shadow-sm shadow-blue-300/70 group-hover:bg-blue-500"
+                  class="inline-flex items-center justify-center rounded-full border border-blue-500/70 bg-blue-600 px-3 py-1.5 text-[11px] font-medium text-white shadow-sm shadow-blue-300/70 group-hover:bg-blue-500 transition"
                 >
-                  {{ topic.capacity.taken >= topic.capacity.total ? 'Preview details' : 'Apply for this topic' }}
+                  View topic
                 </button>
               </div>
             </article>
