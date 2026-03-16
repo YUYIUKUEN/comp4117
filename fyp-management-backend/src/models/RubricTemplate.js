@@ -2,13 +2,13 @@ const mongoose = require('mongoose');
 
 const rubricItemSchema = new mongoose.Schema({
   _id: false,
-  title: { type: String, required: true, maxlength: 200 },
+  title: { type: String, maxlength: 200 },
   description: { type: String, maxlength: 500 },
   minScore: { type: Number, default: 0 },
   maxScore: { type: Number, default: 10 },
   levels: [{ 
     _id: false,
-    name: { type: String, required: true },
+    name: { type: String },
     description: { type: String, maxlength: 300 },
     points: { type: Number, default: 0 },
   }],

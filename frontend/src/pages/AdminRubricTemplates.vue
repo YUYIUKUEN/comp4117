@@ -229,7 +229,7 @@ const removePerformanceLevel = (criterionIndex: number, levelIndex: number) => {
                   <!-- Criterion Title -->
                   <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">
-                      Criterion Title *
+                      Criterion Title (Optional)
                     </label>
                     <input
                       v-model="criterion.title"
@@ -242,7 +242,7 @@ const removePerformanceLevel = (criterionIndex: number, levelIndex: number) => {
                   <!-- Criterion Description -->
                   <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">
-                      Description
+                      Description (Optional)
                     </label>
                     <textarea
                       v-model="criterion.description"
@@ -271,9 +271,9 @@ const removePerformanceLevel = (criterionIndex: number, levelIndex: number) => {
                       <table class="w-full text-xs">
                         <thead class="bg-slate-200">
                           <tr>
-                            <th class="px-3 py-2 text-left font-medium text-slate-700">Name</th>
-                            <th class="px-3 py-2 text-left font-medium text-slate-700">Description</th>
-                            <th class="px-3 py-2 text-center font-medium text-slate-700 w-20">Points</th>
+                            <th class="px-3 py-2 text-left font-medium text-slate-700">Name (Optional)</th>
+                            <th class="px-3 py-2 text-left font-medium text-slate-700">Description (Optional)</th>
+                            <th class="px-3 py-2 text-center font-medium text-slate-700 w-20">Points *</th>
                             <th class="px-3 py-2 text-center font-medium text-slate-700 w-12">Action</th>
                           </tr>
                         </thead>
