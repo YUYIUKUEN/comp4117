@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import gradingStandardService from '../services/gradingStandardService'
 import type { GradingStandard, GradingStandardInput } from '../services/gradingStandardService'
 
@@ -10,6 +10,7 @@ const error = ref('')
 
 const showAddForm = ref(false)
 const editingId = ref<string | null>(null)
+const formContainerRef = ref<HTMLElement | null>(null)
 
 const formData = ref<GradingStandardInput>({
   submissionType: '',
@@ -100,6 +101,11 @@ const startEdit = (standard: GradingStandard) => {
     enabled: standard.enabled,
   }
   showAddForm.value = true
+  
+  // Scroll to form after DOM update
+  nextTick(() => {
+    formContainerRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  })
 }
 
 const handleDeleteStandard = async (id: string) => {
@@ -177,7 +183,7 @@ const updateCustomOption = (index: number, value: string) => {
       </div>
 
       <!-- Add/Edit Form -->
-      <div v-if="showAddForm" class="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div v-if="showAddForm" ref="formContainerRef" class="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 class="mb-4 text-lg font-semibold text-slate-900">
           {{ editingId ? 'Edit' : 'Create' }} Grading Standard
         </h2>
