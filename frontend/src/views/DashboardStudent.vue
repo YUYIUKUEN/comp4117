@@ -62,7 +62,7 @@ const submitReply = async (feedbackId: string) => {
 
 // Derived data from assignment
 const topicTitle = computed(() => assignment.value?.topic_id?.title ?? 'No topic assigned');
-const topicConcentration = computed(() => assignment.value?.topic_id?.concentration ?? '');
+const studentConcentration = computed(() => authStore.user?.concentration ?? '');
 const supervisorName = computed(() => assignment.value?.supervisor_id?.fullName ?? 'Not assigned');
 const supervisorEmail = computed(() => assignment.value?.supervisor_id?.email ?? '');
 const supervisorAvatar = computed(() => {
@@ -171,8 +171,8 @@ onMounted(async () => {
                 {{ topicTitle }}
               </h2>
               <div v-else class="mt-1 h-5 w-48 animate-pulse rounded bg-slate-200" />
-              <p v-if="topicConcentration" class="mt-1 text-xs text-slate-600">
-                {{ topicConcentration }}
+              <p v-if="studentConcentration" class="mt-1 text-xs text-slate-600">
+                {{ studentConcentration }}
               </p>
             </div>
             <!-- Progress ring -->
@@ -227,9 +227,9 @@ onMounted(async () => {
               No active assignment found. Apply to a topic to get started.
             </div>
 
-            <div v-if="topicConcentration" class="flex flex-wrap gap-2 text-[11px] text-slate-600">
+            <div v-if="studentConcentration" class="flex flex-wrap gap-2 text-[11px] text-slate-600">
               <span class="rounded-full bg-blue-50 px-2.5 py-0.5 border border-blue-200 text-blue-700">
-                Concentration · {{ topicConcentration }}
+                Concentration · {{ studentConcentration }}
               </span>
               <span class="rounded-full bg-slate-100 px-2.5 py-0.5 border border-slate-200">
                 Student View

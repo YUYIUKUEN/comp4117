@@ -20,32 +20,6 @@
         </div>
 
         <div class="filter-section">
-          <h3>Concentration</h3>
-          <div class="filter-options">
-            <label
-              v-for="concentration in topicStore.concentrations"
-              :key="concentration"
-              class="filter-checkbox"
-            >
-              <input
-                type="checkbox"
-                :checked="topicStore.filters.concentration === concentration"
-                @change="topicStore.setConcentrationFilter(concentration)"
-              />
-              {{ concentration }}
-            </label>
-            <label class="filter-checkbox">
-              <input
-                type="checkbox"
-                :checked="topicStore.filters.concentration === ''"
-                @change="topicStore.setConcentrationFilter('')"
-              />
-              All Concentrations
-            </label>
-          </div>
-        </div>
-
-        <div class="filter-section">
           <h3>Status</h3>
           <div class="filter-options">
             <label class="filter-checkbox">
@@ -174,7 +148,12 @@ onMounted(async () => {
     }
   }
   
-  await topicStore.fetchTopics()
+  // Auto-filter by user's concentration if they have one
+  if (authStore.user?.concentration) {
+    await topicStore.setConcentrationFilter(authStore.user.concentration)
+  } else {
+    await topicStore.fetchTopics()
+  }
 })
 </script>
 

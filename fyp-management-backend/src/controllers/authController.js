@@ -77,6 +77,7 @@ const login = async (req, res, next) => {
           email: user.email,
           fullName: user.fullName,
           role: user.role,
+          concentration: user.concentration,
         },
         expiresIn,
         expiresAt,
