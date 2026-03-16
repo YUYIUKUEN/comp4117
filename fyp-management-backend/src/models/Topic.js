@@ -22,7 +22,7 @@ const topicSchema = new mongoose.Schema({
   concentration: {
     type: String,
     required: [true, 'Concentration required'],
-    enum: ['Software Engineering', 'Systems', 'AI/ML', 'Cybersecurity', 'Other'],
+    enum: ['Health and Social Wellness Concentration (HSW)', 'Health Technology and Informatics Concentration (HTI)'],
   },
   academicYear: {
     type: Number,

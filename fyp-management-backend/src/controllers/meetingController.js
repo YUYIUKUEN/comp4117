@@ -102,12 +102,23 @@ exports.createSlot = async (req, res) => {
     // Notify all assigned students about the new slot
     const studentIds = await getAssignedStudentIds(supervisorId);
     if (studentIds.length > 0) {
+      // Build time string based on whether it's a single slot or multiple options
+      let timeString = '';
+      if (startTime && endTime) {
+        timeString = `at ${startTime}`;
+      } else if (timeSlots && timeSlots.length > 0) {
+        const timeOptions = timeSlots.map((ts) => `${ts.startTime}-${ts.endTime}`).join(', ');
+        timeString = `with options: ${timeOptions}`;
+      } else {
+        timeString = 'with flexible timing';
+      }
+
       const notifications = studentIds.map((studentId) => ({
         recipient_id: studentId,
         sender_id: supervisorId,
         type: 'MEETING_SLOT_CREATED',
         title: 'New Meeting Slot Available',
-        message: `Your supervisor has proposed a new meeting slot: "${title}" on ${new Date(date).toLocaleDateString()} at ${startTime}.`,
+        message: `Your supervisor has proposed a new meeting slot: "${title}" on ${new Date(date).toLocaleDateString()} ${timeString}.`,
         entityType: 'MeetingSlot',
         entityId: slot._id,
       }));

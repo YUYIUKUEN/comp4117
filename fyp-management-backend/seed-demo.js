@@ -54,11 +54,11 @@ const run = async () => {
 
     const [admin, supervisor, emilyLee, student1, student2, student3] = await User.create([
       { email: 'admin@demo.edu', passwordHash: hash, fullName: 'Alice Admin', role: 'Admin' },
-      { email: 'supervisor@demo.edu', passwordHash: hash, fullName: 'Dr. Samuel Lee', role: 'Supervisor', concentration: 'Software Engineering', phone: '+852-2345-6789', officeHours: 'Tue & Thu 2-4 pm' },
-      { email: 'emily.lee@demo.edu', passwordHash: hash, fullName: 'Emily Lee', role: 'Supervisor', concentration: 'AI/ML', phone: '+852-9777-8888', officeHours: 'Mon & Wed 10-12 pm' },
-      { email: 'student1@demo.edu', passwordHash: hash, fullName: 'Bob Chan', role: 'Student', concentration: 'Software Engineering', phone: '+852-9111-2222' },
-      { email: 'student2@demo.edu', passwordHash: hash, fullName: 'Carol Wong', role: 'Student', concentration: 'AI/ML', phone: '+852-9333-4444' },
-      { email: 'student3@demo.edu', passwordHash: hash, fullName: 'David Smith', role: 'Student', concentration: 'Cybersecurity', phone: '+852-9555-6666' },
+      { email: 'supervisor@demo.edu', passwordHash: hash, fullName: 'Dr. Samuel Lee', role: 'Supervisor', concentration: 'Health and Social Wellness Concentration (HSW)', phone: '+852-2345-6789', officeHours: 'Tue & Thu 2-4 pm' },
+      { email: 'emily.lee@demo.edu', passwordHash: hash, fullName: 'Emily Lee', role: 'Supervisor', concentration: 'Health Technology and Informatics Concentration (HTI)', phone: '+852-9777-8888', officeHours: 'Mon & Wed 10-12 pm' },
+      { email: 'student1@demo.edu', passwordHash: hash, fullName: 'Bob Chan', role: 'Student', concentration: 'Health and Social Wellness Concentration (HSW)', phone: '+852-9111-2222' },
+      { email: 'student2@demo.edu', passwordHash: hash, fullName: 'Carol Wong', role: 'Student', concentration: 'Health Technology and Informatics Concentration (HTI)', phone: '+852-9333-4444' },
+      { email: 'student3@demo.edu', passwordHash: hash, fullName: 'David Smith', role: 'Student', concentration: 'Health and Social Wellness Concentration (HSW)', phone: '+852-9555-6666' },
     ]);
 
     console.log('✓ Created users');
@@ -69,7 +69,7 @@ const run = async () => {
         title: 'AI-Powered Student Advisor Chatbot',
         description: 'Build an intelligent chatbot that helps university students choose courses, understand degree requirements, and plan their academic journey. The system will use natural language processing and a knowledge base of programme regulations to provide personalised advice. Students will explore prompt engineering, retrieval-augmented generation (RAG), and user-interface design for conversational AI.',
         supervisor_id: supervisor._id,
-        concentration: 'AI/ML',
+        concentration: 'Health Technology and Informatics Concentration (HTI)',
         academicYear: 4,
         keywords: ['chatbot', 'NLP', 'RAG', 'student advisor', 'LLM'],
         status: 'Active',
@@ -80,7 +80,7 @@ const run = async () => {
         title: 'Cross-Platform Mobile App for Campus Navigation',
         description: 'Design and develop a cross-platform mobile application that provides real-time indoor and outdoor navigation across the university campus. The project covers map rendering, shortest-path algorithms, Bluetooth beacon integration, and accessibility features for visually impaired users. Students will gain experience with React Native or Flutter and geolocation APIs.',
         supervisor_id: supervisor._id,
-        concentration: 'Software Engineering',
+        concentration: 'Health and Social Wellness Concentration (HSW)',
         academicYear: 4,
         keywords: ['mobile app', 'navigation', 'indoor positioning', 'accessibility'],
         status: 'Active',
@@ -91,7 +91,7 @@ const run = async () => {
         title: 'Blockchain Credential Verification System',
         description: 'Implement a decentralised system for issuing and verifying academic credentials on a blockchain network. This project involves smart-contract development, cryptographic hashing, and building a web portal where employers can instantly verify a graduate\'s qualifications without contacting the institution. Students will learn Solidity, IPFS, and modern web development.',
         supervisor_id: supervisor._id,
-        concentration: 'Cybersecurity',
+        concentration: 'Health Technology and Informatics Concentration (HTI)',
         academicYear: 3,
         keywords: ['blockchain', 'credentials', 'smart contracts', 'verification'],
         status: 'Active',
@@ -102,7 +102,7 @@ const run = async () => {
         title: 'Automated Code Review Tool Using Static Analysis',
         description: 'Create a tool that performs automated code reviews by combining static analysis, coding-style enforcement, and simple machine-learning classifiers to detect common bug patterns. The tool will integrate with GitHub pull requests and provide inline suggestions. Students will study abstract syntax trees, linting frameworks, and CI/CD pipelines to build a practical developer tool.',
         supervisor_id: supervisor._id,
-        concentration: 'Software Engineering',
+        concentration: 'Health and Social Wellness Concentration (HSW)',
         academicYear: 4,
         keywords: ['code review', 'static analysis', 'CI/CD', 'developer tools'],
         status: 'Draft',

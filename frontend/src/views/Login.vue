@@ -98,7 +98,7 @@ const handleLogin = async () => {
         <div class="login-body">
         <div class="login-header">
           <h1>FYP Management System</h1>
-          <p class="subtitle">BSocSc (Hons) in Global and China Studies</p>
+          <p class="subtitle">BSocSc/BSc (Hons) in Innovation in Health and Social Well-Being</p>
           <p class="subtitle-small">Sign in to your account</p>
         </div>
 

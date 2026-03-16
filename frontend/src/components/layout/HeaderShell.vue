@@ -40,7 +40,7 @@ function setRole(r: Role) {
           HKBU FYP Management System
         </p>
         <p class="text-xs text-slate-500">
-          BSocSc (Hons) in Global and China Studies
+          BSocSc/BSc (Hons) in Innovation in Health and Social Well-Being
         </p>
       </div>
     </div>

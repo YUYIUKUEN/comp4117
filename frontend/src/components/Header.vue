@@ -11,7 +11,7 @@
         </div>
         <div class="brand-text">
           <span class="brand-title">HKBU FYP Management System</span>
-          <span class="brand-subtitle">BSocSc (Hons) in Global and China Studies</span>
+          <span class="brand-subtitle">BSocSc/BSc (Hons) in Innovation in Health and Social Well-Being</span>
         </div>
       </div>
       <div class="top-bar-right">

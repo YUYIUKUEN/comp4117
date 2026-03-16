@@ -35,11 +35,8 @@
           <label for="concentration">Concentration *</label>
           <select v-model="formData.concentration" id="concentration" required>
             <option value="">Select concentration</option>
-            <option value="Software Engineering">Software Engineering</option>
-            <option value="AI/ML">AI & Machine Learning</option>
-            <option value="Systems">Systems</option>
-            <option value="Cybersecurity">Cybersecurity</option>
-            <option value="Other">Other</option>
+            <option value="Health and Social Wellness Concentration (HSW)">Health and Social Wellness Concentration (HSW)</option>
+            <option value="Health Technology and Informatics Concentration (HTI)">Health Technology and Informatics Concentration (HTI)</option>
           </select>
         </div>
 

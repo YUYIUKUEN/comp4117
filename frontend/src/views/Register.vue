@@ -4,7 +4,7 @@
       <div class="register-card">
         <div class="register-header">
           <h1>Create Account</h1>
-          <p class="subtitle">BSocSc (Hons) in Global and China Studies</p>
+          <p class="subtitle">BSocSc/BSc (Hons) in Innovation in Health and Social Well-Being</p>
           <p class="subtitle-small">Join the FYP Management System</p>
         </div>
 
