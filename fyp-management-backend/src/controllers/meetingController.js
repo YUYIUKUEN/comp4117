@@ -358,15 +358,27 @@ exports.deleteSlot = async (req, res) => {
 
     // If there are bookings, notify students about cancellation
     if (slot.bookings.length > 0) {
-      const notifications = slot.bookings.map((b) => ({
-        recipient_id: b.student_id,
-        sender_id: supervisorId,
-        type: 'MEETING_CANCELLED',
-        title: 'Meeting Cancelled',
-        message: `The meeting "${slot.title}" on ${slot.date.toLocaleDateString()} at ${slot.startTime} has been cancelled by your supervisor.`,
-        entityType: 'MeetingSlot',
-        entityId: slot._id,
-      }));
+      const notifications = slot.bookings.map((b) => {
+        let timeString = slot.startTime || 'unknown time';
+        
+        // If slot has multiple time slots, use the one the student booked
+        if (slot.timeSlots && slot.timeSlots.length > 0 && b.timeSlotIndex !== null && b.timeSlotIndex !== undefined) {
+          const bookedTimeSlot = slot.timeSlots[b.timeSlotIndex];
+          if (bookedTimeSlot) {
+            timeString = `${bookedTimeSlot.startTime}-${bookedTimeSlot.endTime}`;
+          }
+        }
+        
+        return {
+          recipient_id: b.student_id,
+          sender_id: supervisorId,
+          type: 'MEETING_CANCELLED',
+          title: 'Meeting Cancelled',
+          message: `The meeting "${slot.title}" on ${slot.date.toLocaleDateString()} at ${timeString} has been cancelled by your supervisor.`,
+          entityType: 'MeetingSlot',
+          entityId: slot._id,
+        };
+      });
       await Notification.insertMany(notifications);
     }
 
@@ -744,6 +756,17 @@ exports.cancelBooking = async (req, res) => {
       });
     }
 
+    const bookingToCancel = slot.bookings[bookingIndex];
+    let timeString = slot.startTime || 'unknown time';
+    
+    // If slot has multiple time slots, use the one the student booked
+    if (slot.timeSlots && slot.timeSlots.length > 0 && bookingToCancel.timeSlotIndex !== null && bookingToCancel.timeSlotIndex !== undefined) {
+      const bookedTimeSlot = slot.timeSlots[bookingToCancel.timeSlotIndex];
+      if (bookedTimeSlot) {
+        timeString = `${bookedTimeSlot.startTime}-${bookedTimeSlot.endTime}`;
+      }
+    }
+
     slot.bookings.splice(bookingIndex, 1);
 
     // Recalculate status after cancellation
@@ -780,7 +803,7 @@ exports.cancelBooking = async (req, res) => {
       sender_id: studentId,
       type: 'MEETING_CANCELLED',
       title: 'Meeting Booking Cancelled',
-      message: `${req.user.fullName} has cancelled their booking for "${slot.title}" on ${slot.date.toLocaleDateString()} at ${slot.startTime}.`,
+      message: `${req.user.fullName} has cancelled their booking for "${slot.title}" on ${slot.date.toLocaleDateString()} at ${timeString}.`,
       entityType: 'MeetingSlot',
       entityId: slot._id,
     });
