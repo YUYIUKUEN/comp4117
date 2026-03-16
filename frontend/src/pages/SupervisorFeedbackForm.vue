@@ -517,8 +517,8 @@ const handleDownloadFile = async (file: any) => {
                       : 'border-slate-300 bg-white hover:border-blue-400 hover:bg-blue-50'
                   ]"
                 >
-                  <div class="font-semibold text-sm text-slate-900">{{ level.name || '(No name)' }}</div>
-                  <div class="text-xs text-slate-600 mt-1">{{ level.description }}</div>
+                  <div v-if="level.name" class="font-semibold text-sm text-slate-900">{{ level.name }}</div>
+                  <div :class="['text-xs text-slate-600', level.name ? 'mt-1' : '']">{{ level.description }}</div>
                   <div class="text-xs font-semibold text-blue-600 mt-1">{{ level.points }} pts</div>
                 </button>
               </div>
