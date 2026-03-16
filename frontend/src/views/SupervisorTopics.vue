@@ -54,6 +54,13 @@
             Publish
           </button>
           <button
+            v-if="topic.status === 'Active'"
+            @click="archiveTopic(topic._id)"
+            class="btn-action btn-archive"
+          >
+            Archive
+          </button>
+          <button
             @click="deleteTopic(topic._id)"
             class="btn-action btn-delete"
           >
@@ -138,6 +145,21 @@ const deleteTopic = async (topicId: string) => {
     await loadTopics()
   } catch (error: any) {
     supervisorTopics.error = error.response?.data?.error || 'Failed to delete topic'
+  }
+}
+
+const archiveTopic = async (topicId: string) => {
+  if (!confirm('Are you sure you want to archive this topic?')) return
+
+  try {
+    await topicService.archiveTopic(topicId)
+    successMessage.value = 'Topic archived successfully!'
+    setTimeout(() => {
+      successMessage.value = ''
+    }, 3000)
+    await loadTopics()
+  } catch (error: any) {
+    supervisorTopics.error = error.response?.data?.error || 'Failed to archive topic'
   }
 }
 
@@ -506,6 +528,15 @@ onMounted(() => {
 
 .btn-delete:hover {
   background: #ffcdd2;
+}
+
+.btn-archive {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.btn-archive:hover {
+  background: #ffe0b2;
 }
 
 .btn-view {

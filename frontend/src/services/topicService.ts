@@ -143,6 +143,15 @@ export default {
     }
   },
 
+  async archiveTopic(id: string): Promise<Topic> {
+    try {
+      const response = await httpClient.post(`/topics/${id}/archive`)
+      return response.data
+    } catch (error) {
+      throw error
+    }
+  },
+
   async deleteTopic(id: string): Promise<{ success: boolean }> {
     try {
       const response = await httpClient.delete(`/topics/${id}`)
