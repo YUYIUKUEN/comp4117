@@ -21,6 +21,7 @@ const stats = ref({
 
 const rows = ref<any[]>([]);
 const searchQuery = ref('');
+const isLoading = ref(false);
 
 const filteredRows = computed(() => {
   if (!searchQuery.value.trim()) return rows.value;
@@ -35,7 +36,8 @@ const filteredRows = computed(() => {
 });
 
 // Fetch real data from API
-onMounted(async () => {
+const fetchStudentData = async () => {
+  isLoading.value = true;
   try {
     // Fetch students
     const usersRes = await httpClient.get('/admin/users', { params: { role: 'Student', limit: 100 } });
@@ -72,7 +74,13 @@ onMounted(async () => {
     }));
   } catch (err) {
     console.error('Failed to load admin overview data:', err);
+  } finally {
+    isLoading.value = false;
   }
+};
+
+onMounted(() => {
+  fetchStudentData();
 });
 
 // Export to Excel (CSV download)
@@ -222,19 +230,7 @@ const handleImportExcel = async () => {
     });
     importResult.value = res.data.data;
     // Refresh the students table
-    const usersRes = await httpClient.get('/admin/users', { params: { role: 'Student', limit: 100 } });
-    const students = usersRes.data?.data?.users || [];
-    stats.value.totalStudents = usersRes.data?.data?.pagination?.total || students.length;
-    rows.value = students.map((s: any, i: number) => ({
-      id: s._id || i + 1,
-      student: s.fullName || 'Unknown',
-      email: s.email || '',
-      programme: s.concentration || 'N/A',
-      supervisor: s.supervisor?.fullName || 'Not assigned',
-      supervisorEmail: s.supervisor?.email || '',
-      topic: s.topicTitle || 'No topic assigned',
-      status: s.deactivatedAt ? 'Inactive' : 'Active',
-    }));
+    await fetchStudentData();
   } catch (err: any) {
     importResult.value = { created: 0, skipped: 0, errors: [{ row: 0, reason: err?.response?.data?.error || 'Upload failed' }] };
   } finally {
@@ -335,6 +331,20 @@ const closeImportModal = () => {
           </header>
 
           <div class="mt-4 flex items-center gap-3">
+            <button
+              type="button"
+              @click="fetchStudentData"
+              :disabled="isLoading"
+              class="inline-flex items-center gap-1.5 rounded-lg border border-slate-400 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg v-if="!isLoading" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+              <svg v-else class="h-4 w-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+              {{ isLoading ? 'Refreshing...' : 'Refresh' }}
+            </button>
             <div class="relative flex-1 max-w-md">
               <MagnifyingGlassIcon
                 class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400"

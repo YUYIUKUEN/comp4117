@@ -30,11 +30,36 @@ const getAllUsers = async (req, res, next) => {
       .limit(parseInt(limit))
       .sort({ createdAt: -1 });
 
+    // For students, fetch their assignments to populate supervisor and topic info
+    const Assignment = require('../models/Assignment');
+    const Topic = require('../models/Topic');
+    
+    const enrichedUsers = await Promise.all(
+      users.map(async (user) => {
+        const userObj = user.toObject();
+        
+        if (user.role === 'Student') {
+          // Find active assignment for this student
+          const assignment = await Assignment.findOne({
+            student_id: user._id,
+            status: 'Active',
+          }).populate('supervisor_id', 'fullName email').populate('topic_id', 'title');
+          
+          if (assignment) {
+            userObj.supervisor = assignment.supervisor_id;
+            userObj.topicTitle = assignment.topic_id?.title;
+          }
+        }
+        
+        return userObj;
+      })
+    );
+
     const total = await User.countDocuments(filter);
 
     res.json({
       data: {
-        users,
+        users: enrichedUsers,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
