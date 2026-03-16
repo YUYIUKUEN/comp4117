@@ -163,9 +163,9 @@ exports.getMyApplications = async (req, res) => {
       data: activeApplications,
       pagination: {
         page: parseInt(page),
-        limit: appCount,
+        limit: parseInt(limit),
         total: activeApplications.length,
-        pages: Math.ceil(activeApplications.length / appCount),
+        pages: Math.ceil(activeApplications.length / parseInt(limit)),
       },
     });
   } catch (error) {
