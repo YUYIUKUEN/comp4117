@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const rubricItemSchema = new mongoose.Schema({
   _id: false,
-  title: { type: String, required: true, maxlength: 200 },
+  title: { type: String, maxlength: 200 },
   description: { type: String, maxlength: 500 },
   minScore: { type: Number, default: 0 }, // min score for this rubric item
   maxScore: { type: Number, default: 10 }, // max score

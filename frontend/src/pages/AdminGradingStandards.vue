@@ -465,7 +465,7 @@ const loadTemplate = async (templateId: string) => {
                 <div class="space-y-3 mb-4">
                   <div>
                     <label class="block text-xs font-medium text-slate-700 mb-1">
-                      Criterion {{ criterionIndex + 1 }} Title *
+                      Criterion {{ criterionIndex + 1 }} Title (Optional)
                     </label>
                     <input
                       v-model="criterion.title"
@@ -476,7 +476,7 @@ const loadTemplate = async (templateId: string) => {
                   </div>
                   <div>
                     <label class="block text-xs font-medium text-slate-700 mb-1">
-                      Description
+                      Description (Optional)
                     </label>
                     <textarea
                       v-model="criterion.description"
