@@ -32,8 +32,8 @@ const isSaving = ref(false);
 const saveError = ref('');
 const internalNote = ref('');
 
-// Rubric grading state - map of criterion index to selected performance level name
-const selectedRubricLevels = ref<Map<number, string>>(new Map());
+// Rubric grading state - map of criterion index to selected level index
+const selectedRubricLevels = ref<Map<number, number>>(new Map());
 
 // Autosave state for internal note
 const internalNoteAutoSaveStatus = ref<'unsaved' | 'saving' | 'saved'>('saved');
@@ -171,10 +171,10 @@ const handleSaveFeedback = async () => {
     if (applicableStandard.value?.rubricItems && applicableStandard.value.rubricItems.length > 0) {
       let totalPoints = 0;
       applicableStandard.value.rubricItems.forEach((item, index) => {
-        const selectedLevelName = selectedRubricLevels.value.get(index);
-        if (selectedLevelName && item.levels) {
-          const level = item.levels.find(l => l.name === selectedLevelName);
-          if (level && level.points !== undefined) {
+        const selectedLevelIndex = selectedRubricLevels.value.get(index);
+        if (selectedLevelIndex !== undefined && item.levels && item.levels[selectedLevelIndex]) {
+          const level = item.levels[selectedLevelIndex];
+          if (level.points !== undefined) {
             totalPoints += level.points;
           }
         }
@@ -244,22 +244,22 @@ const handleClearForm = () => {
 };
 
 // Rubric helper functions
-const selectRubricLevel = (criterionIndex: number, levelName: string) => {
-  selectedRubricLevels.value.set(criterionIndex, levelName);
+const selectRubricLevel = (criterionIndex: number, levelIndex: number) => {
+  selectedRubricLevels.value.set(criterionIndex, levelIndex);
 };
 
-const isRubricLevelSelected = (criterionIndex: number, levelName: string): boolean => {
-  return selectedRubricLevels.value.get(criterionIndex) === levelName;
+const isRubricLevelSelected = (criterionIndex: number, levelIndex: number): boolean => {
+  return selectedRubricLevels.value.get(criterionIndex) === levelIndex;
 };
 
 const calculateRubricTotal = (): number => {
   let total = 0;
   if (applicableStandard.value?.rubricItems) {
     applicableStandard.value.rubricItems.forEach((item, index) => {
-      const selectedLevelName = selectedRubricLevels.value.get(index);
-      if (selectedLevelName && item.levels) {
-        const level = item.levels.find(l => l.name === selectedLevelName);
-        if (level && level.points !== undefined) {
+      const selectedLevelIndex = selectedRubricLevels.value.get(index);
+      if (selectedLevelIndex !== undefined && item.levels && item.levels[selectedLevelIndex]) {
+        const level = item.levels[selectedLevelIndex];
+        if (level.points !== undefined) {
           total += level.points;
         }
       }
@@ -508,16 +508,16 @@ const handleDownloadFile = async (file: any) => {
                 <button
                   v-for="(level, levelIndex) in (criterion.levels || [])"
                   :key="levelIndex"
-                  @click="selectRubricLevel(criterionIndex, level.name)"
+                  @click="selectRubricLevel(criterionIndex, levelIndex)"
                   type="button"
                   :class="[
                     'px-3 py-4 rounded-lg border-2 transition text-center',
-                    isRubricLevelSelected(criterionIndex, level.name)
+                    isRubricLevelSelected(criterionIndex, levelIndex)
                       ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-500/50'
                       : 'border-slate-300 bg-white hover:border-blue-400 hover:bg-blue-50'
                   ]"
                 >
-                  <div class="font-semibold text-sm text-slate-900">{{ level.name }}</div>
+                  <div class="font-semibold text-sm text-slate-900">{{ level.name || '(No name)' }}</div>
                   <div class="text-xs text-slate-600 mt-1">{{ level.description }}</div>
                   <div class="text-xs font-semibold text-blue-600 mt-1">{{ level.points }} pts</div>
                 </button>

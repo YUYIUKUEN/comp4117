@@ -580,7 +580,7 @@ const getAdminInternalNotes = async (req, res, next) => {
         .populate({
           path: 'submission_id',
           populate: [
-            { path: 'student_id', select: 'fullName email' },
+            { path: 'student_id', select: 'fullName email deactivatedAt' },
             { path: 'topic_id', select: 'title' },
           ],
         })
@@ -590,8 +590,13 @@ const getAdminInternalNotes = async (req, res, next) => {
       Feedback.countDocuments(filter),
     ]);
 
+    // Filter out notes from deactivated students
+    const filteredNotes = notes.filter(note => {
+      return !note.submission_id?.student_id?.deactivatedAt;
+    });
+
     res.json({
-      data: notes,
+      data: filteredNotes,
       pagination: { page, limit, total, pages: Math.ceil(total / limit) },
       status: 200,
     });
