@@ -3,9 +3,14 @@ import { useRouter } from 'vue-router'
 import type { Role } from '../../composables/useDummyData'
 
 const router = useRouter()
-const props = defineProps<{
+
+defineProps<{
   role: Role
   current?: string
+}>()
+
+defineEmits<{
+  navigate: []
 }>()
 
 const baseItems = [
@@ -42,23 +47,23 @@ const handleNavigation = (item: any) => {
         v-for="item in baseItems"
         :key="item.id"
         type="button"
-        @click="handleNavigation(item)"
+        @click="handleNavigation(item); $emit('navigate')"
         class="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-[13px] transition-all duration-150"
-        :class="item.id === (props.current || 'dashboard')
+        :class="item.id === (current || 'dashboard')
           ? 'bg-blue-50 text-blue-700 font-semibold border-l-[3px] border-blue-600 -ml-[3px]'
           : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'"
       >
         <span>{{ item.label }}</span>
       </button>
 
-      <div v-if="props.role === 'admin'" class="mt-3 pt-2 border-t border-slate-200">
+      <div v-if="role === 'admin'" class="mt-3 pt-2 border-t border-slate-200">
         <button
           v-for="item in adminExtra"
           :key="item.id"
           type="button"
-          @click="handleNavigation(item)"
+          @click="handleNavigation(item); $emit('navigate')"
           class="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-[13px] transition-all duration-150"
-          :class="item.id === props.current
+          :class="item.id === current
             ? 'bg-blue-50 text-blue-700 font-semibold border-l-[3px] border-blue-600 -ml-[3px]'
             : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'"
         >
@@ -69,11 +74,11 @@ const handleNavigation = (item: any) => {
 
     <div class="mt-auto px-4 py-3 border-t border-slate-100">
       <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium"
-        :class="props.role === 'admin'
+        :class="role === 'admin'
           ? 'border-amber-100 bg-amber-50 text-amber-700'
           : 'border-emerald-100 bg-emerald-50 text-emerald-700'"
       >
-        {{ props.role === 'admin' ? 'Admin View' : 'Supervisor View' }}
+        {{ role === 'admin' ? 'Admin View' : 'Supervisor View' }}
       </span>
     </div>
   </aside>

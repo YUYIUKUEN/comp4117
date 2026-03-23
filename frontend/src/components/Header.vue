@@ -3,6 +3,15 @@
     <!-- Top Navigation Bar -->
     <header class="top-bar">
       <div class="top-bar-left">
+        <!-- Mobile Menu Toggle Button -->
+        <button class="mobile-menu-btn" @click="$emit('toggle-mobile-sidebar')" aria-label="Open navigation menu">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        
         <div class="brand-logo">
           <svg class="logo-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect width="40" height="40" rx="8" fill="white" fill-opacity="0.15"/>
@@ -42,6 +51,14 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 import authService from '@/services/authService';
 
+defineProps<{
+  isMobileSidebarOpen?: boolean;
+}>();
+
+defineEmits<{
+  'toggle-mobile-sidebar': [];
+}>();
+
 const router = useRouter();
 const authStore = useAuthStore();
 
@@ -68,14 +85,33 @@ const handleLogout = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  position: relative;
-  z-index: 10;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 41;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .top-bar-left {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+}
+
+.mobile-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 0.25rem;
+  margin-right: 0.5rem;
+  transition: opacity 0.2s;
+}
+
+.mobile-menu-btn:hover {
+  opacity: 0.8;
 }
 
 .brand-logo {
@@ -139,9 +175,13 @@ const handleLogout = () => {
 /* ── Banner Image Strip ── */
 .banner-strip {
   height: 110px;
-  position: relative;
+  position: fixed;
+  top: 48px;
+  left: 0;
+  right: 0;
   overflow: hidden;
   background: #2a4073;
+  z-index: 9;
 }
 
 .banner-no-img {
@@ -167,5 +207,50 @@ const handleLogout = () => {
     rgba(26, 39, 68, 0.15) 100%
   );
   pointer-events: none;
+}
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+  .mobile-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .brand-text {
+    display: none;
+  }
+
+  .brand-logo {
+    width: 32px;
+    height: 32px;
+  }
+
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .top-bar {
+    padding: 0.65rem 1rem;
+  }
+
+  .welcome-text {
+    display: none;
+  }
+
+  .logout-btn {
+    padding: 0.3rem 0.75rem;
+    font-size: 0.7rem;
+  }
+
+  .banner-strip {
+    height: 60px;
+    top: 44px;
+  }
+
+  .banner-no-img {
+    height: 60px;
+  }
 }
 </style>

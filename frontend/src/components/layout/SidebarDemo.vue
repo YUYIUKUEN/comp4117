@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 
-const props = defineProps<{
+defineProps<{
   current?: string
+}>()
+
+defineEmits<{
+  navigate: []
 }>()
 
 const router = useRouter()
@@ -51,9 +55,9 @@ const navigate = (path: string) => {
           v-for="item in studentItems"
           :key="item.id"
           type="button"
-          @click="navigate(item.path)"
+          @click="navigate(item.path); $emit('navigate')"
           class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition hover:bg-slate-100 hover:text-slate-900"
-          :class="item.id === props.current ? 'bg-slate-100 text-slate-900 font-medium' : 'text-slate-600'"
+          :class="item.id === current ? 'bg-slate-100 text-slate-900 font-medium' : 'text-slate-600'"
         >
           <span>{{ item.label }}</span>
         </button>
@@ -70,9 +74,9 @@ const navigate = (path: string) => {
           v-for="item in supervisorItems"
           :key="item.id"
           type="button"
-          @click="navigate(item.path)"
+          @click="navigate(item.path); $emit('navigate')"
           class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition hover:bg-slate-100 hover:text-slate-900"
-          :class="item.id === props.current ? 'bg-slate-100 text-slate-900 font-medium' : 'text-slate-600'"
+          :class="item.id === current ? 'bg-slate-100 text-slate-900 font-medium' : 'text-slate-600'"
         >
           <span>{{ item.label }}</span>
         </button>
@@ -89,9 +93,9 @@ const navigate = (path: string) => {
           v-for="item in adminItems"
           :key="item.id"
           type="button"
-          @click="navigate(item.path)"
+          @click="navigate(item.path); $emit('navigate')"
           class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition hover:bg-slate-100 hover:text-slate-900"
-          :class="item.id === props.current ? 'bg-slate-100 text-slate-900 font-medium' : 'text-slate-600'"
+          :class="item.id === current ? 'bg-slate-100 text-slate-900 font-medium' : 'text-slate-600'"
         >
           <span>{{ item.label }}</span>
         </button>

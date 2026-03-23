@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 
-const props = defineProps<{
+defineProps<{
   current?: string
+}>()
+
+defineEmits<{
+  navigate: []
 }>()
 
 const router = useRouter()
@@ -36,9 +40,9 @@ const navigate = (path: string) => {
         v-for="item in items"
         :key="item.id"
         type="button"
-        @click="navigate(item.path)"
+        @click="navigate(item.path); $emit('navigate')"
         class="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-[13px] transition-all duration-150"
-        :class="item.id === (props.current || 'home')
+        :class="item.id === (current || 'home')
           ? 'bg-blue-50 text-blue-700 font-semibold border-l-[3px] border-blue-600 -ml-[3px]'
           : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'"
       >
