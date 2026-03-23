@@ -152,7 +152,7 @@ onMounted(() => {
   left: 0;
   top: 0;
   bottom: 0;
-  width: min(86vw, 340px);
+  width: clamp(220px, 58vw, 270px);
   background: #ffffff;
   box-shadow: 12px 0 36px rgba(15, 23, 42, 0.22);
   z-index: 40;
@@ -187,7 +187,7 @@ onMounted(() => {
 .mobile-drawer-content {
   flex: 1;
   overflow-y: auto;
-  padding: 0.35rem 0 0.75rem;
+  padding: 0.2rem 0 0.65rem;
 }
 
 .mobile-sidebar-drawer .close-btn {
@@ -244,20 +244,31 @@ onMounted(() => {
   }
 
   .mobile-drawer-content :deep(nav) {
-    padding-top: 0.35rem !important;
+    padding: 0.35rem 0.6rem 0.55rem !important;
   }
 
   .mobile-drawer-content :deep(button) {
-    border-radius: 0.7rem !important;
-    min-height: 44px;
-    font-size: 0.98rem !important;
+    width: 100% !important;
+    border-radius: 0.65rem !important;
+    min-height: 42px;
+    font-size: 1rem !important;
     line-height: 1.2;
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.14rem;
+    padding: 0.56rem 0.72rem !important;
+    justify-content: flex-start !important;
   }
 
   .mobile-drawer-content :deep(button span) {
-    white-space: normal;
-    word-break: keep-all;
+    display: block;
+    width: 100%;
+    font-size: 1em;
+    white-space: nowrap;
+    line-height: 1.2;
+    word-break: normal;
+  }
+
+  .mobile-drawer-content :deep(aside > div:last-child) {
+    display: none !important;
   }
 
   .main-content {
