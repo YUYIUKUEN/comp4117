@@ -10,7 +10,6 @@ const rubricItemSchema = new mongoose.Schema({
     _id: false,
     name: { type: String },
     description: { type: String, maxlength: 300 },
-    points: { type: Number, default: 0 },
   }],
 }, { _id: false });
 

@@ -6,11 +6,10 @@ const rubricItemSchema = new mongoose.Schema({
   description: { type: String, maxlength: 500 },
   minScore: { type: Number, default: 0 }, // min score for this rubric item
   maxScore: { type: Number, default: 10 }, // max score
-  levels: [{ // for letter grades or custom options
+  levels: [{ // performance levels (name and description only - no points)
     _id: false,
     name: { type: String },
     description: { type: String, maxlength: 300 },
-    points: { type: Number, default: 0 }, // freely editable points for each level
   }],
 }, { _id: false });
 
@@ -24,31 +23,17 @@ const gradingStandardSchema = new mongoose.Schema({
   gradingSystem: {
     type: String,
     required: [true, 'Grading system required'],
-    enum: ['point-range', 'letter-grade', 'custom'],
+    enum: ['point-range'],
   },
-  // Point Range with decimal support (step 0.5)
+  // Point Range - admin sets the maximum points for supervisors
   pointRange: {
     min: { type: Number, default: 0 },
-    max: { type: Number, default: 100 },
-    step: { type: Number, default: 0.5 }, // allows 0.5 increments
+    max: { type: Number, default: 20 }, // maximum points supervisors can award
+    step: { type: Number, default: 1 }, // supervisors enter points directly
   },
-  // Letter grades - HKBU system
-  letterGrades: [String],
-  hkbuGradingScale: {
-    type: String,
-    enum: ['hkbu-standard', 'hkbu-honors', 'custom', null],
-    default: null,
-  },
-  gradeRangeMapping: [{ // maps letter grades to point ranges
-    _id: false,
-    grade: String,
-    minPoints: Number,
-    maxPoints: Number,
-  }],
-  customOptions: [String],
-  // Template and Rubric
+  // Template and Rubric (for reference/documentation only)
   templateName: { type: String, maxlength: 200, default: null }, // "Define from Scratch" or template name
-  rubricItems: [rubricItemSchema], // array of rubric items that supervisors check
+  rubricItems: [rubricItemSchema], // array of rubric items for reference
   description: { type: String, maxlength: 500, default: '' },
   dueDate: { type: Date, default: null },
   enabled: { type: Boolean, default: true },

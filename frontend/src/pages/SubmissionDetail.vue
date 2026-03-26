@@ -20,6 +20,7 @@ import { useAuthStore } from '../stores/authStore';
 import submissionService from '../services/submissionService';
 import httpClient from '../services/httpClient';
 import feedbackService from '../services/feedbackService';
+import gradingStandardService from '../services/gradingStandardService';
 
 const router = useRouter();
 const submissionStore = useSubmissionStore();
@@ -37,6 +38,7 @@ const deletingFile = ref<string | null>(null);
 const feedback = ref<any[]>([]);
 const feedbackLoading = ref(false);
 const deletingFeedbackId = ref<string | null>(null);
+const gradingStandard = ref<any>(null);
 
 const goToDashboard = () => {
   router.push('/dashboard');
@@ -63,6 +65,18 @@ const fetchFeedback = async () => {
     feedback.value = [];
   } finally {
     feedbackLoading.value = false;
+  }
+};
+
+// Fetch grading standard for current phase
+const fetchGradingStandard = async () => {
+  if (!currentPhase.value) return;
+  
+  try {
+    gradingStandard.value = await gradingStandardService.getBySubmissionType(currentPhase.value.phase);
+  } catch (error) {
+    console.warn('Failed to fetch grading standard:', error);
+    gradingStandard.value = null;
   }
 };
 
@@ -141,10 +155,26 @@ onMounted(async () => {
     const pending = submissionStore.phases.find(p => p.status !== 'Submitted' && p.status !== 'Declared Not Needed');
     submissionStore.setSelectedPhase(pending ?? submissionStore.phases[0] ?? null);
   }
+  // Load feedback and grading standard when phase is set
+  if (submissionStore.selectedPhase) {
+    await fetchFeedback();
+    await fetchGradingStandard();
+  }
 });
 
 const currentPhase = computed(() => submissionStore.selectedPhase);
 const currentFiles = computed(() => currentPhase.value?.files ?? []);
+
+// Watch for phase changes and fetch feedback and grading standard
+watch(
+  () => currentPhase.value,
+  async (newPhase) => {
+    if (newPhase) {
+      await fetchFeedback();
+      await fetchGradingStandard();
+    }
+  }
+);
 
 function formatFileSize(bytes: number): string {
   if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -542,7 +572,7 @@ async function handleDeleteFile(file: any) {
                     </div>
                     <div class="flex items-center gap-2">
                       <span v-if="fb.grade" class="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
-                        Grade: {{ fb.grade }}
+                        Grade: {{ fb.grade }} / {{ gradingStandard?.pointRange?.max || 20 }}
                       </span>
                       <!-- Delete button (only for supervisors) -->
                       <button

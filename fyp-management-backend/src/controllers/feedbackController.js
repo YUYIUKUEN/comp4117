@@ -191,34 +191,19 @@ const getFeedback = async (req, res, next) => {
       }
     }
 
-    // Query feedback (removed sort to avoid Cosmos DB index issues)
+    // Query feedback
     const feedbackDocs = await Feedback.find(filter)
       .populate('supervisor_id', 'fullName email')
       .populate('replies.user_id', 'fullName email role');
 
-    // Get submission and student info to filter out deactivated users
-    const Submission = require('../models/Submission');
-    const User = require('../models/User');
-    const submissionIds = Array.from(new Set(feedbackDocs.map(f => f.submission_id?.toString()).filter(Boolean)));
-    const submissions = await Submission.find({ _id: { $in: submissionIds } }).select('student_id').lean();
-    const studentIds = submissions.map(s => s.student_id);
-    const students = await User.find({ _id: { $in: studentIds } }).select('deactivatedAt').lean();
-    const deactivatedStudentIds = new Set(students.filter(s => s.deactivatedAt).map(s => s._id.toString()));
-
     // Strip internalNote from student responses — they should never see it
-    // Also filter out feedback for deactivated students
-    const feedback = feedbackDocs
-      .filter(fb => {
-        const submission = submissions.find(s => s._id.toString() === fb.submission_id?.toString());
-        return submission && !deactivatedStudentIds.has(submission.student_id.toString());
-      })
-      .map(fb => {
-        const obj = fb.toObject();
-        if (userRole === 'Student') {
-          delete obj.internalNote;
-        }
-        return obj;
-      });
+    const feedback = feedbackDocs.map(fb => {
+      const obj = fb.toObject();
+      if (userRole === 'Student') {
+        delete obj.internalNote;
+      }
+      return obj;
+    });
 
     res.json({
       data: {
@@ -228,6 +213,7 @@ const getFeedback = async (req, res, next) => {
       status: 200,
     });
   } catch (error) {
+    console.error('🔴 Error in getFeedback:', error);
     next(error);
   }
 };
@@ -239,7 +225,7 @@ const getFeedback = async (req, res, next) => {
 const updateFeedback = async (req, res, next) => {
   try {
     const { feedbackId } = req.params;
-    const { feedbackText, rating, isPrivate } = req.body;
+    const { feedbackText, rating, isPrivate, grade, gradingStandard_id, internalNote } = req.body;
     const supervisorId = req.auth.userId;
 
     // Get feedback
@@ -288,8 +274,55 @@ const updateFeedback = async (req, res, next) => {
       feedback.isPrivate = isPrivate === true;
     }
 
-    if (req.body.internalNote !== undefined) {
-      feedback.internalNote = req.body.internalNote.trim();
+    if (internalNote !== undefined) {
+      feedback.internalNote = internalNote.trim();
+    }
+
+    // Validate and update grade
+    let gradingSystem = null;
+    if (grade !== undefined) {
+      if (gradingStandard_id && grade) {
+        const standard = await GradingStandard.findById(gradingStandard_id);
+        if (!standard || !standard.enabled) {
+          return res.status(400).json({
+            error: 'Invalid or disabled grading standard',
+            code: 'INVALID_GRADING_STANDARD',
+            status: 400,
+          });
+        }
+        gradingSystem = standard.gradingSystem;
+
+        // Validate grade value matches the standard
+        if (standard.gradingSystem === 'point-range') {
+          const points = parseFloat(grade);
+          if (isNaN(points) || points < standard.pointRange.min || points > standard.pointRange.max) {
+            return res.status(400).json({
+              error: `Grade must be between ${standard.pointRange.min} and ${standard.pointRange.max}`,
+              code: 'INVALID_GRADE',
+              status: 400,
+            });
+          }
+        } else if (standard.gradingSystem === 'letter-grade') {
+          if (!standard.letterGrades.includes(grade)) {
+            return res.status(400).json({
+              error: `Invalid letter grade. Must be one of: ${standard.letterGrades.join(', ')}`,
+              code: 'INVALID_GRADE',
+              status: 400,
+            });
+          }
+        } else if (standard.gradingSystem === 'custom') {
+          if (!standard.customOptions.includes(grade)) {
+            return res.status(400).json({
+              error: `Invalid grade option. Must be one of: ${standard.customOptions.join(', ')}`,
+              code: 'INVALID_GRADE',
+              status: 400,
+            });
+          }
+        }
+      }
+      feedback.grade = grade || null;
+      feedback.gradingSystem = gradingSystem;
+      feedback.gradingStandard_id = gradingStandard_id || null;
     }
 
     feedback.updatedAt = new Date();

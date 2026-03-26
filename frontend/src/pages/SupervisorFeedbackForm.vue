@@ -32,7 +32,7 @@ const isSaving = ref(false);
 const saveError = ref('');
 const internalNote = ref('');
 
-// Rubric grading state - map of criterion index to selected level index
+// Rubric selection state - map of criterion index to selected level index (for visual guidance)
 const selectedRubricLevels = ref<Map<number, number>>(new Map());
 
 // Autosave state for internal note
@@ -107,14 +107,19 @@ onMounted(async () => {
 
     // If no standard found, that's okay - supervisor can provide feedback without grading
     if (!applicableStandard.value) {
-      console.log(`No active grading standard for phase: ${submission.value.phase}`);
+      console.warn(`No active grading standard for phase: ${submission.value.phase}. Using default values.`);
+    } else {
+      console.log(`Loaded grading standard for phase ${submission.value.phase}:`, applicableStandard.value);
     }
 
     // Fetch existing feedback for this submission
     try {
       existingFeedback.value = await feedbackService.getSubmissionFeedback(submissionId);
-    } catch {
-      // No feedback yet — that's fine
+      console.log(`Loaded ${existingFeedback.value.length} existing feedback item(s)`, existingFeedback.value);
+    } catch (err: any) {
+      console.error('Failed to fetch feedback:', err?.response?.data?.error || err?.message);
+      existingFeedback.value = [];
+      // Continue - no feedback yet is acceptable
     }
   } catch (e: any) {
     loadError.value = e?.response?.data?.error || 'Failed to load submission';
@@ -130,29 +135,11 @@ const isValid = computed(() => {
   // If no grading standard, just need feedback text
   if (!applicableStandard.value) return true;
 
-  // Rubric-based grading: all criteria must have a selected level
-  if (applicableStandard.value.rubricItems && applicableStandard.value.rubricItems.length > 0) {
-    const rubricItemCount = applicableStandard.value.rubricItems.filter(item => item.levels && item.levels.length > 0).length;
-    const selectedCount = selectedRubricLevels.value.size;
-    return selectedCount === rubricItemCount;
-  }
-
-  if (applicableStandard.value.gradingSystem === 'point-range') {
-    const points = parseFloat(String(pointsInput.value));
-    const min = applicableStandard.value.pointRange?.min || 0;
-    const max = applicableStandard.value.pointRange?.max || 100;
-    return !isNaN(points) && points >= min && points <= max;
-  }
-
-  if (applicableStandard.value.gradingSystem === 'letter-grade') {
-    return applicableStandard.value.letterGrades?.includes(selectedGrade.value) || false;
-  }
-
-  if (applicableStandard.value.gradingSystem === 'custom') {
-    return applicableStandard.value.customOptions?.includes(selectedGrade.value) || false;
-  }
-
-  return true;
+  // Point-range: validate points input
+  const points = parseFloat(String(pointsInput.value));
+  const min = applicableStandard.value.pointRange?.min || 0;
+  const max = applicableStandard.value.pointRange?.max || 20;
+  return !isNaN(points) && points >= min && points <= max;
 });
 
 const handleSaveFeedback = async () => {
@@ -167,33 +154,20 @@ const handleSaveFeedback = async () => {
   try {
     let gradeValue = '';
 
-    // Handle rubric-based grading
-    if (applicableStandard.value?.rubricItems && applicableStandard.value.rubricItems.length > 0) {
-      let totalPoints = 0;
-      applicableStandard.value.rubricItems.forEach((item, index) => {
-        const selectedLevelIndex = selectedRubricLevels.value.get(index);
-        if (selectedLevelIndex !== undefined && item.levels && item.levels[selectedLevelIndex]) {
-          const level = item.levels[selectedLevelIndex];
-          if (level.points !== undefined) {
-            totalPoints += level.points;
-          }
-        }
-      });
-      gradeValue = String(totalPoints);
-    } else {
-      // Handle other grading systems
-      gradeValue = applicableStandard.value?.gradingSystem === 'point-range'
-        ? String(pointsInput.value)
-        : selectedGrade.value;
+    // Only point-range grading system now
+    if (applicableStandard.value) {
+      gradeValue = String(pointsInput.value) || '';
     }
 
     const feedbackData = {
       feedbackText: feedbackText.value.trim(),
+      isPrivate: false, // Ensure feedback is PUBLIC so students can see it
       grade: gradeValue || undefined,
       gradingStandard_id: applicableStandard.value?._id || undefined,
-      rubricSelections: selectedRubricLevels.value.size > 0 ? Object.fromEntries(selectedRubricLevels.value) : undefined,
       internalNote: internalNote.value.trim() || undefined,
     };
+
+    console.log('Saving feedback with data:', { submissionId, feedbackData, pointsInput: pointsInput.value });
 
     // If editing existing feedback, update it; otherwise create new
     if (editingFeedbackId.value) {
@@ -204,14 +178,19 @@ const handleSaveFeedback = async () => {
         existingFeedback.value[index] = { ...existingFeedback.value[index], ...feedbackData };
       }
       editingFeedbackId.value = null;
+      console.log('Feedback updated successfully');
     } else {
       const newFeedback = await feedbackService.addFeedback(submissionId, feedbackData);
+      console.log('Feedback created successfully:', newFeedback);
+      console.log('Adding to existingFeedback:', existingFeedback.value);
       existingFeedback.value.push(newFeedback);
+      console.log('Updated existingFeedback length:', existingFeedback.value.length);
     }
 
     alert('Feedback and grade saved successfully!');
     handleClearForm();
   } catch (e: any) {
+    console.error('Error saving feedback:', e);
     saveError.value = e?.response?.data?.error || 'Failed to save feedback';
   } finally {
     isSaving.value = false;
@@ -244,36 +223,21 @@ const handleClearForm = () => {
 };
 
 // Rubric helper functions
-const selectRubricLevel = (criterionIndex: number, levelIndex: number) => {
-  selectedRubricLevels.value.set(criterionIndex, levelIndex);
-};
-
-const isRubricLevelSelected = (criterionIndex: number, levelIndex: number): boolean => {
-  return selectedRubricLevels.value.get(criterionIndex) === levelIndex;
-};
-
-const calculateRubricTotal = (): number => {
-  let total = 0;
-  if (applicableStandard.value?.rubricItems) {
-    applicableStandard.value.rubricItems.forEach((item, index) => {
-      const selectedLevelIndex = selectedRubricLevels.value.get(index);
-      if (selectedLevelIndex !== undefined && item.levels && item.levels[selectedLevelIndex]) {
-        const level = item.levels[selectedLevelIndex];
-        if (level.points !== undefined) {
-          total += level.points;
-        }
-      }
-    });
-  }
-  return total;
-};
-
 const formatDate = (dateStr: string) => {
   return new Date(dateStr).toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
   });
+};
+
+// Rubric level selection helper functions
+const selectRubricLevel = (criterionIndex: number, levelIndex: number) => {
+  selectedRubricLevels.value.set(criterionIndex, levelIndex);
+};
+
+const isRubricLevelSelected = (criterionIndex: number, levelIndex: number): boolean => {
+  return selectedRubricLevels.value.get(criterionIndex) === levelIndex;
 };
 
 const avatarUrl = (name: string, bg = '0F172A') => {
@@ -348,6 +312,7 @@ const handleAddNewFeedback = () => {
   selectedGrade.value = '';
   pointsInput.value = '';
   internalNote.value = '';
+  selectedRubricLevels.value.clear();
   replyingToFeedbackId.value = null;
   replyText.value = '';
 };
@@ -463,6 +428,7 @@ const handleDownloadFile = async (file: any) => {
           <h3 class="text-lg font-semibold text-slate-900 mb-4">{{ editingFeedbackId ? 'Edit' : 'Add' }} Feedback{{ applicableStandard ? ' & Grade' : '' }}</h3>
 
           <!-- Grading Standard Info -->
+        <!-- Grading Standard Info -->
           <div v-if="applicableStandard" class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
             <p class="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-2">Grading Standard</p>
             <p class="text-sm text-slate-900 font-medium">{{ applicableStandard.submissionType }}</p>
@@ -471,32 +437,19 @@ const handleDownloadFile = async (file: any) => {
             </p>
           </div>
 
-        <!-- Feedback Text -->
-        <div class="mb-6">
-          <label class="block text-sm font-medium text-slate-900 mb-2">
-            Feedback Comments *
-          </label>
-          <textarea
-            v-model="feedbackText"
-            placeholder="Write your detailed feedback here... Include strengths, areas for improvement, and suggestions."
-            class="block w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
-            rows="6"
-          ></textarea>
-        </div>
-
-        <!-- Grade Input - Rubric-based -->
+        <!-- Rubric Reference (for guidance) -->
         <div v-if="applicableStandard?.rubricItems && applicableStandard.rubricItems.length > 0" class="mb-6">
           <label class="block text-sm font-medium text-slate-900 mb-4">
-            Performance Assessment (Rubric) *
+            Grading Criteria (for reference)
           </label>
-          <div class="space-y-6">
+          <div class="space-y-4">
             <div
               v-for="(criterion, criterionIndex) in applicableStandard.rubricItems"
               :key="criterionIndex"
               class="border border-slate-200 rounded-lg p-4 bg-slate-50"
             >
               <!-- Criterion header -->
-              <div class="mb-4">
+              <div class="mb-3">
                 <h4 class="font-semibold text-slate-900">{{ criterion.title }}</h4>
                 <p v-if="criterion.description" class="text-sm text-slate-600 mt-1">
                   {{ criterion.description }}
@@ -511,31 +464,35 @@ const handleDownloadFile = async (file: any) => {
                   @click="selectRubricLevel(criterionIndex, levelIndex)"
                   type="button"
                   :class="[
-                    'px-3 py-4 rounded-lg border-2 transition text-center',
+                    'px-3 py-3 rounded-lg border-2 transition text-center text-xs',
                     isRubricLevelSelected(criterionIndex, levelIndex)
                       ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-500/50'
                       : 'border-slate-300 bg-white hover:border-blue-400 hover:bg-blue-50'
                   ]"
                 >
-                  <div v-if="level.name" class="font-semibold text-sm text-slate-900">{{ level.name }}</div>
-                  <div :class="['text-xs text-slate-600', level.name ? 'mt-1' : '']">{{ level.description }}</div>
-                  <div class="text-xs font-semibold text-blue-600 mt-1">{{ level.points }} pts</div>
+                  <div v-if="level.name" class="font-semibold text-slate-900">{{ level.name }}</div>
+                  <div class="text-slate-600 mt-1">{{ level.description }}</div>
                 </button>
               </div>
             </div>
           </div>
+        </div>
 
-          <!-- Rubric total score -->
-          <div class="mt-4 p-3 bg-white border border-slate-200 rounded-lg">
-            <div class="flex items-center justify-between">
-              <span class="text-sm font-medium text-slate-700">Rubric Total Points:</span>
-              <span class="text-lg font-bold text-blue-600">{{ calculateRubricTotal() }} pts</span>
-            </div>
-          </div>
+        <!-- Feedback Text -->
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-slate-900 mb-2">
+            Feedback Comments *
+          </label>
+          <textarea
+            v-model="feedbackText"
+            placeholder="Write your detailed feedback here... Include strengths, areas for improvement, and suggestions."
+            class="block w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
+            rows="6"
+          ></textarea>
         </div>
 
         <!-- Grade Input - Point Range -->
-        <div v-if="applicableStandard?.gradingSystem === 'point-range' && (!applicableStandard.rubricItems || applicableStandard.rubricItems.length === 0)" class="mb-6">
+        <div v-if="applicableStandard" class="mb-6">
           <label class="block text-sm font-medium text-slate-900 mb-2">
             Points * (supports 0.5 increments)
           </label>
@@ -543,70 +500,24 @@ const handleDownloadFile = async (file: any) => {
             <input
               v-model.number="pointsInput"
               type="number"
-              :min="applicableStandard.pointRange?.min"
-              :max="applicableStandard.pointRange?.max"
-              :step="applicableStandard.pointRange?.step || 0.5"
-              :placeholder="`Enter points (${applicableStandard.pointRange?.min} - ${applicableStandard.pointRange?.max})`"
+              :min="applicableStandard.pointRange?.min || 0"
+              :max="applicableStandard.pointRange?.max || 20"
+              :step="applicableStandard.pointRange?.step || 1"
+              :placeholder="`Enter points (${applicableStandard.pointRange?.min || 0} - ${applicableStandard.pointRange?.max || 20})`"
               class="block flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/60"
             />
             <div class="px-4 py-2 bg-slate-100 rounded-lg border border-slate-300 font-medium text-slate-600 whitespace-nowrap">
-              / {{ applicableStandard.pointRange?.max }}
+              / {{ applicableStandard.pointRange?.max || 20 }}
             </div>
           </div>
-          <p v-if="pointsInput && Number(pointsInput) >= (applicableStandard.pointRange?.min || 0) && Number(pointsInput) <= (applicableStandard.pointRange?.max || 100)" 
+          <p v-if="pointsInput && Number(pointsInput) >= (applicableStandard.pointRange?.min || 0) && Number(pointsInput) <= (applicableStandard.pointRange?.max || 20)" 
             class="text-xs text-slate-600 mt-2">
-            Percentage: <span class="font-semibold text-blue-600">{{ ((Number(pointsInput) / (applicableStandard.pointRange?.max || 100)) * 100).toFixed(1) }}%</span>
+            Percentage: <span class="font-semibold text-blue-600">{{ ((Number(pointsInput) / (applicableStandard.pointRange?.max || 20)) * 100).toFixed(1) }}%</span>
           </p>
-          <p v-if="pointsInput && (Number(pointsInput) < (applicableStandard.pointRange?.min || 0) || Number(pointsInput) > (applicableStandard.pointRange?.max || 100))" 
+          <p v-if="pointsInput && (Number(pointsInput) < (applicableStandard.pointRange?.min || 0) || Number(pointsInput) > (applicableStandard.pointRange?.max || 20))" 
             class="text-xs text-red-600 mt-2">
-            Invalid: Must be between {{ applicableStandard.pointRange?.min }} - {{ applicableStandard.pointRange?.max }}
+            Invalid: Must be between {{ applicableStandard.pointRange?.min || 0 }} - {{ applicableStandard.pointRange?.max || 20 }}
           </p>
-        </div>
-
-        <!-- Grade Input - Letter Grade -->
-        <div v-else-if="applicableStandard?.gradingSystem === 'letter-grade'" class="mb-6">
-          <label class="block text-sm font-medium text-slate-900 mb-3">
-            Grade *
-          </label>
-          <div class="grid grid-cols-5 gap-2">
-            <button
-              v-for="grade in applicableStandard.letterGrades"
-              :key="grade"
-              @click="selectedGrade = grade"
-              type="button"
-              :class="[
-                'py-2 px-1 rounded-lg font-semibold text-sm transition',
-                selectedGrade === grade
-                  ? 'bg-blue-600 text-white border border-blue-600'
-                  : 'border border-slate-300 bg-white text-slate-900 hover:border-blue-500 hover:bg-blue-50'
-              ]"
-            >
-              {{ grade }}
-            </button>
-          </div>
-        </div>
-
-        <!-- Grade Input - Custom Options -->
-        <div v-else-if="applicableStandard?.gradingSystem === 'custom'" class="mb-6">
-          <label class="block text-sm font-medium text-slate-900 mb-3">
-            Grade *
-          </label>
-          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            <button
-              v-for="option in applicableStandard.customOptions"
-              :key="option"
-              @click="selectedGrade = option"
-              type="button"
-              :class="[
-                'py-2 px-3 rounded-lg font-medium text-sm transition',
-                selectedGrade === option
-                  ? 'bg-blue-600 text-white border border-blue-600'
-                  : 'border border-slate-300 bg-white text-slate-900 hover:border-blue-500 hover:bg-blue-50'
-              ]"
-            >
-              {{ option }}
-            </button>
-          </div>
         </div>
 
         <!-- Action Buttons -->
@@ -647,7 +558,9 @@ const handleDownloadFile = async (file: any) => {
               <p class="text-sm text-slate-700 whitespace-pre-wrap">{{ fb.feedbackText }}</p>
               <div class="mt-2 flex items-center gap-3 text-xs text-slate-500">
                 <span>{{ formatDate(fb.createdAt) }}</span>
-                <span v-if="fb.grade" class="font-semibold text-blue-600">Grade: {{ fb.grade }}</span>
+                <span v-if="fb.grade" class="font-semibold text-blue-600">
+                  Grade: {{ fb.grade }} / {{ applicableStandard?.pointRange?.max || 20 }}
+                </span>
               </div>
             </div>
             <div class="flex-shrink-0 flex gap-2">

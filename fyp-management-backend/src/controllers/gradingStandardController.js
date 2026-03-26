@@ -40,31 +40,30 @@ const getGradingStandardById = async (req, res, next) => {
  */
 const createGradingStandard = async (req, res, next) => {
   try {
-    const { submissionType, gradingSystem, pointRange, letterGrades, customOptions, description, dueDate, enabled, templateName, rubricItems, hkbuGradingScale, gradeRangeMapping } = req.body;
+    const { submissionType, pointRange, description, dueDate, enabled, templateName, rubricItems } = req.body;
 
-    if (!submissionType || !gradingSystem) {
-      return res.status(400).json({ error: 'submissionType and gradingSystem are required', code: 'INVALID_REQUEST', status: 400 });
+    console.log('🔵 Backend received pointRange:', pointRange);
+    console.log('🔵 Backend received all body:', req.body);
+
+    if (!submissionType) {
+      return res.status(400).json({ error: 'submissionType is required', code: 'INVALID_REQUEST', status: 400 });
     }
 
-    // Validate pointRange if using point-range system
-    if (gradingSystem === 'point-range' && pointRange) {
+    // Validate pointRange
+    if (pointRange) {
       if (typeof pointRange.min !== 'number' || typeof pointRange.max !== 'number' || pointRange.min >= pointRange.max) {
         return res.status(400).json({ error: 'Invalid pointRange: min must be less than max', code: 'INVALID_POINT_RANGE', status: 400 });
       }
-      // Ensure step is valid (default 0.5)
+      // Ensure step is valid (default 1 for whole numbers)
       if (!pointRange.step) {
-        pointRange.step = 0.5;
+        pointRange.step = 1;
       }
     }
 
     const standard = await GradingStandard.create({
       submissionType,
-      gradingSystem,
-      pointRange: gradingSystem === 'point-range' ? (pointRange || { min: 0, max: 100, step: 0.5 }) : undefined,
-      letterGrades: gradingSystem === 'letter-grade' ? (letterGrades || ['A', 'B', 'C', 'D', 'F']) : undefined,
-      customOptions: gradingSystem === 'custom' ? (customOptions || []) : undefined,
-      hkbuGradingScale: hkbuGradingScale || null,
-      gradeRangeMapping: gradeRangeMapping || null,
+      gradingSystem: 'point-range',
+      pointRange: pointRange || { min: 0, max: 20, step: 1 },
       templateName: templateName || null,
       rubricItems: rubricItems || [],
       description: description || '',
@@ -73,8 +72,12 @@ const createGradingStandard = async (req, res, next) => {
       createdBy: req.auth.userId,
     });
 
+    console.log('🟢 Backend saved pointRange:', standard.pointRange);
+    console.log('🟢 Backend saved standard:', standard);
+
     res.status(201).json({ data: standard, status: 201 });
   } catch (error) {
+    console.error('🔴 Backend error creating standard:', error);
     next(error);
   }
 };
@@ -84,7 +87,10 @@ const createGradingStandard = async (req, res, next) => {
  */
 const updateGradingStandard = async (req, res, next) => {
   try {
-    const { submissionType, gradingSystem, pointRange, letterGrades, customOptions, description, dueDate, enabled, templateName, rubricItems, hkbuGradingScale, gradeRangeMapping } = req.body;
+    const { submissionType, pointRange, description, dueDate, enabled, templateName, rubricItems } = req.body;
+
+    console.log('🔵 Backend received UPDATE with pointRange:', pointRange);
+    console.log('🔵 Backend UPDATE all body:', req.body);
 
     const standard = await GradingStandard.findById(req.params.id);
     if (!standard) {
@@ -97,31 +103,31 @@ const updateGradingStandard = async (req, res, next) => {
         return res.status(400).json({ error: 'Invalid pointRange: min must be less than max', code: 'INVALID_POINT_RANGE', status: 400 });
       }
       if (!pointRange.step) {
-        pointRange.step = 0.5;
+        pointRange.step = 1;
       }
       standard.pointRange = pointRange;
     }
 
     if (submissionType) standard.submissionType = submissionType;
-    if (gradingSystem) standard.gradingSystem = gradingSystem;
-    if (letterGrades !== undefined) standard.letterGrades = letterGrades;
-    if (customOptions !== undefined) standard.customOptions = customOptions;
     if (description !== undefined) standard.description = description;
     if (dueDate !== undefined) standard.dueDate = dueDate;
     if (enabled !== undefined) standard.enabled = enabled;
     if (templateName !== undefined) standard.templateName = templateName;
     if (rubricItems !== undefined) {
       standard.rubricItems = rubricItems;
-      standard.markModified('rubricItems'); // Mark nested array as modified so Mongoose saves it
+      standard.markModified('rubricItems');
     }
-    if (hkbuGradingScale !== undefined) standard.hkbuGradingScale = hkbuGradingScale;
-    if (gradeRangeMapping !== undefined) standard.gradeRangeMapping = gradeRangeMapping;
     
     standard.updatedAt = new Date();
 
     await standard.save();
+    
+    console.log('🟢 Backend UPDATE saved pointRange:', standard.pointRange);
+    console.log('🟢 Backend UPDATE saved standard:', standard);
+    
     res.json({ data: standard, status: 200 });
   } catch (error) {
+    console.error('🔴 Backend UPDATE error:', error);
     next(error);
   }
 };

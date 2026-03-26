@@ -18,9 +18,7 @@ const formContainerRef = ref<HTMLElement | null>(null)
 const formData = ref<GradingStandardInput>({
   submissionType: '',
   gradingSystem: 'point-range',
-  pointRange: { min: 0, max: 100 },
-  letterGrades: ['A', 'B', 'C', 'D', 'F'],
-  customOptions: [],
+  pointRange: { min: 0, max: 20, step: 1 },
   description: '',
   dueDate: null,
   enabled: true,
@@ -45,16 +43,12 @@ const resetForm = () => {
   formData.value = {
     submissionType: '',
     gradingSystem: 'point-range',
-    pointRange: { min: 0, max: 100, step: 0.5 },
-    letterGrades: ['A', 'B', 'C', 'D', 'F'],
-    customOptions: [],
+    pointRange: { min: 0, max: 20, step: 1 },
     description: '',
     dueDate: null,
     enabled: true,
     templateName: null,
     rubricItems: [],
-    hkbuGradingScale: null,
-    gradeRangeMapping: [],
   }
   editingId.value = null
   showAddForm.value = false
@@ -75,28 +69,35 @@ const handleAddStandard = async () => {
       dueDate: formData.value.dueDate ? new Date(formData.value.dueDate).toISOString() : null,
     }
     
+    console.log('🔵 Admin saving grading standard with pointRange:', dataToSave.pointRange);
+    console.log('🔵 Full data being sent:', dataToSave);
+    
     if (editingId.value) {
-      await gradingStandardService.update(editingId.value, dataToSave)
+      const result = await gradingStandardService.update(editingId.value, dataToSave)
+      console.log('🟢 Update response - pointRange received back:', result.pointRange);
     } else {
-      await gradingStandardService.create(dataToSave)
+      const result = await gradingStandardService.create(dataToSave)
+      console.log('🟢 Create response - pointRange received back:', result.pointRange);
     }
     resetForm()
     await fetchStandards()
+    console.log('🔵 After fetch - grading standards:', gradingStandards.value);
   } catch (e: any) {
+    console.error('🔴 Error saving grading standard:', e);
     error.value = e?.response?.data?.error || 'Failed to save grading standard'
   } finally {
     saving.value = false
   }
 }
 
-// Helper function to ensure all rubric levels have points property
+// Helper function to process rubric items
 const ensureRubricItemsHavePoints = (items: any[]) => {
   if (!items) return []
   return items.map((item: any) => ({
     ...item,
     levels: (item.levels || []).map((level: any) => ({
-      ...level,
-      points: level.points ?? 0, // Use 0 if points is undefined or null
+      name: level.name,
+      description: level.description,
     })),
   }))
 }
@@ -125,17 +126,13 @@ const startEdit = (standard: GradingStandard) => {
   
   formData.value = {
     submissionType: standard.submissionType,
-    gradingSystem: standard.gradingSystem,
-    pointRange: standard.pointRange || { min: 0, max: 100, step: 0.5 },
-    letterGrades: standard.letterGrades || ['A', 'B', 'C', 'D', 'F'],
-    customOptions: standard.customOptions || [],
+    gradingSystem: 'point-range',
+    pointRange: standard.pointRange || { min: 0, max: 20, step: 1 },
     description: standard.description || '',
     dueDate: formattedDueDate,
     enabled: standard.enabled,
     templateName: standard.templateName || null,
     rubricItems: ensureRubricItemsHavePoints(standard.rubricItems || []),
-    hkbuGradingScale: standard.hkbuGradingScale || null,
-    gradeRangeMapping: standard.gradeRangeMapping || [],
   }
   showAddForm.value = true
   
@@ -175,24 +172,13 @@ const addRubricCriterion = () => {
     formData.value.rubricItems = []
   }
   
-  // Initialize levels based on grading system
-  let levels = []
-  if (formData.value.gradingSystem === 'letter-grade') {
-    levels = [
-      { name: 'A', description: 'Excellent', points: 0 },
-      { name: 'B', description: 'Good', points: 0 },
-      { name: 'C', description: 'Satisfactory', points: 0 },
-      { name: 'F', description: 'Fail', points: 0 },
-    ]
-  } else {
-    // Default for point-range
-    levels = [
-      { name: 'Poor', description: 'Needs improvement', points: 0 },
-      { name: 'Fair', description: 'Meets minimum requirements', points: 3 },
-      { name: 'Good', description: 'Meets expectations', points: 6 },
-      { name: 'Excellent', description: 'Exceeds expectations', points: 10 },
-    ]
-  }
+  // Default performance levels without points
+  const levels = [
+    { name: 'Poor', description: 'Needs improvement' },
+    { name: 'Fair', description: 'Meets minimum requirements' },
+    { name: 'Good', description: 'Meets expectations' },
+    { name: 'Excellent', description: 'Exceeds expectations' },
+  ]
   
   formData.value.rubricItems.push({
     title: '',
@@ -217,7 +203,6 @@ const addPerformanceLevel = (criterionIndex: number) => {
     formData.value.rubricItems[criterionIndex].levels.push({
       name: '',
       description: '',
-      points: 0,
     })
   }
 }
@@ -308,85 +293,45 @@ const loadTemplate = async (templateId: string) => {
           <!-- Grading System -->
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-2">
-              Grading System *
+              Grading System
             </label>
-            <div class="flex gap-4">
-              <label class="flex items-center gap-2">
-                <input
-                  type="radio"
-                  v-model="formData.gradingSystem"
-                  value="point-range"
-                  class="h-4 w-4"
-                />
-                <span class="text-sm text-slate-700">Point Range</span>
-              </label>
-              <label class="flex items-center gap-2">
-                <input
-                  type="radio"
-                  v-model="formData.gradingSystem"
-                  value="letter-grade"
-                  class="h-4 w-4"
-                />
-                <span class="text-sm text-slate-700">Letter Grade</span>
-              </label>
+            <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p class="text-sm font-medium text-slate-900">Point Range (0-{{ formData.pointRange?.max || 20 }} points)</p>
+              <p class="text-xs text-slate-600 mt-1">Supervisors will enter points directly within the set range.</p>
             </div>
           </div>
 
-          <!-- Point Range Option (hide if rubrics exist) -->
-          <div v-if="formData.gradingSystem === 'point-range' && (!formData.rubricItems || formData.rubricItems.length === 0)" class="space-y-2">
+          <!-- Point Range Option -->
+          <div class="space-y-2">
             <label class="block text-sm font-medium text-slate-700">
-              Point Range (supports 0.5 increments)
+              Set Maximum Points for Supervisors
             </label>
             <div class="flex gap-3">
               <div class="flex-1">
+                <label class="block text-xs text-slate-600 mb-1">Minimum</label>
                 <input
                   v-model.number="formData.pointRange!.min"
                   type="number"
-                  step="0.5"
+                  step="1"
                   placeholder="Min points"
                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
               </div>
-              <div class="flex items-center text-slate-600">to</div>
+              <div class="flex items-end text-slate-600 pb-2">to</div>
               <div class="flex-1">
+                <label class="block text-xs text-slate-600 mb-1">Maximum</label>
                 <input
                   v-model.number="formData.pointRange!.max"
                   type="number"
-                  step="0.5"
+                  step="1"
                   placeholder="Max points"
                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
               </div>
             </div>
-          </div>
-
-          <!-- Letter Grade Option (hide if rubrics exist) -->
-          <div v-if="formData.gradingSystem === 'letter-grade' && (!formData.rubricItems || formData.rubricItems.length === 0)" class="space-y-3">
-            <div>
-              <label class="block text-sm font-medium text-slate-700 mb-2">
-                Letter Grades
-              </label>
-              <div class="flex flex-wrap gap-2">
-                <label v-for="grade in ['A', 'A+', 'B+', 'B', 'C+', 'C', 'D', 'F']" :key="grade" class="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    :checked="formData.letterGrades?.includes(grade)"
-                    @change="(e) => {
-                      if (!formData.letterGrades) formData.letterGrades = [];
-                      if ((e.target as HTMLInputElement).checked) {
-                        if (!formData.letterGrades.includes(grade)) {
-                          formData.letterGrades.push(grade);
-                        }
-                      } else {
-                        formData.letterGrades = formData.letterGrades.filter(g => g !== grade);
-                      }
-                    }"
-                    class="h-4 w-4"
-                  />
-                  <span class="text-sm text-slate-700">{{ grade }}</span>
-                </label>
-              </div>
-            </div>
+            <p class="mt-1 text-xs text-slate-500">
+              Supervisors will enter points between {{ formData.pointRange?.min || 0 }} and {{ formData.pointRange?.max || 20 }} when grading.
+            </p>
           </div>
 
           <!-- Description -->
@@ -499,14 +444,13 @@ const loadTemplate = async (templateId: string) => {
                   </button>
                 </div>
 
-                <!-- Performance Levels Table - Point Range -->
-                <div v-if="formData.gradingSystem === 'point-range'" class="rounded-lg border border-slate-300 overflow-hidden">
+                <!-- Performance Levels Table -->
+                <div class="rounded-lg border border-slate-300 overflow-hidden">
                   <table class="w-full text-xs">
                     <thead class="bg-slate-200">
                       <tr>
                         <th class="px-3 py-2 text-left font-medium text-slate-700">Level Name (Optional)</th>
                         <th class="px-3 py-2 text-left font-medium text-slate-700">Description (Optional)</th>
-                        <th class="px-3 py-2 text-center font-medium text-slate-700 w-20">Points *</th>
                         <th class="px-3 py-2 text-center font-medium text-slate-700 w-12">Action</th>
                       </tr>
                     </thead>
@@ -521,61 +465,6 @@ const loadTemplate = async (templateId: string) => {
                             v-model="level.name"
                             type="text"
                             placeholder="e.g. Excellent"
-                            class="w-full rounded border border-slate-300 px-2 py-1 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                          />
-                        </td>
-                        <td class="px-3 py-2">
-                          <input
-                            v-model="level.description"
-                            type="text"
-                            placeholder="Description"
-                            class="w-full rounded border border-slate-300 px-2 py-1 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                          />
-                        </td>
-                        <td class="px-3 py-2 text-center">
-                          <input
-                            v-model.number="level.points"
-                            type="number"
-                            min="0"
-                            class="w-full rounded border border-slate-300 px-2 py-1 text-xs text-center focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                          />
-                        </td>
-                        <td class="px-3 py-2 text-center">
-                          <button
-                            v-if="criterion.levels && criterion.levels.length > 1"
-                            @click="removePerformanceLevel(criterionIndex, levelIndex)"
-                            type="button"
-                            class="text-red-600 hover:text-red-700 font-medium"
-                          >
-                            ✕
-                          </button>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                <!-- Performance Levels Table - Letter Grade -->
-                <div v-else-if="formData.gradingSystem === 'letter-grade'" class="rounded-lg border border-slate-300 overflow-hidden">
-                  <table class="w-full text-xs">
-                    <thead class="bg-slate-200">
-                      <tr>
-                        <th class="px-3 py-2 text-left font-medium text-slate-700">Grade (Optional)</th>
-                        <th class="px-3 py-2 text-left font-medium text-slate-700">Description (Optional)</th>
-                        <th class="px-3 py-2 text-center font-medium text-slate-700 w-12">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr
-                        v-for="(level, levelIndex) in criterion.levels || []"
-                        :key="levelIndex"
-                        class="border-t border-slate-200 hover:bg-slate-100"
-                      >
-                        <td class="px-3 py-2">
-                          <input
-                            v-model="level.name"
-                            type="text"
-                            placeholder="e.g. A, B, C"
                             class="w-full rounded border border-slate-300 px-2 py-1 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                           />
                         </td>

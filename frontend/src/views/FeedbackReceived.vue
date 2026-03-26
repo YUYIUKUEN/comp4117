@@ -2,9 +2,11 @@
 import { ref, onMounted } from 'vue';
 import { useAuthStore } from '../stores/authStore';
 import feedbackService, { type FeedbackItem } from '../services/feedbackService';
+import gradingStandardService from '../services/gradingStandardService';
 
 const feedbackItems = ref<FeedbackItem[]>([]);
 const loading = ref(true);
+const gradingStandardsMap = ref<Record<string, any>>({}); // Map phase to grading standard
 
 // Reply state
 const replyingTo = ref<string | null>(null);
@@ -101,10 +103,29 @@ const avatarUrl = (name: string, bg = '0F172A') => {
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${bg}&color=fff`;
 };
 
+// Get max points for a given submission phase
+const getMaxPointsForPhase = (phase: string): number => {
+  return gradingStandardsMap.value[phase]?.pointRange?.max || 20;
+};
+
 onMounted(async () => {
   try {
     const data = await feedbackService.getStudentRecentFeedback(50);
     feedbackItems.value = data;
+
+    // Fetch grading standards for each unique phase
+    const uniquePhases = [...new Set(data.map(fb => fb.submission_id?.phase).filter(Boolean))];
+    
+    for (const phase of uniquePhases) {
+      try {
+        const standard = await gradingStandardService.getBySubmissionType(phase);
+        if (standard) {
+          gradingStandardsMap.value[phase] = standard;
+        }
+      } catch (e) {
+        console.warn(`Failed to fetch grading standard for phase ${phase}:`, e);
+      }
+    }
   } catch (e) {
     console.error('Feedback fetch error:', e);
   } finally {
@@ -167,6 +188,13 @@ onMounted(async () => {
               <h3 class="mt-3 text-sm font-semibold text-slate-900">
                 {{ feedback.submission_id?.phase ?? 'Submission' }} – Feedback
               </h3>
+
+              <!-- Grade badge -->
+              <div v-if="feedback.grade" class="mt-2">
+                <span class="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">
+                  Grade: {{ feedback.grade }} / {{ getMaxPointsForPhase(feedback.submission_id?.phase) }}
+                </span>
+              </div>
 
               <!-- Feedback content -->
               <p class="mt-2 text-sm text-slate-700 leading-relaxed">

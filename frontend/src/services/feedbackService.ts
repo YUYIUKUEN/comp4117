@@ -26,6 +26,10 @@ export interface FeedbackItem {
   feedbackText: string
   rating?: number
   isPrivate: boolean
+  grade?: string
+  gradingSystem?: string
+  gradingStandard_id?: string
+  internalNote?: string
   replies: FeedbackReply[]
   createdAt: string
   updatedAt: string

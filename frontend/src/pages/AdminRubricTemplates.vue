@@ -97,10 +97,10 @@ const addRubricCriterion = () => {
   }
 
   const levels = [
-    { name: 'Poor', description: 'Needs improvement', points: 0 },
-    { name: 'Fair', description: 'Meets minimum requirements', points: 3 },
-    { name: 'Good', description: 'Meets expectations', points: 6 },
-    { name: 'Excellent', description: 'Exceeds expectations', points: 10 },
+    { name: 'Poor', description: 'Needs improvement' },
+    { name: 'Fair', description: 'Meets minimum requirements' },
+    { name: 'Good', description: 'Meets expectations' },
+    { name: 'Excellent', description: 'Exceeds expectations' },
   ]
 
   formData.value.rubricItems.push({
@@ -126,7 +126,6 @@ const addPerformanceLevel = (criterionIndex: number) => {
     formData.value.rubricItems[criterionIndex].levels!.push({
       name: '',
       description: '',
-      points: 0,
     })
   }
 }
@@ -273,7 +272,6 @@ const removePerformanceLevel = (criterionIndex: number, levelIndex: number) => {
                           <tr>
                             <th class="px-3 py-2 text-left font-medium text-slate-700">Name (Optional)</th>
                             <th class="px-3 py-2 text-left font-medium text-slate-700">Description (Optional)</th>
-                            <th class="px-3 py-2 text-center font-medium text-slate-700 w-20">Points *</th>
                             <th class="px-3 py-2 text-center font-medium text-slate-700 w-12">Action</th>
                           </tr>
                         </thead>
@@ -297,14 +295,6 @@ const removePerformanceLevel = (criterionIndex: number, levelIndex: number) => {
                                 type="text"
                                 placeholder="Description"
                                 class="w-full rounded border border-slate-300 px-2 py-1 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                              />
-                            </td>
-                            <td class="px-3 py-2 text-center">
-                              <input
-                                v-model.number="level.points"
-                                type="number"
-                                min="0"
-                                class="w-full rounded border border-slate-300 px-2 py-1 text-xs text-center focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                               />
                             </td>
                             <td class="px-3 py-2 text-center">
