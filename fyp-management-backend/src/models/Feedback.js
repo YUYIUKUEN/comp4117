@@ -15,6 +15,8 @@ const feedbackSchema = new mongoose.Schema({
   grade: { type: String, default: null },           // e.g. "85", "A", "Approved"
   gradingSystem: { type: String, enum: ['point-range', 'letter-grade', 'custom', null], default: null },
   gradingStandard_id: { type: mongoose.Schema.Types.ObjectId, ref: 'GradingStandard', default: null },
+  // Rubric levels — map of criterion index to selected level index
+  rubricLevels: { type: Map, of: Number, default: new Map() },
   // Internal note — visible only to supervisors and admins, NOT to students
   internalNote: { type: String, default: '', maxlength: 5000 },
   replies: [feedbackReplySchema],

@@ -159,11 +159,18 @@ const handleSaveFeedback = async () => {
       gradeValue = String(pointsInput.value) || '';
     }
 
+    // Convert rubric levels Map to object for sending
+    const rubricLevelsObj: { [key: string]: number } = {};
+    selectedRubricLevels.value.forEach((value, key) => {
+      rubricLevelsObj[String(key)] = value;
+    });
+
     const feedbackData = {
       feedbackText: feedbackText.value.trim(),
       isPrivate: false, // Ensure feedback is PUBLIC so students can see it
       grade: gradeValue || undefined,
       gradingStandard_id: applicableStandard.value?._id || undefined,
+      rubricLevels: Object.keys(rubricLevelsObj).length > 0 ? rubricLevelsObj : undefined,
       internalNote: internalNote.value.trim() || undefined,
     };
 
@@ -207,6 +214,15 @@ const handleEditFeedback = (feedback: any) => {
   selectedGrade.value = feedback.grade || '';
   pointsInput.value = parseFloat(feedback.grade) || '';
   internalNote.value = feedback.internalNote || '';
+  
+  // Restore rubric level selections
+  selectedRubricLevels.value.clear();
+  if (feedback.rubricLevels && typeof feedback.rubricLevels === 'object') {
+    Object.entries(feedback.rubricLevels).forEach(([key, value]: [string, any]) => {
+      selectedRubricLevels.value.set(parseInt(key), value);
+    });
+  }
+  
   // Scroll to form
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
