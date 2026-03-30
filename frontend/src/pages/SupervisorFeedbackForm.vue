@@ -35,6 +35,23 @@ const internalNote = ref('');
 // Rubric selection state - map of criterion index to selected level index (for visual guidance)
 const selectedRubricLevels = ref<Map<number, number>>(new Map());
 
+const rubricHeaderLevels = computed(() => {
+  const rubricItems = applicableStandard.value?.rubricItems || [];
+  const maxLevels = rubricItems.reduce((max, item) => {
+    return Math.max(max, item.levels?.length || 0);
+  }, 0);
+  const firstLevels = rubricItems.find(item => (item.levels?.length || 0) > 0)?.levels || [];
+
+  return Array.from({ length: maxLevels }, (_, index) => {
+    const level = firstLevels[index];
+    return {
+      name: level?.name || `Level ${index + 1}`,
+      points: typeof level?.points === 'number' ? level.points : null,
+      index,
+    };
+  });
+});
+
 // Autosave state for internal note
 const internalNoteAutoSaveStatus = ref<'unsaved' | 'saving' | 'saved'>('saved');
 const internalNoteSaveError = ref('');
@@ -378,7 +395,7 @@ const handleDownloadFile = async (file: any) => {
       </button>
     </header>
 
-    <main class="max-w-4xl mx-auto px-4 sm:px-6 pb-6 pt-4 sm:pt-5">
+    <main class="mx-auto w-full max-w-[1400px] px-4 sm:px-6 pb-6 pt-4 sm:pt-5">
       <!-- Loading -->
       <div v-if="isLoading" class="flex items-center justify-center py-12">
         <span class="loading loading-spinner loading-md text-blue-600"></span>
@@ -453,75 +470,60 @@ const handleDownloadFile = async (file: any) => {
             </p>
           </div>
 
-        <!-- Rubric Reference (for guidance) - TABLE FORMAT -->
+        <!-- Rubric Criteria Selection -->
         <div v-if="applicableStandard?.rubricItems && applicableStandard.rubricItems.length > 0" class="mb-6">
           <label class="block text-sm font-semibold text-slate-900 mb-4">
-            Grading Criteria (for reference)
+            Grading Criteria (click one level per criterion)
           </label>
           
           <!-- Table Container -->
-          <div class="border border-slate-200 rounded-lg overflow-x-auto">
-            <table class="w-full">
+          <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+            <table class="w-full min-w-[1100px] table-auto border-collapse">
               <thead class="bg-slate-100">
                 <tr>
-                  <th class="px-4 py-3 text-left font-semibold text-slate-900 border-b border-slate-200 text-sm w-2/5">Criteria</th>
-                  <th class="px-4 py-3 text-left font-semibold text-slate-900 border-b border-slate-200 text-sm">
-                    <div>Excellent</div>
-                    <div class="font-normal text-xs text-slate-600">(GP = 4)</div>
-                  </th>
-                  <th class="px-4 py-3 text-left font-semibold text-slate-900 border-b border-slate-200 text-sm">
-                    <div>Good</div>
-                    <div class="font-normal text-xs text-slate-600">(GP = 3)</div>
-                  </th>
-                  <th class="px-4 py-3 text-left font-semibold text-slate-900 border-b border-slate-200 text-sm">
-                    <div>Satisfactory</div>
-                    <div class="font-normal text-xs text-slate-600">(GP = 2)</div>
-                  </th>
-                  <th class="px-4 py-3 text-left font-semibold text-slate-900 border-b border-slate-200 text-sm">
-                    <div>Marginal Pass</div>
-                    <div class="font-normal text-xs text-slate-600">(GP = 1)</div>
-                  </th>
-                  <th class="px-4 py-3 text-left font-semibold text-slate-900 border-b border-slate-200 text-sm">
-                    <div>Fail</div>
-                    <div class="font-normal text-xs text-slate-600">(GP = 0)</div>
+                  <th class="w-[24rem] min-w-[22rem] px-4 py-3 text-left text-sm font-semibold text-slate-900 border-b border-slate-200">Criteria</th>
+                  <th
+                    v-for="headerLevel in rubricHeaderLevels"
+                    :key="`header-${headerLevel.index}`"
+                    class="min-w-[170px] px-4 py-3 text-left text-sm font-semibold text-slate-900 border-b border-slate-200"
+                  >
+                    <div>{{ headerLevel.name }}</div>
+                    <div v-if="headerLevel.points !== null" class="font-normal text-xs text-slate-600">
+                      ({{ headerLevel.points }} pts)
+                    </div>
                   </th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-200">
-                <tr v-for="(item, idx) in applicableStandard.rubricItems" :key="idx" class="hover:bg-slate-50 transition-colors">
+                <tr v-for="(item, idx) in applicableStandard.rubricItems" :key="idx" class="hover:bg-slate-50 transition-colors align-top">
                   <!-- Criteria Name -->
-                  <td class="px-4 py-4 text-sm font-medium text-slate-900 border-r border-slate-200 bg-slate-50">
+                  <td class="bg-slate-50/80 px-4 py-4 text-sm font-medium leading-6 text-slate-900 border-r border-slate-200 align-top">
                     {{ item.title }}
                   </td>
                   
-                  <!-- Level 4 (Excellent) -->
-                  <td class="px-4 py-4 text-xs text-slate-700 leading-relaxed">
-                    {{ item.levels && item.levels[0] ? item.levels[0].description : 'N/A' }}
-                  </td>
-                  
-                  <!-- Level 3 (Good) -->
-                  <td class="px-4 py-4 text-xs text-slate-700 leading-relaxed">
-                    {{ item.levels && item.levels[1] ? item.levels[1].description : 'N/A' }}
-                  </td>
-                  
-                  <!-- Level 2 (Satisfactory) -->
-                  <td class="px-4 py-4 text-xs text-slate-700 leading-relaxed">
-                    {{ item.levels && item.levels[2] ? item.levels[2].description : 'N/A' }}
-                  </td>
-                  
-                  <!-- Level 1 (Marginal Pass) -->
-                  <td class="px-4 py-4 text-xs text-slate-700 leading-relaxed">
-                    {{ item.levels && item.levels[3] ? item.levels[3].description : 'N/A' }}
-                  </td>
-                  
-                  <!-- Level 0 (Fail) -->
-                  <td class="px-4 py-4 text-xs text-slate-700 leading-relaxed">
-                    Non-participation
+                  <td
+                    v-for="headerLevel in rubricHeaderLevels"
+                    :key="`criterion-${idx}-level-${headerLevel.index}`"
+                    class="p-2 align-top"
+                  >
+                    <button
+                      type="button"
+                      class="w-full min-h-[118px] rounded-lg border px-3 py-2.5 text-left text-[13px] leading-5 transition-colors"
+                      :class="isRubricLevelSelected(idx, headerLevel.index)
+                        ? 'border-blue-500 bg-blue-50 text-blue-900 ring-1 ring-blue-400'
+                        : 'border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50/60'"
+                      @click="selectRubricLevel(idx, headerLevel.index)"
+                    >
+                      {{ item.levels?.[headerLevel.index]?.description || 'N/A' }}
+                    </button>
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
+          <p class="mt-2 text-xs text-slate-500">
+            Selected levels are saved with your feedback and follow the admin-defined grading standard for this phase.
+          </p>
         </div>
 
         <!-- Feedback Text -->

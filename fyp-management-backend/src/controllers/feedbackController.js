@@ -6,6 +6,31 @@ const ActivityLog = require('../models/ActivityLog');
 const GradingStandard = require('../models/GradingStandard');
 const User = require('../models/User');
 
+const parseRubricLevels = (rubricLevels) => {
+  if (rubricLevels === undefined) {
+    return { ok: true, value: undefined };
+  }
+
+  if (rubricLevels === null) {
+    return { ok: true, value: {} };
+  }
+
+  if (typeof rubricLevels !== 'object' || Array.isArray(rubricLevels)) {
+    return { ok: false, error: 'rubricLevels must be an object' };
+  }
+
+  const normalized = {};
+  for (const [criterionIndex, levelIndex] of Object.entries(rubricLevels)) {
+    const numericLevel = Number(levelIndex);
+    if (!Number.isInteger(numericLevel) || numericLevel < 0) {
+      return { ok: false, error: `Invalid rubric level for criterion ${criterionIndex}` };
+    }
+    normalized[criterionIndex] = numericLevel;
+  }
+
+  return { ok: true, value: normalized };
+};
+
 /**
  * Add feedback to a submission
  * Only supervisor assigned to the student can add feedback
@@ -14,7 +39,24 @@ const addFeedback = async (req, res, next) => {
   try {
     const { submissionId } = req.params;
     const supervisorId = req.auth.userId;
-    const { feedbackText, rating, isPrivate, grade, gradingStandard_id, internalNote } = req.body;
+    const {
+      feedbackText,
+      rating,
+      isPrivate,
+      grade,
+      gradingStandard_id,
+      rubricLevels,
+      internalNote,
+    } = req.body;
+
+    const parsedRubricLevels = parseRubricLevels(rubricLevels);
+    if (!parsedRubricLevels.ok) {
+      return res.status(400).json({
+        error: parsedRubricLevels.error,
+        code: 'INVALID_RUBRIC_LEVELS',
+        status: 400,
+      });
+    }
 
     // Validate feedback text
     if (!feedbackText || feedbackText.trim().length === 0) {
@@ -111,6 +153,7 @@ const addFeedback = async (req, res, next) => {
       grade: grade || null,
       gradingSystem: gradingSystem,
       gradingStandard_id: gradingStandard_id || null,
+      rubricLevels: parsedRubricLevels.value,
       internalNote: internalNote ? internalNote.trim() : '',
     });
 
@@ -225,8 +268,25 @@ const getFeedback = async (req, res, next) => {
 const updateFeedback = async (req, res, next) => {
   try {
     const { feedbackId } = req.params;
-    const { feedbackText, rating, isPrivate, grade, gradingStandard_id, internalNote } = req.body;
+    const {
+      feedbackText,
+      rating,
+      isPrivate,
+      grade,
+      gradingStandard_id,
+      rubricLevels,
+      internalNote,
+    } = req.body;
     const supervisorId = req.auth.userId;
+
+    const parsedRubricLevels = parseRubricLevels(rubricLevels);
+    if (!parsedRubricLevels.ok) {
+      return res.status(400).json({
+        error: parsedRubricLevels.error,
+        code: 'INVALID_RUBRIC_LEVELS',
+        status: 400,
+      });
+    }
 
     // Get feedback
     const feedback = await Feedback.findById(feedbackId);
@@ -276,6 +336,10 @@ const updateFeedback = async (req, res, next) => {
 
     if (internalNote !== undefined) {
       feedback.internalNote = internalNote.trim();
+    }
+
+    if (parsedRubricLevels.value !== undefined) {
+      feedback.rubricLevels = parsedRubricLevels.value;
     }
 
     // Validate and update grade

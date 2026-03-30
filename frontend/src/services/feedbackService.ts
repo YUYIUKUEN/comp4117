@@ -29,6 +29,7 @@ export interface FeedbackItem {
   grade?: string
   gradingSystem?: string
   gradingStandard_id?: string
+  rubricLevels?: Record<string, number>
   internalNote?: string
   replies: FeedbackReply[]
   createdAt: string
@@ -80,6 +81,7 @@ export default {
       isPrivate?: boolean
       grade?: string
       gradingStandard_id?: string
+      rubricLevels?: Record<string, number>
       internalNote?: string
     },
   ): Promise<FeedbackItem> {
@@ -97,6 +99,7 @@ export default {
       isPrivate?: boolean
       grade?: string
       gradingStandard_id?: string
+      rubricLevels?: Record<string, number>
       internalNote?: string
     },
   ): Promise<FeedbackItem> {
