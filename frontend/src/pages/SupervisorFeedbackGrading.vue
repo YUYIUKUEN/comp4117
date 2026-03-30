@@ -59,6 +59,7 @@ const fetchSubmissions = async () => {
     const response = await httpClient.get('/submissions/supervisor/submissions');
     const subs = response.data.data || [];
     console.log(`Loaded ${subs.length} submissions`, subs);
+    console.log(`Loaded ${subs.length} submissions`, subs);
 
     // For each submission, fetch its feedback
     const subsWithFeedback: SubmissionItem[] = [];

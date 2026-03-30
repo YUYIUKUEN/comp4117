@@ -453,44 +453,74 @@ const handleDownloadFile = async (file: any) => {
             </p>
           </div>
 
-        <!-- Rubric Reference (for guidance) -->
+        <!-- Rubric Reference (for guidance) - TABLE FORMAT -->
         <div v-if="applicableStandard?.rubricItems && applicableStandard.rubricItems.length > 0" class="mb-6">
-          <label class="block text-sm font-medium text-slate-900 mb-4">
+          <label class="block text-sm font-semibold text-slate-900 mb-4">
             Grading Criteria (for reference)
           </label>
-          <div class="space-y-4">
-            <div
-              v-for="(criterion, criterionIndex) in applicableStandard.rubricItems"
-              :key="criterionIndex"
-              class="border border-slate-200 rounded-lg p-4 bg-slate-50"
-            >
-              <!-- Criterion header -->
-              <div class="mb-3">
-                <h4 class="font-semibold text-slate-900">{{ criterion.title }}</h4>
-                <p v-if="criterion.description" class="text-sm text-slate-600 mt-1">
-                  {{ criterion.description }}
-                </p>
-              </div>
-
-              <!-- Performance levels as clickable buttons -->
-              <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                <button
-                  v-for="(level, levelIndex) in (criterion.levels || [])"
-                  :key="levelIndex"
-                  @click="selectRubricLevel(criterionIndex, levelIndex)"
-                  type="button"
-                  :class="[
-                    'px-3 py-3 rounded-lg border-2 transition text-center text-xs',
-                    isRubricLevelSelected(criterionIndex, levelIndex)
-                      ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-500/50'
-                      : 'border-slate-300 bg-white hover:border-blue-400 hover:bg-blue-50'
-                  ]"
-                >
-                  <div v-if="level.name" class="font-semibold text-slate-900">{{ level.name }}</div>
-                  <div class="text-slate-600 mt-1">{{ level.description }}</div>
-                </button>
-              </div>
-            </div>
+          
+          <!-- Table Container -->
+          <div class="border border-slate-200 rounded-lg overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-slate-100">
+                <tr>
+                  <th class="px-4 py-3 text-left font-semibold text-slate-900 border-b border-slate-200 text-sm w-2/5">Criteria</th>
+                  <th class="px-4 py-3 text-left font-semibold text-slate-900 border-b border-slate-200 text-sm">
+                    <div>Excellent</div>
+                    <div class="font-normal text-xs text-slate-600">(GP = 4)</div>
+                  </th>
+                  <th class="px-4 py-3 text-left font-semibold text-slate-900 border-b border-slate-200 text-sm">
+                    <div>Good</div>
+                    <div class="font-normal text-xs text-slate-600">(GP = 3)</div>
+                  </th>
+                  <th class="px-4 py-3 text-left font-semibold text-slate-900 border-b border-slate-200 text-sm">
+                    <div>Satisfactory</div>
+                    <div class="font-normal text-xs text-slate-600">(GP = 2)</div>
+                  </th>
+                  <th class="px-4 py-3 text-left font-semibold text-slate-900 border-b border-slate-200 text-sm">
+                    <div>Marginal Pass</div>
+                    <div class="font-normal text-xs text-slate-600">(GP = 1)</div>
+                  </th>
+                  <th class="px-4 py-3 text-left font-semibold text-slate-900 border-b border-slate-200 text-sm">
+                    <div>Fail</div>
+                    <div class="font-normal text-xs text-slate-600">(GP = 0)</div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200">
+                <tr v-for="(item, idx) in applicableStandard.rubricItems" :key="idx" class="hover:bg-slate-50 transition-colors">
+                  <!-- Criteria Name -->
+                  <td class="px-4 py-4 text-sm font-medium text-slate-900 border-r border-slate-200 bg-slate-50">
+                    {{ item.title }}
+                  </td>
+                  
+                  <!-- Level 4 (Excellent) -->
+                  <td class="px-4 py-4 text-xs text-slate-700 leading-relaxed">
+                    {{ item.levels && item.levels[0] ? item.levels[0].description : 'N/A' }}
+                  </td>
+                  
+                  <!-- Level 3 (Good) -->
+                  <td class="px-4 py-4 text-xs text-slate-700 leading-relaxed">
+                    {{ item.levels && item.levels[1] ? item.levels[1].description : 'N/A' }}
+                  </td>
+                  
+                  <!-- Level 2 (Satisfactory) -->
+                  <td class="px-4 py-4 text-xs text-slate-700 leading-relaxed">
+                    {{ item.levels && item.levels[2] ? item.levels[2].description : 'N/A' }}
+                  </td>
+                  
+                  <!-- Level 1 (Marginal Pass) -->
+                  <td class="px-4 py-4 text-xs text-slate-700 leading-relaxed">
+                    {{ item.levels && item.levels[3] ? item.levels[3].description : 'N/A' }}
+                  </td>
+                  
+                  <!-- Level 0 (Fail) -->
+                  <td class="px-4 py-4 text-xs text-slate-700 leading-relaxed">
+                    Non-participation
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
