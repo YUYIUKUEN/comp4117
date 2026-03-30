@@ -160,15 +160,6 @@ const run = async () => {
         dueDate: pastDate(14),
         files: [{ filename: 'progress1_bob.pdf', originalName: 'Progress Report 1.pdf', mimetype: 'application/pdf', size: 512000 }],
       },
-      // Student 1 — Progress Report 2 upcoming
-      {
-        student_id: student1._id,
-        topic_id: topic1._id,
-        assignment_id: assign1._id,
-        phase: 'Progress Report 2',
-        status: 'Not Submitted',
-        dueDate: futureDate(20),
-      },
       // Student 2 — submitted Initial Statement, Progress Report 1 overdue
       {
         student_id: student2._id,
@@ -189,18 +180,9 @@ const run = async () => {
         status: 'Overdue',
         dueDate: pastDate(3),
       },
-      // Student 2 — Progress Report 2 far future
-      {
-        student_id: student2._id,
-        topic_id: topic3._id,
-        assignment_id: assign2._id,
-        phase: 'Progress Report 2',
-        status: 'Not Submitted',
-        dueDate: futureDate(50),
-      },
     ]);
 
-    console.log('✓ Created 6 submissions (3 Submitted, 1 Overdue, 2 Not Submitted)');
+    console.log('✓ Created 4 submissions (2 Submitted, 1 Overdue, 1 Not Submitted)');
 
     // ── Feedback (from supervisor) ──────────────────────────────────
     await Feedback.create([

@@ -40,9 +40,18 @@ const getAdminReminders = async (req, res, next) => {
     // Filter out submissions from deactivated students
     const activeSubmissions = submissions.filter(sub => !sub.student_id?.deactivatedAt);
 
+    // Only include submissions for phases that have enabled GradingStandards (admin-created)
+    const GradingStandard = require('../models/GradingStandard');
+    const enabledPhases = await GradingStandard.find({ enabled: true }).select('submissionType');
+    const enabledPhaseNames = enabledPhases.map(gs => gs.submissionType);
+
+    const officialSubmissions = activeSubmissions.filter(sub => 
+      enabledPhaseNames.includes(sub.phase)
+    );
+
     const now = new Date();
 
-    const reminders = activeSubmissions.map((sub) => {
+    const reminders = officialSubmissions.map((sub) => {
       const due = sub.dueDate ? new Date(sub.dueDate) : null;
       const daysOverdue = due
         ? Math.floor((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24))
