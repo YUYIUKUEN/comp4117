@@ -147,7 +147,7 @@ const addPerformanceLevelColumn = () => {
 
 const removePerformanceLevelColumn = (levelIndex: number) => {
   if (!formData.value.rubricItems) return
-  if (formData.value.rubricItems[0]?.levels?.length <= 1) return
+  if ((formData.value.rubricItems[0]?.levels?.length ?? 0) <= 1) return
   formData.value.rubricItems.forEach((criterion) => {
     if (criterion.levels && criterion.levels.length > levelIndex) {
       criterion.levels.splice(levelIndex, 1)

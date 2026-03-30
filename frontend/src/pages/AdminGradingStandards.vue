@@ -208,7 +208,7 @@ const removePerformanceLevelColumn = (levelIndex: number) => {
   if (!formData.value.rubricItems) return
   
   // Prevent removing if only 1 level remains
-  if (formData.value.rubricItems[0]?.levels?.length <= 1) return
+  if ((formData.value.rubricItems[0]?.levels?.length ?? 0) <= 1) return
   
   // Remove level from all criteria
   formData.value.rubricItems.forEach((criterion) => {
