@@ -86,7 +86,6 @@ const getStudentActivityLog = async (req, res, next) => {
     }
 
     // Check if student is deactivated
-    const User = require('../models/User');
     const student = await User.findById(studentId).select('deactivatedAt');
     if (student?.deactivatedAt) {
       return res.status(404).json({
