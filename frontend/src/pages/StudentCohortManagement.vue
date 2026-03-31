@@ -109,7 +109,8 @@ const filteredStudents = computed(() => {
     s.name.toLowerCase().includes(q) ||
     s.email.toLowerCase().includes(q) ||
     s.programme.toLowerCase().includes(q) ||
-    s.cohort.toLowerCase().includes(q)
+    s.cohort.toLowerCase().includes(q) ||
+    s.pathway.toLowerCase().includes(q)
   );
 });
 
@@ -316,6 +317,9 @@ const handleDeleteCohort = (cohortId: number) => {
                   Programme
                 </th>
                 <th scope="col" class="px-4 py-3 text-left font-medium">
+                  Pathway
+                </th>
+                <th scope="col" class="px-4 py-3 text-left font-medium">
                   Cohort
                 </th>
                 <th scope="col" class="px-4 py-3 text-left font-medium">
@@ -336,6 +340,12 @@ const handleDeleteCohort = (cohortId: number) => {
                 </td>
                 <td class="px-4 py-3">
                   <p class="text-slate-600">{{ student.programme }}</p>
+                </td>
+                <td class="px-4 py-3">
+                  <span v-if="student.pathway" class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-blue-700 border border-blue-200 text-xs font-medium">
+                    {{ student.pathway }}
+                  </span>
+                  <span v-else class="text-slate-400 text-xs">—</span>
                 </td>
                 <td class="px-4 py-3">
                   <span class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-blue-700 border border-blue-200">
