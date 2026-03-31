@@ -13,14 +13,11 @@ const Assignment = require('../models/Assignment');
  */
 async function getGradingStandardsForPathway(submissionType, pathway) {
   try {
-    // Look for pathway-specific standards first, then fallback to general ones (null pathway)
+    // Look for standards that include this pathway in their pathways array
     const standards = await GradingStandard.find({
       submissionType,
       enabled: true,
-      $or: [
-        { pathway: pathway }, // Exact pathway match
-        { pathway: null }, // General standards that apply to all pathways
-      ],
+      pathways: pathway, // Check if pathway is in the pathways array
     });
 
     return standards;
