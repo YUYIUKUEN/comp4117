@@ -118,7 +118,12 @@ const handleViewStudent = (studentId: string) => {
 };
 
 const handleProvideFeedback = (submissionId: string) => {
-  router.push(`/supervisor/feedback-form?id=${submissionId}`);
+  if (!submissionId) {
+    console.error('❌ Cannot provide feedback: submissionId is missing');
+    alert('Error: Cannot find submission ID. Please try again.');
+    return;
+  }
+  router.push(`/supervisor/feedback-form?id=${encodeURIComponent(submissionId)}`);
 };
 </script>
 

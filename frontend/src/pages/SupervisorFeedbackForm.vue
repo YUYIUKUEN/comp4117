@@ -108,8 +108,9 @@ watch(internalNote, () => {
 // Fetch data
 onMounted(async () => {
   if (!submissionId) {
-    loadError.value = 'No submission ID provided';
+    loadError.value = 'No submission ID provided in URL. Please use the "Add Feedback" button from the submissions list.';
     isLoading.value = false;
+    console.error('❌ SupervisorFeedbackForm mounted without submissionId:', { submissionId, routeQuery: route.query });
     return;
   }
 

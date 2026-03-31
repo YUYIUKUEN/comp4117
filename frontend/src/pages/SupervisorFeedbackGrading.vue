@@ -201,7 +201,12 @@ const toggleStudent = (studentId: string) => {
 };
 
 const handleProvideFeedback = (id: string) => {
-  router.push(`/supervisor/feedback-form?id=${id}`);
+  if (!id) {
+    console.error('❌ Cannot provide feedback: submission ID is missing');
+    alert('Error: Cannot find submission ID. Please try again.');
+    return;
+  }
+  router.push(`/supervisor/feedback-form?id=${encodeURIComponent(id)}`);
 };
 
 const getStatusColor = (status: string) => {
