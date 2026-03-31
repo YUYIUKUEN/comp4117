@@ -22,6 +22,7 @@ const formData = ref<GradingStandardInput>({
   description: '',
   dueDate: null,
   enabled: true,
+  pathways: ['Research-Based', 'Solution-Based'],
   rubricTemplatesByPathway: { 'Research-Based': null, 'Solution-Based': null },
 })
 
@@ -48,6 +49,7 @@ const resetForm = () => {
     description: '',
     dueDate: null,
     enabled: true,
+    pathways: ['Research-Based', 'Solution-Based'],
     templateName: null,
     rubricItems: [],
     rubricTemplatesByPathway: { 'Research-Based': null, 'Solution-Based': null },
@@ -140,6 +142,7 @@ const startEdit = (standard: GradingStandard) => {
     description: standard.description || '',
     dueDate: formattedDueDate,
     enabled: standard.enabled,
+    pathways: standard.pathways || ['Research-Based', 'Solution-Based'],
     templateName: standard.templateName || null,
     rubricItems: ensureRubricItemsHavePoints(standard.rubricItems || []),
     rubricTemplatesByPathway: standard.rubricTemplatesByPathway || { 'Research-Based': null, 'Solution-Based': null },
@@ -334,6 +337,36 @@ const loadTemplate = async (templateId: string) => {
             />
             <p class="mt-1 text-xs text-slate-500">
               Type the name of the submission phase. This will appear in the student submission checklist.
+            </p>
+          </div>
+
+          <!-- Pathway Selection -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-3">
+              Available for Pathways
+            </label>
+            <div class="space-y-2">
+              <label class="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  value="Research-Based"
+                  v-model="formData.pathways"
+                  class="rounded border-slate-300"
+                />
+                <span class="text-sm text-slate-700">Research-Based</span>
+              </label>
+              <label class="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  value="Solution-Based"
+                  v-model="formData.pathways"
+                  class="rounded border-slate-300"
+                />
+                <span class="text-sm text-slate-700">Solution-Based</span>
+              </label>
+            </div>
+            <p class="mt-2 text-xs text-slate-500">
+              Select which pathways this assessment applies to. Students will only see assessments for their pathway.
             </p>
           </div>
 
@@ -664,6 +697,25 @@ const loadTemplate = async (templateId: string) => {
                         ? 'Grades'
                         : 'Custom'
                   }}
+                </span>
+                <!-- Pathway indicators -->
+                <span
+                  v-if="standard.pathways?.includes('Research-Based') && !standard.pathways?.includes('Solution-Based')"
+                  class="inline-flex items-center rounded-full border border-pink-200 bg-pink-50 px-2.5 py-0.5 text-[11px] font-medium text-pink-700"
+                >
+                  🔬 Research-Based Only
+                </span>
+                <span
+                  v-else-if="standard.pathways?.includes('Solution-Based') && !standard.pathways?.includes('Research-Based')"
+                  class="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-[11px] font-medium text-indigo-700"
+                >
+                  💡 Solution-Based Only
+                </span>
+                <span
+                  v-else-if="standard.pathways?.includes('Research-Based') && standard.pathways?.includes('Solution-Based')"
+                  class="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700"
+                >
+                  ✓ Both Pathways
                 </span>
                 <span
                   v-if="standard.rubricTemplatesByPathway?.['Research-Based']"

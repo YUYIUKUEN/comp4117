@@ -25,6 +25,7 @@ export interface GradingStandard {
   templateName?: string | null
   rubricItems?: RubricItem[]
   rubricTemplatesByPathway?: { 'Research-Based': string | null; 'Solution-Based': string | null }
+  pathways?: string[] // Which pathways this assessment applies to
   hkbuGradingScale?: 'hkbu-standard' | 'hkbu-honors' | 'custom' | null
   gradeRangeMapping?: Array<{ grade: string; minPoints: number; maxPoints: number }>
 }
@@ -42,6 +43,7 @@ export interface GradingStandardInput {
   templateName?: string | null
   rubricItems?: RubricItem[]
   rubricTemplatesByPathway?: { 'Research-Based': string | null; 'Solution-Based': string | null }
+  pathways?: string[] // Which pathways this assessment applies to
   hkbuGradingScale?: 'hkbu-standard' | 'hkbu-honors' | 'custom' | null
   gradeRangeMapping?: Array<{ grade: string; minPoints: number; maxPoints: number }>
 }
