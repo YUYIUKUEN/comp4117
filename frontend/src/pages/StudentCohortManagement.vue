@@ -87,7 +87,7 @@ const fetchStudents = async () => {
       name: u.fullName,
       email: u.email,
       programme: u.concentration || 'Not set',
-      pathway: u.pathway || '',
+      pathway: u.topicPathway || '',
       cohort: u.createdAt ? new Date(u.createdAt).getFullYear() + '-' + (new Date(u.createdAt).getFullYear() + 1) : 'Unknown',
       status: u.deactivatedAt ? 'Inactive' : 'Active',
     }));
@@ -110,7 +110,7 @@ const filteredStudents = computed(() => {
     s.email.toLowerCase().includes(q) ||
     s.programme.toLowerCase().includes(q) ||
     s.cohort.toLowerCase().includes(q) ||
-    s.pathway.toLowerCase().includes(q)
+    (s.pathway && s.pathway.toLowerCase().includes(q))
   );
 });
 

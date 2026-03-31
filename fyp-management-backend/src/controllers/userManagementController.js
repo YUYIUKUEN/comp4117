@@ -43,11 +43,12 @@ const getAllUsers = async (req, res, next) => {
           const assignment = await Assignment.findOne({
             student_id: user._id,
             status: 'Active',
-          }).populate('supervisor_id', 'fullName email').populate('topic_id', 'title');
+          }).populate('supervisor_id', 'fullName email').populate('topic_id', 'title pathway');
           
           if (assignment) {
             userObj.supervisor = assignment.supervisor_id;
             userObj.topicTitle = assignment.topic_id?.title;
+            userObj.topicPathway = assignment.topic_id?.pathway;
           }
         }
         
