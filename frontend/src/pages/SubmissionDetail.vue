@@ -74,7 +74,17 @@ const fetchGradingStandard = async () => {
   if (!currentPhase.value) return;
   
   try {
-    gradingStandard.value = await gradingStandardService.getBySubmissionType(currentPhase.value.phase);
+    // Use pathway-filtered endpoint if student has a pathway
+    const studentPathway = authStore.user?.pathway;
+    if (studentPathway) {
+      gradingStandard.value = await gradingStandardService.getBySubmissionTypeAndPathway(
+        currentPhase.value.phase,
+        studentPathway
+      );
+    } else {
+      // Fallback to unfiltered if no pathway set
+      gradingStandard.value = await gradingStandardService.getBySubmissionType(currentPhase.value.phase);
+    }
   } catch (error) {
     console.warn('Failed to fetch grading standard:', error);
     gradingStandard.value = null;

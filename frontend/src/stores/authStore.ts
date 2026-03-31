@@ -7,6 +7,7 @@ interface User {
   fullName: string;
   role: string;
   concentration?: string;
+  pathway?: 'Research-Based' | 'Solution-Based' | null;
 }
 
 export const useAuthStore = defineStore('auth', () => {

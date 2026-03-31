@@ -123,7 +123,15 @@ onMounted(async () => {
     const studentPathway = submission.value?.topic_id?.pathway || '';
 
     // Fetch grading standard for this submission's phase
-    applicableStandard.value = await gradingStandardService.getBySubmissionType(submission.value.phase);
+    // Use pathway-filtered endpoint if we have a pathway
+    if (studentPathway) {
+      applicableStandard.value = await gradingStandardService.getBySubmissionTypeAndPathway(
+        submission.value.phase,
+        studentPathway
+      );
+    } else {
+      applicableStandard.value = await gradingStandardService.getBySubmissionType(submission.value.phase);
+    }
 
     // If standard found, check for pathway-specific rubric template
     if (applicableStandard.value && studentPathway) {
