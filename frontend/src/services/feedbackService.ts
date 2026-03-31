@@ -51,7 +51,10 @@ export default {
    * Get feedback for a specific submission
    */
   async getSubmissionFeedback(submissionId: string): Promise<FeedbackItem[]> {
-    const response = await httpClient.get(`/feedback/submissions/${submissionId}/feedback`)
+    if (!submissionId) {
+      throw new Error('submissionId is required');
+    }
+    const response = await httpClient.get(`/feedback/submissions/${encodeURIComponent(submissionId)}/feedback`)
     return response.data.data?.feedback || response.data.data || []
   },
 
@@ -59,7 +62,13 @@ export default {
    * Reply to a feedback item
    */
   async replyToFeedback(feedbackId: string, replyText: string): Promise<FeedbackReply> {
-    const response = await httpClient.post(`/feedback/${feedbackId}/replies`, { replyText })
+    if (!feedbackId) {
+      throw new Error('feedbackId is required');
+    }
+    if (!replyText || replyText.trim().length === 0) {
+      throw new Error('replyText cannot be empty');
+    }
+    const response = await httpClient.post(`/feedback/${encodeURIComponent(feedbackId)}/replies`, { replyText })
     return response.data.data
   },
 
@@ -67,7 +76,10 @@ export default {
    * Delete a reply to feedback
    */
   async deleteReply(feedbackId: string, replyId: string): Promise<{ success: boolean }> {
-    const response = await httpClient.delete(`/feedback/${feedbackId}/replies/${replyId}`)
+    if (!feedbackId || !replyId) {
+      throw new Error('feedbackId and replyId are required');
+    }
+    const response = await httpClient.delete(`/feedback/${encodeURIComponent(feedbackId)}/replies/${encodeURIComponent(replyId)}`)
     return response.data.data
   },
 
@@ -85,7 +97,10 @@ export default {
       internalNote?: string
     },
   ): Promise<FeedbackItem> {
-    const response = await httpClient.post(`/feedback/submissions/${submissionId}/feedback`, data)
+    if (!submissionId) {
+      throw new Error('submissionId is required');
+    }
+    const response = await httpClient.post(`/feedback/submissions/${encodeURIComponent(submissionId)}/feedback`, data)
     return response.data.data
   },
 
@@ -103,7 +118,10 @@ export default {
       internalNote?: string
     },
   ): Promise<FeedbackItem> {
-    const response = await httpClient.put(`/feedback/${feedbackId}`, data)
+    if (!feedbackId) {
+      throw new Error('feedbackId is required');
+    }
+    const response = await httpClient.put(`/feedback/${encodeURIComponent(feedbackId)}`, data)
     return response.data.data
   },
 
@@ -124,6 +142,9 @@ export default {
    * Delete feedback (supervisor only — must own the feedback)
    */
   async deleteFeedback(feedbackId: string): Promise<void> {
-    await httpClient.delete(`/feedback/${feedbackId}`)
+    if (!feedbackId) {
+      throw new Error('feedbackId is required');
+    }
+    await httpClient.delete(`/feedback/${encodeURIComponent(feedbackId)}`)
   },
 }

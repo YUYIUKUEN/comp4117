@@ -196,6 +196,12 @@ const handleSaveFeedback = async () => {
     return;
   }
 
+  if (!submissionId) {
+    console.error('❌ Cannot save feedback: submissionId is missing');
+    alert('Error: Cannot find submission ID. Please refresh and try again.');
+    return;
+  }
+
   isSaving.value = true;
   saveError.value = '';
 
@@ -226,6 +232,9 @@ const handleSaveFeedback = async () => {
 
     // If editing existing feedback, update it; otherwise create new
     if (editingFeedbackId.value) {
+      if (!editingFeedbackId.value) {
+        throw new Error('Cannot update feedback: feedbackId is missing');
+      }
       await feedbackService.updateFeedback(editingFeedbackId.value, feedbackData);
       // Update the feedback in the list
       const index = existingFeedback.value.findIndex(fb => fb._id === editingFeedbackId.value);
@@ -245,8 +254,8 @@ const handleSaveFeedback = async () => {
     alert('Feedback and grade saved successfully!');
     handleClearForm();
   } catch (e: any) {
-    console.error('Error saving feedback:', e);
-    saveError.value = e?.response?.data?.error || 'Failed to save feedback';
+    console.error('❌ Error saving feedback:', e);
+    saveError.value = e?.message || e?.response?.data?.error || 'Failed to save feedback';
   } finally {
     isSaving.value = false;
   }
@@ -319,6 +328,12 @@ const toggleReplying = (feedbackId: string) => {
 };
 
 const submitReply = async (feedbackId: string) => {
+  if (!feedbackId) {
+    console.error('❌ Cannot submit reply: feedbackId is missing');
+    alert('Error: Cannot find feedback ID. Please refresh and try again.');
+    return;
+  }
+  
   if (!replyText.value.trim() || submittingReply.value) return;
 
   submittingReply.value = true;
@@ -337,8 +352,8 @@ const submitReply = async (feedbackId: string) => {
     replyingToFeedbackId.value = null;
     replyText.value = '';
   } catch (error: any) {
-    console.error('Reply error:', error);
-    alert('Failed to submit reply. Please try again.');
+    console.error('❌ Reply error:', error);
+    alert('Failed to submit reply: ' + (error?.message || 'Unknown error'));
   } finally {
     submittingReply.value = false;
   }
