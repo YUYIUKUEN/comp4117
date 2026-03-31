@@ -20,25 +20,35 @@
         </div>
 
         <div class="filter-section">
-          <h3>Status</h3>
+          <h3>Pathway</h3>
           <div class="filter-options">
             <label class="filter-checkbox">
               <input
                 type="radio"
-                name="status"
-                value="Active"
-                v-model="selectedStatus"
-                @change="topicStore.setStatusFilter('Active')"
+                name="pathway"
+                value="Research-Based"
+                :checked="topicStore.filters.pathway === 'Research-Based'"
+                @change="topicStore.setPathwayFilter('Research-Based')"
               />
-              Active
+              Research-Based
             </label>
             <label class="filter-checkbox">
               <input
                 type="radio"
-                name="status"
-                value="All"
-                v-model="selectedStatus"
-                @change="topicStore.setStatusFilter('')"
+                name="pathway"
+                value="Solution-Based"
+                :checked="topicStore.filters.pathway === 'Solution-Based'"
+                @change="topicStore.setPathwayFilter('Solution-Based')"
+              />
+              Solution-Based
+            </label>
+            <label class="filter-checkbox">
+              <input
+                type="radio"
+                name="pathway"
+                value=""
+                :checked="topicStore.filters.pathway === ''"
+                @change="topicStore.setPathwayFilter('')"
               />
               All
             </label>
@@ -122,7 +132,7 @@ import TopicCard from '@/components/TopicCard.vue'
 const topicStore = useTopicStore()
 const authStore = useAuthStore()
 const searchInput = ref('')
-const selectedStatus = ref('Active')
+const selectedPathway = ref('')
 const userHasApprovedAssignment = ref(false)
 
 let searchTimeout: NodeJS.Timeout

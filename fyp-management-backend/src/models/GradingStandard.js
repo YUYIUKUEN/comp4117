@@ -20,6 +20,11 @@ const gradingStandardSchema = new mongoose.Schema({
     trim: true,
     maxlength: 100,
   },
+  // Pathway-specific rubric templates (consolidates research & solution in one record)
+  rubricTemplatesByPathway: {
+    'Research-Based': { type: mongoose.Schema.Types.ObjectId, ref: 'RubricTemplate', default: null },
+    'Solution-Based': { type: mongoose.Schema.Types.ObjectId, ref: 'RubricTemplate', default: null },
+  },
   gradingSystem: {
     type: String,
     required: [true, 'Grading system required'],

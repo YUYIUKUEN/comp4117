@@ -70,6 +70,7 @@ const getTopics = async (req, res, next) => {
     const {
       status = 'Active',
       concentration,
+      pathway,
       academicYear,
       keyword,
       search,
@@ -83,6 +84,10 @@ const getTopics = async (req, res, next) => {
 
     if (concentration) {
       filter.concentration = concentration;
+    }
+
+    if (pathway) {
+      filter.pathway = pathway;
     }
 
     if (academicYear) {

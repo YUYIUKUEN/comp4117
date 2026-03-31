@@ -78,7 +78,21 @@ const updateTemplate = async (req, res, next) => {
   try {
     const { name, description, rubricItems, isDefault } = req.body;
 
-    const template = await RubricTemplate.findById(req.params.id);
+    // Build update object only with provided fields
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (rubricItems !== undefined) updateData.rubricItems = rubricItems;
+    if (isDefault !== undefined) updateData.isDefault = isDefault;
+    updateData.updatedAt = new Date();
+
+    // Use findByIdAndUpdate with runValidators to properly handle unique constraints
+    const template = await RubricTemplate.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
     if (!template) {
       return res.status(404).json({ 
         error: 'Rubric template not found', 
@@ -87,23 +101,21 @@ const updateTemplate = async (req, res, next) => {
       });
     }
 
-    if (name) template.name = name;
-    if (description !== undefined) template.description = description;
-    if (rubricItems !== undefined) {
-      template.rubricItems = rubricItems;
-      template.markModified('rubricItems');
-    }
-    if (isDefault !== undefined) template.isDefault = isDefault;
-
-    template.updatedAt = new Date();
-    await template.save();
-
     res.json({ data: template, status: 200 });
   } catch (error) {
     if (error.code === 11000) {
       return res.status(400).json({ 
         error: 'Template name already exists', 
         code: 'DUPLICATE_NAME', 
+        status: 400 
+      });
+    }
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(e => e.message);
+      return res.status(400).json({ 
+        error: 'Validation failed', 
+        details: messages,
+        code: 'VALIDATION_ERROR', 
         status: 400 
       });
     }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import {
   Bars3Icon,
   ChevronRightIcon,
@@ -23,6 +23,7 @@ import feedbackService from '../services/feedbackService';
 import gradingStandardService from '../services/gradingStandardService';
 
 const router = useRouter();
+const route = useRoute();
 const submissionStore = useSubmissionStore();
 const authStore = useAuthStore();
 const isStudent = computed(() => authStore.userRole === 'Student');
@@ -150,10 +151,24 @@ onMounted(async () => {
   if (submissionStore.phases.length === 0) {
     await submissionStore.fetchSubmissionPhases();
   }
-  // Select first non-submitted phase, or first phase
-  if (submissionStore.phases.length > 0 && !submissionStore.selectedPhase) {
+  
+  // Check if a specific phase is requested via URL parameter
+  const phaseIdFromUrl = route.query.phase as string | undefined;
+  let selectedPhase = null;
+  
+  if (phaseIdFromUrl && submissionStore.phases.length > 0) {
+    // Try to find phase by ID or name from URL
+    selectedPhase = submissionStore.phases.find(p => p._id === phaseIdFromUrl || p.phase === phaseIdFromUrl);
+  }
+  
+  // If no valid phase found in URL, select first non-submitted phase, or first phase
+  if (!selectedPhase && submissionStore.phases.length > 0 && !submissionStore.selectedPhase) {
     const pending = submissionStore.phases.find(p => p.status !== 'Submitted' && p.status !== 'Declared Not Needed');
-    submissionStore.setSelectedPhase(pending ?? submissionStore.phases[0] ?? null);
+    selectedPhase = pending ?? submissionStore.phases[0] ?? null;
+  }
+  
+  if (selectedPhase) {
+    submissionStore.setSelectedPhase(selectedPhase);
   }
   // Load feedback and grading standard when phase is set
   if (submissionStore.selectedPhase) {

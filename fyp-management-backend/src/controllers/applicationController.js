@@ -2,6 +2,8 @@ const Application = require('../models/Application');
 const Topic = require('../models/Topic');
 const Assignment = require('../models/Assignment');
 const ActivityLog = require('../models/ActivityLog');
+const Notification = require('../models/Notification');
+const pathwayRubricService = require('../services/pathwayRubricMapping.service');
 const mongoose = require('mongoose');
 
 const MAX_APPLICATIONS_PER_STUDENT = 5;
@@ -241,19 +243,35 @@ exports.getSupervisorApplications = async (req, res) => {
       applications.map(async (app) => {
         const student = await User.findById(app.student_id).lean();
         const topic = await Topic.findById(app.topic_id).lean();
+        
+        // Check if student already has an active assignment to a different topic
+        const activeAssignment = await Assignment.findOne({
+          student_id: app.student_id,
+          status: 'Active',
+          topic_id: { $ne: app.topic_id }, // Different topic
+        }).lean();
+        
         return {
           ...app,
           student_id: student,
           topic_id: topic,
+          studentAlreadyAssigned: !!activeAssignment,
         };
       })
     );
 
-    // Filter out applications from deactivated students
-    const activeApplications = enrichedApplications.filter(app => !app.student_id?.deactivatedAt);
+    // Filter out:
+    // 1. Applications from deactivated students
+    // 2. Applications from students already assigned to other topics
+    const activeApplications = enrichedApplications
+      .filter(app => !app.student_id?.deactivatedAt && !app.studentAlreadyAssigned)
+      .map(app => {
+        const { studentAlreadyAssigned, ...cleanApp } = app;
+        return cleanApp;
+      });
 
     const total = activeApplications.length;
-    console.log('Returning enriched applications (deactivated filtered):', activeApplications.length);
+    console.log('Returning enriched applications (deactivated and already-assigned filtered):', activeApplications.length);
     
     res.json({
       success: true,
@@ -567,21 +585,41 @@ exports.approveApplication = async (req, res) => {
       });
     }
 
-    // Create assignment
+    // Create assignment with pathway from topic
     const assignment = new Assignment({
       student_id: application.student_id,
       topic_id: application.topic_id._id,
       supervisor_id,
+      pathway: application.topic_id.pathway, // Copy pathway from topic
       status: 'Active',
     });
 
     await assignment.save();
+
+    // Auto-assign rubrics based on pathway
+    try {
+      await pathwayRubricService.autoAssignRubricsToAssignment(assignment._id, assignment.pathway);
+    } catch (error) {
+      console.error('Warning: Could not auto-assign rubrics, continuing anyway:', error);
+      // Don't fail the assignment just because rubrics failed
+    }
 
     // Update application status
     application.status = 'Approved';
     application.decidedAt = new Date();
     application.supervisorNotes = supervisorNotes;
     await application.save();
+
+    // Create notification for approved application
+    await Notification.create({
+      recipient_id: application.student_id,
+      sender_id: supervisor_id,
+      type: 'APPLICATION_APPROVED',
+      title: 'Application Approved',
+      message: `Congratulations! Your application for "${application.topic_id.title}" has been approved. You have been matched to this topic.`,
+      entityType: 'Application',
+      entityId: application._id,
+    });
 
     // Auto-reject other pending applications from this student
     const otherApps = await Application.find({
@@ -606,6 +644,20 @@ exports.approveApplication = async (req, res) => {
           status: 'Rejected',
           reason: 'Student assigned to another topic',
         },
+      });
+
+      // Populate topic to get title for notification
+      await otherApp.populate('topic_id');
+
+      // Create notification for student
+      await Notification.create({
+        recipient_id: application.student_id,
+        sender_id: supervisor_id,
+        type: 'APPLICATION_AUTO_REJECTED',
+        title: 'Application Auto-Rejected',
+        message: `Your application for "${otherApp.topic_id.title}" has been auto-rejected because you were matched to another topic. You can only be assigned to one topic at a time.`,
+        entityType: 'Application',
+        entityId: otherApp._id,
       });
     }
 
@@ -691,6 +743,17 @@ exports.rejectApplication = async (req, res) => {
     application.decidedAt = new Date();
     application.supervisorNotes = supervisorNotes;
     await application.save();
+
+    // Create notification for rejected application
+    await Notification.create({
+      recipient_id: application.student_id,
+      sender_id: supervisor_id,
+      type: 'GENERAL', // Using GENERAL type for manual rejection
+      title: 'Application Rejected',
+      message: `Your application for "${application.topic_id.title}" has been rejected.${supervisorNotes ? ` Reason: ${supervisorNotes}` : ''}`,
+      entityType: 'Application',
+      entityId: application._id,
+    });
 
     // Log activity
     await ActivityLog.create({

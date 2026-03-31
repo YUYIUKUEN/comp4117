@@ -5,6 +5,7 @@ interface CreateUserPayload {
   fullName: string
   role: 'Student' | 'Supervisor' | 'Admin'
   concentration?: string
+  pathway?: string
   phone?: string
   password?: string
 }
@@ -15,6 +16,7 @@ interface User {
   fullName: string
   role: string
   concentration?: string
+  pathway?: string
   phone?: string
   createdAt: string
   deactivatedAt?: string

@@ -4,6 +4,7 @@ const assignmentSchema = new mongoose.Schema({
   student_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   topic_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Topic', required: true },
   supervisor_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  pathway: { type: String, enum: ['Research-Based', 'Solution-Based'], required: true }, // Copy of topic's pathway
   assigned_at: { type: Date, default: Date.now },
   status: { type: String, enum: ['Active', 'Completed', 'Changed'], default: 'Active' },
   createdAt: { type: Date, default: Date.now },

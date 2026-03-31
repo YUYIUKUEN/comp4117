@@ -19,7 +19,6 @@ const rubricTemplateSchema = new mongoose.Schema({
     required: [true, 'Template name required'],
     trim: true,
     maxlength: 200,
-    unique: true,
   },
   description: {
     type: String,
@@ -46,6 +45,7 @@ const rubricTemplateSchema = new mongoose.Schema({
   },
 });
 
-rubricTemplateSchema.index({ name: 1 });
+rubricTemplateSchema.index({ name: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model('RubricTemplate', rubricTemplateSchema);
+

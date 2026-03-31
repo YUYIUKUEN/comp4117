@@ -18,6 +18,8 @@ const notificationSchema = new mongoose.Schema(
         'MEETING_BOOKED',
         'MEETING_CANCELLED',
         'MEETING_COMPLETED',
+        'APPLICATION_APPROVED',
+        'APPLICATION_AUTO_REJECTED',
         'GENERAL',
       ],
       required: true,

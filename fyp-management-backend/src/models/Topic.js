@@ -24,6 +24,12 @@ const topicSchema = new mongoose.Schema({
     required: [true, 'Concentration required'],
     enum: ['Health and Social Wellness Concentration (HSW)', 'Health Technology and Informatics Concentration (HTI)'],
   },
+  pathway: {
+    type: String,
+    required: [true, 'Pathway required'],
+    enum: ['Research-Based', 'Solution-Based'],
+    index: true,
+  },
   academicYear: {
     type: Number,
     min: [1, 'Academic year must be 1-6'],

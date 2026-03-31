@@ -62,6 +62,7 @@ const submitReply = async (feedbackId: string) => {
 
 // Derived data from assignment
 const topicTitle = computed(() => assignment.value?.topic_id?.title ?? 'No topic assigned');
+const topicPathway = computed(() => assignment.value?.topic_id?.pathway ?? '');
 const studentConcentration = computed(() => authStore.user?.concentration ?? '');
 const supervisorName = computed(() => assignment.value?.supervisor_id?.fullName ?? 'Not assigned');
 const supervisorEmail = computed(() => assignment.value?.supervisor_id?.email ?? '');
@@ -122,7 +123,13 @@ const handleTopicChangeSubmit = async (data: { newTopic: string; reason: string 
   }
 };
 
-const goToSubmissions = () => { router.push('/submissions'); };
+const goToSubmissions = (phaseId?: string) => { 
+  if (phaseId) {
+    router.push({ path: '/submissions', query: { phase: phaseId } });
+  } else {
+    router.push('/submissions');
+  }
+};
 
 // Fetch all data on mount
 onMounted(async () => {
@@ -231,6 +238,9 @@ onMounted(async () => {
               <span class="rounded-full bg-blue-50 px-2.5 py-0.5 border border-blue-200 text-blue-700">
                 Concentration · {{ studentConcentration }}
               </span>
+              <span v-if="topicPathway" class="rounded-full bg-purple-50 px-2.5 py-0.5 border border-purple-200 text-purple-700">
+                Pathway · {{ topicPathway }}
+              </span>
               <span class="rounded-full bg-slate-100 px-2.5 py-0.5 border border-slate-200">
                 Student View
               </span>
@@ -325,7 +335,7 @@ onMounted(async () => {
                 'border border-slate-200 bg-slate-50': phase.status === 'Not Submitted' && !phase.dueDate,
                 'border border-blue-200 bg-blue-50': phase.status === 'Declared Not Needed',
               }"
-              @click="goToSubmissions"
+              @click="goToSubmissions(phase._id)"
             >
               <p class="font-medium" :class="{
                 'text-emerald-900': phase.status === 'Submitted',

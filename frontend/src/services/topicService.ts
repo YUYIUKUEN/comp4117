@@ -6,6 +6,7 @@ interface TopicParams {
   search?: string
   concentration?: string
   status?: string
+  pathway?: string
 }
 
 interface Topic {
@@ -13,6 +14,7 @@ interface Topic {
   title: string
   description: string
   concentration: string
+  pathway: 'Research-Based' | 'Solution-Based'
   keywords: string[]
   supervisorId: string
   supervisorName: string
@@ -36,7 +38,7 @@ export default {
   async getTopics(params: TopicParams = {}): Promise<PaginatedResponse<Topic>> {
     try {
       const response = await httpClient.get('/topics', { params })
-      return response.data
+      return response.data.data || response.data
     } catch (error) {
       throw error
     }
@@ -45,7 +47,7 @@ export default {
   async getTopicById(id: string): Promise<Topic> {
     try {
       const response = await httpClient.get(`/topics/${id}`)
-      return response.data
+      return response.data.data || response.data
     } catch (error) {
       throw error
     }
@@ -110,7 +112,7 @@ export default {
   async getSupervisorTopics(params: TopicParams = {}): Promise<PaginatedResponse<Topic>> {
     try {
       const response = await httpClient.get('/topics/supervisor/topics', { params })
-      return response.data
+      return response.data.data || response.data
     } catch (error) {
       throw error
     }
@@ -119,7 +121,7 @@ export default {
   async createTopic(topicData: Partial<Topic>): Promise<Topic> {
     try {
       const response = await httpClient.post('/topics/supervisor/topics', topicData)
-      return response.data
+      return response.data.data || response.data
     } catch (error) {
       throw error
     }
@@ -128,7 +130,7 @@ export default {
   async updateTopic(id: string, topicData: Partial<Topic>): Promise<Topic> {
     try {
       const response = await httpClient.put(`/topics/supervisor/topics/${id}`, topicData)
-      return response.data
+      return response.data.data || response.data
     } catch (error) {
       throw error
     }

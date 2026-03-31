@@ -41,6 +41,15 @@
         </div>
 
         <div class="form-group">
+          <label for="pathway">Pathway *</label>
+          <select v-model="formData.pathway" id="pathway" required>
+            <option value="">Select pathway</option>
+            <option value="Research-Based">Research-Based</option>
+            <option value="Solution-Based">Solution-Based</option>
+          </select>
+        </div>
+
+        <div class="form-group">
           <label for="keywords">Keywords (comma-separated) *</label>
           <input
             v-model="formData.keywords"
@@ -92,13 +101,17 @@ import topicService from '@/services/topicService'
 const router = useRouter()
 const route = useRoute()
 
-const topicId = computed(() => route.params.id as string | undefined)
+// Check for topic ID in both route params and query params (for edit mode)
+const topicId = computed(() => {
+  return (route.params.id as string) || (route.query.edit as string) || undefined
+})
 const isEditing = computed(() => !!topicId.value)
 
 const formData = reactive({
   title: '',
   description: '',
   concentration: '',
+  pathway: '',
   keywords: '',
   maxStudents: 1
 })
@@ -120,6 +133,7 @@ const loadTopic = async () => {
     formData.title = topic.title
     formData.description = topic.description
     formData.concentration = topic.concentration
+    formData.pathway = topic.pathway || ''
     formData.keywords = topic.keywords?.join(', ') || ''
     formData.maxStudents = topic.maxStudents || 1
   } catch (error: any) {
@@ -144,10 +158,11 @@ const submitForm = async () => {
       .map(k => k.trim())
       .filter(k => k.length > 0)
 
-    const topicData = {
+    const topicData: any = {
       title: formData.title,
       description: formData.description,
       concentration: formData.concentration,
+      pathway: formData.pathway,
       keywords,
       maxStudents: formData.maxStudents
     }

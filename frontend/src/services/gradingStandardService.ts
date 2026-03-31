@@ -24,6 +24,7 @@ export interface GradingStandard {
   // New fields
   templateName?: string | null
   rubricItems?: RubricItem[]
+  rubricTemplatesByPathway?: { 'Research-Based': string | null; 'Solution-Based': string | null }
   hkbuGradingScale?: 'hkbu-standard' | 'hkbu-honors' | 'custom' | null
   gradeRangeMapping?: Array<{ grade: string; minPoints: number; maxPoints: number }>
 }
@@ -40,6 +41,7 @@ export interface GradingStandardInput {
   // New fields
   templateName?: string | null
   rubricItems?: RubricItem[]
+  rubricTemplatesByPathway?: { 'Research-Based': string | null; 'Solution-Based': string | null }
   hkbuGradingScale?: 'hkbu-standard' | 'hkbu-honors' | 'custom' | null
   gradeRangeMapping?: Array<{ grade: string; minPoints: number; maxPoints: number }>
 }
@@ -72,7 +74,28 @@ export default {
 
   async getBySubmissionType(submissionType: string): Promise<GradingStandard | null> {
     try {
-      const response = await httpClient.get(`/grading-standards/by-type/${submissionType}`)
+      const encodedType = encodeURIComponent(submissionType)
+      const response = await httpClient.get(`/grading-standards/by-type/${encodedType}`)
+      return response.data.data
+    } catch (error: any) {
+      // If 404 (no standard found), return null instead of throwing
+      if (error.response?.status === 404) {
+        return null
+      }
+      throw error
+    }
+  },
+
+  async getBySubmissionTypeAndPathway(
+    submissionType: string,
+    pathway: string
+  ): Promise<GradingStandard | null> {
+    try {
+      const encodedType = encodeURIComponent(submissionType)
+      const encodedPathway = encodeURIComponent(pathway)
+      const response = await httpClient.get(
+        `/grading-standards/by-type-pathway/${encodedType}/${encodedPathway}`
+      )
       return response.data.data
     } catch (error: any) {
       // If 404 (no standard found), return null instead of throwing

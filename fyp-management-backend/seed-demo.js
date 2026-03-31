@@ -17,6 +17,8 @@ const Assignment = require('./src/models/Assignment');
 const Submission = require('./src/models/Submission');
 const Feedback = require('./src/models/Feedback');
 const ActivityLog = require('./src/models/ActivityLog');
+const GradingStandard = require('./src/models/GradingStandard');
+const RubricTemplate = require('./src/models/RubricTemplate');
 
 const DEMO_EMAILS = [
   'admin@demo.edu',
@@ -45,6 +47,8 @@ const run = async () => {
       await Application.deleteMany({ student_id: { $in: oldIds } });
       await Topic.deleteMany({ supervisor_id: { $in: oldIds } });
       await ActivityLog.deleteMany({ user_id: { $in: oldIds } });
+      await GradingStandard.deleteMany({}); // Clear all grading standards
+      await RubricTemplate.deleteMany({}); // Clear all rubric templates
       await User.deleteMany({ _id: { $in: oldIds } });
       console.log('✓ Cleaned up previous demo data');
     }
@@ -70,6 +74,7 @@ const run = async () => {
         description: 'Build an intelligent chatbot that helps university students choose courses, understand degree requirements, and plan their academic journey. The system will use natural language processing and a knowledge base of programme regulations to provide personalised advice. Students will explore prompt engineering, retrieval-augmented generation (RAG), and user-interface design for conversational AI.',
         supervisor_id: supervisor._id,
         concentration: 'Health Technology and Informatics Concentration (HTI)',
+        pathway: 'Solution-Based',
         academicYear: 4,
         keywords: ['chatbot', 'NLP', 'RAG', 'student advisor', 'LLM'],
         status: 'Active',
@@ -81,6 +86,7 @@ const run = async () => {
         description: 'Design and develop a cross-platform mobile application that provides real-time indoor and outdoor navigation across the university campus. The project covers map rendering, shortest-path algorithms, Bluetooth beacon integration, and accessibility features for visually impaired users. Students will gain experience with React Native or Flutter and geolocation APIs.',
         supervisor_id: supervisor._id,
         concentration: 'Health and Social Wellness Concentration (HSW)',
+        pathway: 'Solution-Based',
         academicYear: 4,
         keywords: ['mobile app', 'navigation', 'indoor positioning', 'accessibility'],
         status: 'Active',
@@ -92,6 +98,7 @@ const run = async () => {
         description: 'Implement a decentralised system for issuing and verifying academic credentials on a blockchain network. This project involves smart-contract development, cryptographic hashing, and building a web portal where employers can instantly verify a graduate\'s qualifications without contacting the institution. Students will learn Solidity, IPFS, and modern web development.',
         supervisor_id: supervisor._id,
         concentration: 'Health Technology and Informatics Concentration (HTI)',
+        pathway: 'Research-Based',
         academicYear: 3,
         keywords: ['blockchain', 'credentials', 'smart contracts', 'verification'],
         status: 'Active',
@@ -103,6 +110,7 @@ const run = async () => {
         description: 'Create a tool that performs automated code reviews by combining static analysis, coding-style enforcement, and simple machine-learning classifiers to detect common bug patterns. The tool will integrate with GitHub pull requests and provide inline suggestions. Students will study abstract syntax trees, linting frameworks, and CI/CD pipelines to build a practical developer tool.',
         supervisor_id: supervisor._id,
         concentration: 'Health and Social Wellness Concentration (HSW)',
+        pathway: 'Research-Based',
         academicYear: 4,
         keywords: ['code review', 'static analysis', 'CI/CD', 'developer tools'],
         status: 'Draft',
@@ -125,8 +133,8 @@ const run = async () => {
 
     // ── Assignments (from approved applications) ────────────────────
     const [assign1, assign2] = await Assignment.create([
-      { student_id: student1._id, topic_id: topic1._id, supervisor_id: supervisor._id, status: 'Active' },
-      { student_id: student2._id, topic_id: topic3._id, supervisor_id: supervisor._id, status: 'Active' },
+      { student_id: student1._id, topic_id: topic1._id, supervisor_id: supervisor._id, pathway: 'Solution-Based', status: 'Active' },
+      { student_id: student2._id, topic_id: topic3._id, supervisor_id: supervisor._id, pathway: 'Research-Based', status: 'Active' },
     ]);
 
     console.log('✓ Created 2 assignments');
@@ -205,6 +213,115 @@ const run = async () => {
     ]);
 
     console.log('✓ Created 3 feedback entries');
+
+    // ── Rubric Templates (pathway-specific) ──────────────────────────────────
+    const [researchTemplate, solutionTemplate] = await RubricTemplate.create([
+      {
+        name: 'Research-Based Assessment',
+        description: 'Rubric for Research-Based pathway projects',
+        rubricItems: [
+          {
+            title: 'Research Methodology',
+            description: 'Appropriateness and rigor of research design',
+            levels: [
+              { name: 'Inadequate', description: 'Research design is unclear or methodologically unsound' },
+              { name: 'Developing', description: 'Research design is adequate but lacks depth in methodology' },
+              { name: 'Proficient', description: 'Research design is appropriate and well-documented' },
+              { name: 'Advanced', description: 'Innovative and rigorous research design with clear justification' },
+            ],
+          },
+          {
+            title: 'Literature Review',
+            description: 'Comprehensiveness and critical evaluation of related work',
+            levels: [
+              { name: 'Inadequate', description: 'Limited or poorly integrated literature review' },
+              { name: 'Developing', description: 'Basic literature review covering main sources' },
+              { name: 'Proficient', description: 'Comprehensive review with critical analysis of key works' },
+              { name: 'Advanced', description: 'Thorough, current review with nuanced critique and synthesis' },
+            ],
+          },
+        ],
+        isDefault: true,
+      },
+      {
+        name: 'Solution-Based Assessment',
+        description: 'Rubric for Solution-Based pathway projects',
+        rubricItems: [
+          {
+            title: 'Technical Implementation',
+            description: 'Code quality, architecture, and functionality',
+            levels: [
+              { name: 'Inadequate', description: 'Code is non-functional or poorly structured' },
+              { name: 'Developing', description: 'Code works but lacks proper structure and documentation' },
+              { name: 'Proficient', description: 'Well-structured, documented code with good architecture' },
+              { name: 'Advanced', description: 'Excellent code quality, robust architecture, comprehensive documentation' },
+            ],
+          },
+          {
+            title: 'User Experience & Testing',
+            description: 'Usability, interface design, and test coverage',
+            levels: [
+              { name: 'Inadequate', description: 'Poor UI or insufficient testing' },
+              { name: 'Developing', description: 'Basic UI with limited test coverage' },
+              { name: 'Proficient', description: 'Good UI design with adequate test coverage' },
+              { name: 'Advanced', description: 'Excellent UX with comprehensive testing and user validation' },
+            ],
+          },
+        ],
+        isDefault: true,
+      },
+    ]);
+
+    console.log('✓ Created 2 rubric templates (Research-Based & Solution-Based)');
+
+    // ── Grading Standards (consolidated with pathway-specific templates) ──────
+    await GradingStandard.create([
+      {
+        submissionType: 'Continuous Assessment (20%)',
+        rubricTemplatesByPathway: {
+          'Research-Based': researchTemplate._id,
+          'Solution-Based': solutionTemplate._id,
+        },
+        gradingSystem: 'point-range',
+        pointRange: { min: 0, max: 20, step: 1 },
+        description: 'Consolidated rubric with pathway-specific assessment criteria',
+        enabled: true,
+        rubricItems: [], // Can be empty - templates provide the actual rubric
+      },
+      {
+        submissionType: 'Progress Report 1',
+        rubricTemplatesByPathway: {
+          'Research-Based': null, // Optional - can have different templates per pathway
+          'Solution-Based': null,
+        },
+        gradingSystem: 'point-range',
+        pointRange: { min: 0, max: 15, step: 1 },
+        description: 'Generic progress report rubric - applies to both Research-Based and Solution-Based pathways',
+        enabled: true,
+        rubricItems: [
+          {
+            title: 'Progress Made',
+            description: 'Measurable progress towards project goals',
+            levels: [
+              { name: 'Below Expectations', description: 'Minimal progress or off-track' },
+              { name: 'On Track', description: 'Adequate progress aligned with timeline' },
+              { name: 'Ahead of Schedule', description: 'Significant progress exceeding expectations' },
+            ],
+          },
+          {
+            title: 'Documentation & Communication',
+            description: 'Quality of progress report and clarity of updates',
+            levels: [
+              { name: 'Needs Improvement', description: 'Report is vague or poorly documented' },
+              { name: 'Satisfactory', description: 'Clear documentation with good communication' },
+              { name: 'Excellent', description: 'Comprehensive documentation with clear milestones' },
+            ],
+          },
+        ],
+      },
+    ]);
+
+    console.log('✓ Created 2 grading standards (consolidated with pathway-specific templates)');
 
     // ── Activity Logs ───────────────────────────────────────────────
     await ActivityLog.create([

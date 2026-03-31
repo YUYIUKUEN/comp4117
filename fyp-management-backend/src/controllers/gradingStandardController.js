@@ -40,7 +40,7 @@ const getGradingStandardById = async (req, res, next) => {
  */
 const createGradingStandard = async (req, res, next) => {
   try {
-    const { submissionType, pointRange, description, dueDate, enabled, templateName, rubricItems } = req.body;
+    const { submissionType, pointRange, description, dueDate, enabled, templateName, rubricItems, rubricTemplatesByPathway } = req.body;
 
     console.log('🔵 Backend received pointRange:', pointRange);
     console.log('🔵 Backend received all body:', req.body);
@@ -66,6 +66,7 @@ const createGradingStandard = async (req, res, next) => {
       pointRange: pointRange || { min: 0, max: 20, step: 1 },
       templateName: templateName || null,
       rubricItems: rubricItems || [],
+      rubricTemplatesByPathway: rubricTemplatesByPathway || { 'Research-Based': null, 'Solution-Based': null },
       description: description || '',
       dueDate: dueDate || null,
       enabled: enabled !== false,
@@ -87,7 +88,7 @@ const createGradingStandard = async (req, res, next) => {
  */
 const updateGradingStandard = async (req, res, next) => {
   try {
-    const { submissionType, pointRange, description, dueDate, enabled, templateName, rubricItems } = req.body;
+    const { submissionType, pointRange, description, dueDate, enabled, templateName, rubricItems, rubricTemplatesByPathway } = req.body;
 
     console.log('🔵 Backend received UPDATE with pointRange:', pointRange);
     console.log('🔵 Backend UPDATE all body:', req.body);
@@ -117,6 +118,10 @@ const updateGradingStandard = async (req, res, next) => {
       standard.rubricItems = rubricItems;
       standard.markModified('rubricItems');
     }
+    if (rubricTemplatesByPathway !== undefined) {
+      standard.rubricTemplatesByPathway = rubricTemplatesByPathway;
+      standard.markModified('rubricTemplatesByPathway');
+    }
     
     standard.updatedAt = new Date();
 
@@ -139,15 +144,46 @@ const updateGradingStandard = async (req, res, next) => {
 const getGradingStandardBySubmissionType = async (req, res, next) => {
   try {
     const { submissionType } = req.params;
+    const decodedSubmissionType = decodeURIComponent(submissionType);
     
     // Find enabled standard by submission type
     const standard = await GradingStandard.findOne({
-      submissionType: submissionType,
+      submissionType: decodedSubmissionType,
       enabled: true,
     });
     
     if (!standard) {
       return res.status(404).json({ error: 'No active grading standard found for this submission type', code: 'NOT_FOUND', status: 404 });
+    }
+    
+    res.json({ data: standard, status: 200 });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /grading-standards/by-type-pathway/:submissionType/:pathway
+ * Get grading standard by submission type AND pathway
+ * The pathway is used to determine which rubric template to use from the standard
+ */
+const getGradingStandardBySubmissionTypeAndPathway = async (req, res, next) => {
+  try {
+    const { submissionType, pathway } = req.params;
+    const decodedSubmissionType = decodeURIComponent(submissionType);
+    
+    // Find the grading standard by submission type (standards are not duplicated per pathway)
+    const standard = await GradingStandard.findOne({
+      submissionType: decodedSubmissionType,
+      enabled: true,
+    });
+    
+    if (!standard) {
+      return res.status(404).json({ 
+        error: `No active grading standard found for submission type "${decodedSubmissionType}"`, 
+        code: 'NOT_FOUND', 
+        status: 404 
+      });
     }
     
     res.json({ data: standard, status: 200 });
@@ -176,6 +212,7 @@ module.exports = {
   getAllGradingStandards,
   getGradingStandardById,
   getGradingStandardBySubmissionType,
+  getGradingStandardBySubmissionTypeAndPathway,
   createGradingStandard,
   updateGradingStandard,
   deleteGradingStandard,

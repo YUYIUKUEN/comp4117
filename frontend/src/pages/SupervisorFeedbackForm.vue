@@ -9,6 +9,7 @@ import {
 } from '@heroicons/vue/24/outline';
 import { getSupervisorSubmissionById, downloadSupervisorFile } from '../services/submissionService';
 import gradingStandardService from '../services/gradingStandardService';
+import rubricTemplateService from '../services/rubricTemplateService';
 import type { GradingStandard } from '../services/gradingStandardService';
 import feedbackService from '../services/feedbackService';
 import httpClient from '../services/httpClient';
@@ -118,15 +119,37 @@ onMounted(async () => {
     // Fetch submission details
     submission.value = await getSupervisorSubmissionById(submissionId);
 
-    // Fetch grading standard for this submission's phase using optimized endpoint
-    // This is more efficient than calling getAll() to fetch all standards
+    // Extract pathway from the submission's topic
+    const studentPathway = submission.value?.topic_id?.pathway || '';
+
+    // Fetch grading standard for this submission's phase
     applicableStandard.value = await gradingStandardService.getBySubmissionType(submission.value.phase);
+
+    // If standard found, check for pathway-specific rubric template
+    if (applicableStandard.value && studentPathway) {
+      const rubricTemplatesByPathway = applicableStandard.value.rubricTemplatesByPathway as any || {};
+      const templateId = rubricTemplatesByPathway[studentPathway];
+      
+      if (templateId) {
+        try {
+          const template = await rubricTemplateService.getById(templateId);
+          if (template && template.rubricItems) {
+            // Override the rubric items with pathway-specific template
+            applicableStandard.value.rubricItems = template.rubricItems;
+            console.log(`Loaded pathway-specific rubric template for ${studentPathway}:`, template);
+          }
+        } catch (err: any) {
+          console.warn(`Failed to load rubric template for pathway ${studentPathway}:`, err);
+          // Continue - use standard's rubric items as fallback
+        }
+      }
+    }
 
     // If no standard found, that's okay - supervisor can provide feedback without grading
     if (!applicableStandard.value) {
       console.warn(`No active grading standard for phase: ${submission.value.phase}. Using default values.`);
     } else {
-      console.log(`Loaded grading standard for phase ${submission.value.phase}:`, applicableStandard.value);
+      console.log(`Loaded grading standard for phase ${submission.value.phase}${studentPathway ? ` and pathway ${studentPathway}` : ''}:`, applicableStandard.value);
     }
 
     // Fetch existing feedback for this submission

@@ -4,6 +4,7 @@ const {
   getAllGradingStandards,
   getGradingStandardById,
   getGradingStandardBySubmissionType,
+  getGradingStandardBySubmissionTypeAndPathway,
   createGradingStandard,
   updateGradingStandard,
   deleteGradingStandard,
@@ -17,6 +18,10 @@ router.get('/', authenticate, getAllGradingStandards);
 // GET by submission type - called by supervisor feedback form
 // NOTE: This route must come BEFORE /:id to prevent conflict
 router.get('/by-type/:submissionType', authenticate, getGradingStandardBySubmissionType);
+
+// GET by submission type and pathway - for pathway-specific rubrics
+// NOTE: This route must come BEFORE /:id to prevent conflict
+router.get('/by-type-pathway/:submissionType/:pathway', authenticate, getGradingStandardBySubmissionTypeAndPathway);
 
 // GET by id
 router.get('/:id', authenticate, getGradingStandardById);

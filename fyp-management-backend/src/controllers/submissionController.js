@@ -639,7 +639,7 @@ const getSubmissionById = async (req, res, next) => {
 
     const submission = await Submission.findById(submissionId)
       .populate('student_id', 'fullName email')
-      .populate('topic_id', 'title');
+      .populate('topic_id', 'title pathway');
 
     if (!submission) {
       return res.status(404).json({

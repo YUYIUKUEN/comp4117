@@ -22,6 +22,7 @@ const formData = ref<GradingStandardInput>({
   description: '',
   dueDate: null,
   enabled: true,
+  rubricTemplatesByPathway: { 'Research-Based': null, 'Solution-Based': null },
 })
 
 const fetchStandards = async () => {
@@ -49,9 +50,17 @@ const resetForm = () => {
     enabled: true,
     templateName: null,
     rubricItems: [],
+    rubricTemplatesByPathway: { 'Research-Based': null, 'Solution-Based': null },
   }
   editingId.value = null
   showAddForm.value = false
+}
+
+const openAddForm = () => {
+  showAddForm.value = true
+  nextTick(() => {
+    formContainerRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  })
 }
 
 const handleAddStandard = async () => {
@@ -133,6 +142,7 @@ const startEdit = (standard: GradingStandard) => {
     enabled: standard.enabled,
     templateName: standard.templateName || null,
     rubricItems: ensureRubricItemsHavePoints(standard.rubricItems || []),
+    rubricTemplatesByPathway: standard.rubricTemplatesByPathway || { 'Research-Based': null, 'Solution-Based': null },
   }
   showAddForm.value = true
   
@@ -285,9 +295,9 @@ const loadTemplate = async (templateId: string) => {
         </div>
         <button
           v-if="!showAddForm"
-          @click="showAddForm = true"
+          @click="openAddForm"
           type="button"
-          class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500"
+          class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 active:bg-blue-700"
         >
           + Add Standard
         </button>
@@ -324,6 +334,49 @@ const loadTemplate = async (templateId: string) => {
             />
             <p class="mt-1 text-xs text-slate-500">
               Type the name of the submission phase. This will appear in the student submission checklist.
+            </p>
+          </div>
+
+          <!-- Pathway-Specific Rubric Templates -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-3">
+              Rubric Templates by Pathway
+            </label>
+            <div class="space-y-3">
+              <!-- Research-Based Template -->
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">
+                  Research-Based Pathway
+                </label>
+                <select
+                  v-model="formData.rubricTemplatesByPathway['Research-Based']"
+                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                >
+                  <option :value="null">No specific template</option>
+                  <option v-for="template in rubricTemplates" :key="template._id" :value="template._id">
+                    {{ template.name }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Solution-Based Template -->
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">
+                  Solution-Based Pathway
+                </label>
+                <select
+                  v-model="formData.rubricTemplatesByPathway['Solution-Based']"
+                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                >
+                  <option :value="null">No specific template</option>
+                  <option v-for="template in rubricTemplates" :key="template._id" :value="template._id">
+                    {{ template.name }}
+                  </option>
+                </select>
+              </div>
+            </div>
+            <p class="mt-2 text-xs text-slate-500">
+              <strong>Optional:</strong> Select a rubric template for each pathway. If left empty, supervisors can create rubrics on-demand.
             </p>
           </div>
 
@@ -611,6 +664,24 @@ const loadTemplate = async (templateId: string) => {
                         ? 'Grades'
                         : 'Custom'
                   }}
+                </span>
+                <span
+                  v-if="standard.rubricTemplatesByPathway?.['Research-Based']"
+                  class="inline-flex items-center rounded-full border border-pink-200 bg-pink-50 px-2.5 py-0.5 text-[11px] font-medium text-pink-700"
+                >
+                  Research-Based Template
+                </span>
+                <span
+                  v-if="standard.rubricTemplatesByPathway?.['Solution-Based']"
+                  class="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-[11px] font-medium text-indigo-700"
+                >
+                  Solution-Based Template
+                </span>
+                <span
+                  v-if="!standard.rubricTemplatesByPathway?.['Research-Based'] && !standard.rubricTemplatesByPathway?.['Solution-Based']"
+                  class="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2.5 py-0.5 text-[11px] font-medium text-gray-700"
+                >
+                  Generic (Both Pathways)
                 </span>
                 <span
                   v-if="standard.dueDate"

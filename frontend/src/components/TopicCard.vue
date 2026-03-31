@@ -14,6 +14,9 @@
 
     <div class="metadata">
       <span class="meta-item">{{ topic.concentration }}</span>
+      <span v-if="topic.pathway" class="meta-item pathway-badge" :class="getPathwayClass()">
+        {{ topic.pathway }}
+      </span>
       <span v-if="topic.maxStudents" class="meta-item">
         {{ topic.currentApplications || 0 }}/{{ topic.maxStudents }} students
       </span>
@@ -53,6 +56,7 @@ interface Topic {
   title: string
   description: string
   concentration: string
+  pathway?: 'Research-Based' | 'Solution-Based'
   keywords: string[]
   supervisorName: string
   status: string
@@ -69,6 +73,13 @@ const authStore = useAuthStore()
 
 const truncateText = (text: string, length: number) => {
   return text.length > length ? text.substring(0, length) + '...' : text
+}
+
+const getPathwayClass = () => {
+  if (!props.topic.pathway) return ''
+  return props.topic.pathway === 'Research-Based' 
+    ? 'pathway-researchbased' 
+    : 'pathway-solutionbased'
 }
 </script>
 
@@ -132,6 +143,25 @@ const truncateText = (text: string, length: number) => {
 .status-archived {
   background: #f8d7da;
   color: #721c24;
+}
+
+.pathway-badge {
+  font-weight: 600 !important;
+  font-size: 0.8rem !important;
+  padding: 0.35rem 0.6rem !important;
+  border-radius: 12px !important;
+}
+
+.pathway-researchbased {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #93c5fd;
+}
+
+.pathway-solutionbased {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
 }
 
 .description {

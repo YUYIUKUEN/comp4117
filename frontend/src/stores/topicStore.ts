@@ -7,6 +7,7 @@ interface Topic {
   title: string
   description: string
   concentration: string
+  pathway?: 'Research-Based' | 'Solution-Based'
   keywords: string[]
   supervisorName: string
   status: string
@@ -17,7 +18,7 @@ interface Topic {
 interface Filters {
   search: string
   concentration: string
-  status: string
+  pathway: string
   page: number
   limit: number
 }
@@ -31,7 +32,7 @@ export const useTopicStore = defineStore('topic', () => {
   const filters = ref<Filters>({
     search: '',
     concentration: '',
-    status: 'Active',
+    pathway: '',
     page: 1,
     limit: 10
   })
@@ -62,7 +63,8 @@ export const useTopicStore = defineStore('topic', () => {
         limit: filters.value.limit,
         search: filters.value.search,
         concentration: filters.value.concentration,
-        status: filters.value.status
+        status: 'Active',
+        pathway: filters.value.pathway
       })
       // Response has structure: { data: { topics: [...], pagination: {...} }, status: 200 }
       const resData = response as any
@@ -108,8 +110,14 @@ export const useTopicStore = defineStore('topic', () => {
     await fetchTopics()
   }
 
+  const setPathwayFilter = async (pathway: string) => {
+    filters.value.pathway = pathway
+    filters.value.page = 1
+    await fetchTopics()
+  }
+
   const setStatusFilter = async (status: string) => {
-    filters.value.status = status
+    // Status filter deprecated, kept for backward compatibility
     filters.value.page = 1
     await fetchTopics()
   }
@@ -140,7 +148,7 @@ export const useTopicStore = defineStore('topic', () => {
     filters.value = {
       search: '',
       concentration: '',
-      status: 'Active',
+      pathway: '',
       page: 1,
       limit: 10
     }
@@ -169,6 +177,7 @@ export const useTopicStore = defineStore('topic', () => {
     fetchTopicById,
     searchTopics,
     setConcentrationFilter,
+    setPathwayFilter,
     setStatusFilter,
     setPage,
     applyForTopic,

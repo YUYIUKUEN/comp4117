@@ -7,6 +7,7 @@ const userSchema = new mongoose.Schema({
   fullName: { type: String, required: true, maxlength: 255 },
   role: { type: String, enum: ['Student', 'Supervisor', 'Admin'], required: true },
   concentration: String,
+  pathway: { type: String, enum: ['Research-Based', 'Solution-Based', null], default: null }, // Student's selected pathway (can be null if not yet chosen)
   phone: String,
   officeHours: String,
   createdAt: { type: Date, default: Date.now },

@@ -22,6 +22,7 @@ interface Student {
   name: string;
   email: string;
   programme: string;
+  pathway?: string;
   cohort: string;
   status: string;
 }
@@ -71,6 +72,7 @@ const editStudentForm = ref({
   fullName: '',
   email: '',
   concentration: '',
+  pathway: '',
   phone: '',
 });
 const editStudentError = ref('');
@@ -85,6 +87,7 @@ const fetchStudents = async () => {
       name: u.fullName,
       email: u.email,
       programme: u.concentration || 'Not set',
+      pathway: u.pathway || '',
       cohort: u.createdAt ? new Date(u.createdAt).getFullYear() + '-' + (new Date(u.createdAt).getFullYear() + 1) : 'Unknown',
       status: u.deactivatedAt ? 'Inactive' : 'Active',
     }));
@@ -159,6 +162,7 @@ const handleEditStudent = (studentId: string) => {
     fullName: student.name,
     email: student.email,
     concentration: student.programme === 'Not set' ? '' : student.programme,
+    pathway: student.pathway || '',
     phone: '',
   };
   editStudentError.value = '';
@@ -179,6 +183,7 @@ const submitEditStudent = async () => {
       fullName: editStudentForm.value.fullName.trim(),
       email: editStudentForm.value.email.trim(),
       concentration: editStudentForm.value.concentration.trim() || undefined,
+      pathway: editStudentForm.value.pathway.trim() || undefined,
       phone: editStudentForm.value.phone.trim() || undefined,
     });
     showEditModal.value = false;
@@ -598,6 +603,17 @@ const handleDeleteCohort = (cohortId: number) => {
                 type="text"
                 class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
               />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Pathway</label>
+              <select
+                v-model="editStudentForm.pathway"
+                class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
+              >
+                <option value="">Not set</option>
+                <option value="Research-Based">Research-Based</option>
+                <option value="Solution-Based">Solution-Based</option>
+              </select>
             </div>
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-1">Phone</label>
