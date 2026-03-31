@@ -18,6 +18,7 @@ export interface GradingStandard {
   description?: string
   dueDate?: string | null
   enabled: boolean
+  enabledByPathway?: { 'Research-Based': boolean; 'Solution-Based': boolean }
   createdBy?: string
   createdAt: string
   updatedAt: string
@@ -39,6 +40,7 @@ export interface GradingStandardInput {
   description?: string
   dueDate?: string | null
   enabled?: boolean
+  enabledByPathway?: { 'Research-Based': boolean; 'Solution-Based': boolean }
   // New fields
   templateName?: string | null
   rubricItems?: RubricItem[]

@@ -674,8 +674,7 @@ exports.approveApplication = async (req, res) => {
     });
 
     // Return updated application with assignment info
-    await application.populate(['student_id', 'topic_id']);
-
+    // Note: application is already populated from line 551
     res.json({
       success: true,
       data: {
@@ -688,10 +687,11 @@ exports.approveApplication = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error approving application:', error);
+    console.error('❌ Error approving application:', error);
     res.status(500).json({
       code: 'INTERNAL_ERROR',
       message: 'Internal server error',
+      error: error.message,
     });
   }
 };

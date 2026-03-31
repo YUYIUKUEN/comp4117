@@ -47,12 +47,18 @@ const gradingStandardSchema = new mongoose.Schema({
   rubricItems: [rubricItemSchema], // array of rubric items for reference
   description: { type: String, maxlength: 500, default: '' },
   dueDate: { type: Date, default: null },
-  enabled: { type: Boolean, default: true },
+  enabled: { type: Boolean, default: true }, // Kept for backward compatibility
+  // Pathway-specific enable/disable
+  enabledByPathway: {
+    'Research-Based': { type: Boolean, default: true },
+    'Solution-Based': { type: Boolean, default: true },
+  },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now, immutable: true },
   updatedAt: { type: Date, default: Date.now },
 });
 
 gradingStandardSchema.index({ submissionType: 1, enabled: 1 });
+gradingStandardSchema.index({ submissionType: 1, 'enabledByPathway.Research-Based': 1, 'enabledByPathway.Solution-Based': 1 });
 
 module.exports = mongoose.model('GradingStandard', gradingStandardSchema);

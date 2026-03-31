@@ -22,6 +22,7 @@ const formData = ref<GradingStandardInput>({
   description: '',
   dueDate: null,
   enabled: true,
+  enabledByPathway: { 'Research-Based': true, 'Solution-Based': true },
   pathways: ['Research-Based', 'Solution-Based'],
   rubricTemplatesByPathway: { 'Research-Based': null, 'Solution-Based': null },
 })
@@ -49,6 +50,7 @@ const resetForm = () => {
     description: '',
     dueDate: null,
     enabled: true,
+    enabledByPathway: { 'Research-Based': true, 'Solution-Based': true },
     pathways: ['Research-Based', 'Solution-Based'],
     templateName: null,
     rubricItems: [],
@@ -142,6 +144,7 @@ const startEdit = (standard: GradingStandard) => {
     description: standard.description || '',
     dueDate: formattedDueDate,
     enabled: standard.enabled,
+    enabledByPathway: standard.enabledByPathway || { 'Research-Based': true, 'Solution-Based': true },
     pathways: standard.pathways || ['Research-Based', 'Solution-Based'],
     templateName: standard.templateName || null,
     rubricItems: ensureRubricItemsHavePoints(standard.rubricItems || []),
@@ -343,30 +346,64 @@ const loadTemplate = async (templateId: string) => {
           <!-- Pathway Selection -->
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-3">
-              Available for Pathways
+              Enable Assessment for Pathways
             </label>
             <div class="space-y-2">
               <label class="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  value="Research-Based"
-                  v-model="formData.pathways"
-                  class="rounded border-slate-300"
+                  :checked="formData.pathways?.includes('Research-Based')"
+                  @change="(e) => {
+                    if ((e.target as HTMLInputElement).checked) {
+                      if (!formData.pathways) formData.pathways = [];
+                      if (!formData.pathways.includes('Research-Based')) {
+                        formData.pathways.push('Research-Based');
+                      }
+                      if (formData.enabledByPathway) {
+                        formData.enabledByPathway['Research-Based'] = true;
+                      }
+                    } else {
+                      if (formData.pathways) {
+                        formData.pathways = formData.pathways.filter((p: string) => p !== 'Research-Based');
+                      }
+                      if (formData.enabledByPathway) {
+                        formData.enabledByPathway['Research-Based'] = false;
+                      }
+                    }
+                  }"
+                  class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                 />
-                <span class="text-sm text-slate-700">Research-Based</span>
+                <span class="text-sm text-slate-700">Research-Based Pathway</span>
               </label>
               <label class="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  value="Solution-Based"
-                  v-model="formData.pathways"
-                  class="rounded border-slate-300"
+                  :checked="formData.pathways?.includes('Solution-Based')"
+                  @change="(e) => {
+                    if ((e.target as HTMLInputElement).checked) {
+                      if (!formData.pathways) formData.pathways = [];
+                      if (!formData.pathways.includes('Solution-Based')) {
+                        formData.pathways.push('Solution-Based');
+                      }
+                      if (formData.enabledByPathway) {
+                        formData.enabledByPathway['Solution-Based'] = true;
+                      }
+                    } else {
+                      if (formData.pathways) {
+                        formData.pathways = formData.pathways.filter((p: string) => p !== 'Solution-Based');
+                      }
+                      if (formData.enabledByPathway) {
+                        formData.enabledByPathway['Solution-Based'] = false;
+                      }
+                    }
+                  }"
+                  class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                 />
-                <span class="text-sm text-slate-700">Solution-Based</span>
+                <span class="text-sm text-slate-700">Solution-Based Pathway</span>
               </label>
             </div>
             <p class="mt-2 text-xs text-slate-500">
-              Select which pathways this assessment applies to. Students will only see assessments for their pathway.
+              Select which pathways should have this assessment enabled. Students will only see enabled assessments for their pathway.
             </p>
           </div>
 

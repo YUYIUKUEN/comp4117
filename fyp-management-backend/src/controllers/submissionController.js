@@ -380,14 +380,22 @@ const getAllStudentSubmissions = async (req, res, next) => {
     }
 
     // Fetch submission phases dynamically from enabled grading standards
-    const enabledStandards = await GradingStandard.find({ enabled: true }).sort({ _id: 1 });
-    const phases = enabledStandards.length > 0
-      ? enabledStandards.map(s => s.submissionType)
+    const enabledStandards = await GradingStandard.find({}).sort({ _id: 1 });
+    const pathway = assignment.pathway;
+    
+    // Filter standards that are enabled for this student's pathway
+    const activeStandards = enabledStandards.filter(s => {
+      const isEnabledForPathway = s.enabledByPathway ? s.enabledByPathway[pathway] : s.enabled;
+      return isEnabledForPathway;
+    });
+    
+    const phases = activeStandards.length > 0
+      ? activeStandards.map(s => s.submissionType)
       : ['Initial Statement', 'Progress Report 1', 'Progress Report 2', 'Final Dissertation']; // fallback
 
     // Build a map of grading-standard due dates keyed by submissionType
     const standardDueDateMap = {};
-    enabledStandards.forEach(s => {
+    activeStandards.forEach(s => {
       standardDueDateMap[s.submissionType] = s.dueDate || null;
     });
 
@@ -457,14 +465,27 @@ const getSupervisorSubmissions = async (req, res, next) => {
 
     const topicIds = assignments.map(a => a.topic_id);
 
-    // Fetch enabled grading standards to filter by valid phases
+    // Fetch grading standards to filter by valid phases
     const GradingStandard = require('../models/GradingStandard');
-    const enabledStandards = await GradingStandard.find({ enabled: true });
-    const validPhases = enabledStandards.map(s => s.submissionType);
+    const allStandards = await GradingStandard.find({});
+    
+    // Build a map of enabled phases by pathway
+    const enabledPhasesByPathway = {};
+    ['Research-Based', 'Solution-Based'].forEach(pathway => {
+      enabledPhasesByPathway[pathway] = allStandards
+        .filter(s => {
+          const isEnabledForPathway = s.enabledByPathway ? s.enabledByPathway[pathway] : s.enabled;
+          return isEnabledForPathway;
+        })
+        .map(s => s.submissionType);
+    });
+    
+    // Get all valid phases across all pathways
+    const allValidPhases = [...new Set(Object.values(enabledPhasesByPathway).flat())];
 
     const filter = { 
       topic_id: { $in: topicIds },
-      phase: { $in: validPhases } // Only include phases with active grading standards
+      phase: { $in: allValidPhases } // Only include phases with active grading standards
     };
     if (phase) {
       filter.phase = phase;
