@@ -327,11 +327,9 @@ const updateUser = async (req, res, next) => {
     }
 
     if (fullName !== undefined) user.fullName = fullName;
-    if (concentration !== undefined) user.concentration = concentration;
+    if (concentration !== undefined) user.concentration = concentration || null;
     if (phone !== undefined) user.phone = phone;
-    if (pathway !== undefined && ['Research-Based', 'Solution-Based', null, ''].includes(pathway)) {
-      user.pathway = pathway || null;
-    }
+    if (pathway !== undefined) user.pathway = pathway || null;
     if (role && ['Student', 'Supervisor', 'Admin'].includes(role)) {
       user.role = role;
     }

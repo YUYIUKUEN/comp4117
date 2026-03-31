@@ -183,8 +183,8 @@ const submitEditStudent = async () => {
     await userService.updateUser(editStudentId.value, {
       fullName: editStudentForm.value.fullName.trim(),
       email: editStudentForm.value.email.trim(),
-      concentration: editStudentForm.value.concentration.trim() || undefined,
-      pathway: editStudentForm.value.pathway.trim() || undefined,
+      concentration: editStudentForm.value.concentration || null,
+      pathway: editStudentForm.value.pathway || null,
       phone: editStudentForm.value.phone.trim() || undefined,
     });
     showEditModal.value = false;
@@ -608,11 +608,14 @@ const handleDeleteCohort = (cohortId: number) => {
             </div>
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-1">Programme / Concentration</label>
-              <input
+              <select
                 v-model="editStudentForm.concentration"
-                type="text"
-                class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
-              />
+                class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
+              >
+                <option value="">Not set</option>
+                <option value="Health and Social Wellness Concentration (HSW)">Health and Social Wellness Concentration (HSW)</option>
+                <option value="Health Technology and Informatics Concentration (HTI)">Health Technology and Informatics Concentration (HTI)</option>
+              </select>
             </div>
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-1">Pathway</label>
