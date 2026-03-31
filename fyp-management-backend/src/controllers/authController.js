@@ -78,6 +78,7 @@ const login = async (req, res, next) => {
           fullName: user.fullName,
           role: user.role,
           concentration: user.concentration,
+          pathway: user.pathway, // Include pathway for filtering
         },
         expiresIn,
         expiresAt,
@@ -323,6 +324,7 @@ const getMe = async (req, res, next) => {
         fullName: user.fullName,
         role: user.role,
         concentration: user.concentration || null,
+        pathway: user.pathway || null, // Include pathway for filtering
         phone: user.phone || null,
       },
       status: 200,
