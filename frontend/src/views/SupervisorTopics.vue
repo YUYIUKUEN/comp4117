@@ -35,6 +35,7 @@
 
         <div class="metadata">
           <span class="meta">{{ topic.concentration }}</span>
+          <span v-if="topic.pathway" class="meta pathway-badge">{{ topic.pathway }}</span>
           <span class="meta">{{ topic.keywords.length }} keywords</span>
         </div>
 
@@ -99,6 +100,7 @@ interface Topic {
   title: string
   description: string
   concentration: string
+  pathway?: string
   keywords: string[]
   supervisorName: string
   status: string
@@ -481,6 +483,16 @@ onMounted(() => {
 
 .meta {
   color: #999;
+}
+
+.pathway-badge {
+  display: inline-block;
+  padding: 0.3rem 0.8rem;
+  background: #e3f2fd;
+  color: #1976d2;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
 }
 
 .topic-actions {
