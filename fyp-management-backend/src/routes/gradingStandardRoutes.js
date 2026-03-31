@@ -12,6 +12,8 @@ const {
 
 const router = express.Router();
 
+// Route order matters! More specific routes must come BEFORE catch-all routes like /:id
+
 // GET all - any authenticated user (supervisors need to read)
 router.get('/', authenticate, getAllGradingStandards);
 
@@ -20,8 +22,8 @@ router.get('/', authenticate, getAllGradingStandards);
 router.get('/by-type/:submissionType', authenticate, getGradingStandardBySubmissionType);
 
 // GET by submission type and pathway - for pathway-specific rubrics
-// NOTE: This route must come BEFORE /:id to prevent conflict
-router.get('/by-type-pathway/:submissionType/:pathway', authenticate, getGradingStandardBySubmissionTypeAndPathway);
+// Uses query parameters to avoid URL encoding issues with special characters in pathways
+router.get('/by-type-pathway', authenticate, getGradingStandardBySubmissionTypeAndPathway);
 
 // GET by id
 router.get('/:id', authenticate, getGradingStandardById);

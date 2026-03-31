@@ -95,10 +95,14 @@ export default {
     pathway: string
   ): Promise<GradingStandard | null> {
     try {
-      const encodedType = encodeURIComponent(submissionType)
-      const encodedPathway = encodeURIComponent(pathway)
       const response = await httpClient.get(
-        `/grading-standards/by-type-pathway/${encodedType}/${encodedPathway}`
+        `/grading-standards/by-type-pathway`,
+        {
+          params: {
+            submissionType,
+            pathway
+          }
+        }
       )
       return response.data.data
     } catch (error: any) {

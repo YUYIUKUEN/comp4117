@@ -185,18 +185,30 @@ const getGradingStandardBySubmissionType = async (req, res, next) => {
  */
 const getGradingStandardBySubmissionTypeAndPathway = async (req, res, next) => {
   try {
-    const { submissionType, pathway } = req.params;
-    const decodedSubmissionType = decodeURIComponent(submissionType);
+    // Extract from query parameters (cleaner than path parameters for special characters)
+    const { submissionType, pathway } = req.query;
+    
+    console.log('🔵 Query params:', { submissionType, pathway });
+    
+    if (!submissionType || !pathway) {
+      return res.status(400).json({
+        error: 'Missing required query parameters: submissionType and pathway',
+        code: 'BAD_REQUEST',
+        status: 400
+      });
+    }
+    
+    console.log('🔵 Fetching grading standard with:', { submissionType, pathway });
     
     // Find grading standard by submission type and check if it applies to this pathway
     const standard = await GradingStandard.findOne({
-      submissionType: decodedSubmissionType,
+      submissionType,
       pathways: pathway, // Only return if this pathway is included
     });
     
     if (!standard) {
       return res.status(404).json({ 
-        error: `No active grading standard found for submission type "${decodedSubmissionType}" and pathway "${pathway}"`, 
+        error: `No active grading standard found for submission type "${submissionType}" and pathway "${pathway}"`, 
         code: 'NOT_FOUND', 
         status: 404 
       });
@@ -206,14 +218,16 @@ const getGradingStandardBySubmissionTypeAndPathway = async (req, res, next) => {
     const isEnabledForPathway = standard.enabledByPathway ? standard.enabledByPathway[pathway] : standard.enabled;
     if (!isEnabledForPathway) {
       return res.status(404).json({ 
-        error: `Grading standard for "${decodedSubmissionType}" is disabled for pathway "${pathway}"`, 
+        error: `Grading standard for "${submissionType}" is disabled for pathway "${pathway}"`, 
         code: 'NOT_FOUND', 
         status: 404 
       });
     }
     
+    console.log('🟢 Found grading standard:', standard.submissionType);
     res.json({ data: standard, status: 200 });
   } catch (error) {
+    console.error('❌ Error fetching grading standard by type and pathway:', error.message, error.stack);
     next(error);
   }
 };
