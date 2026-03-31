@@ -300,7 +300,7 @@ const createUser = async (req, res, next) => {
 const updateUser = async (req, res, next) => {
   try {
     const { userId } = req.params;
-    const { fullName, email, concentration, phone, role } = req.body;
+    const { fullName, email, concentration, phone, role, pathway } = req.body;
 
     const user = await User.findById(userId);
     if (!user) {
@@ -329,6 +329,9 @@ const updateUser = async (req, res, next) => {
     if (fullName !== undefined) user.fullName = fullName;
     if (concentration !== undefined) user.concentration = concentration;
     if (phone !== undefined) user.phone = phone;
+    if (pathway !== undefined && ['Research-Based', 'Solution-Based', null, ''].includes(pathway)) {
+      user.pathway = pathway || null;
+    }
     if (role && ['Student', 'Supervisor', 'Admin'].includes(role)) {
       user.role = role;
     }
@@ -341,7 +344,7 @@ const updateUser = async (req, res, next) => {
       action: 'user_updated',
       entityType: 'User',
       entityId: userId,
-      details: { fullName, email, concentration, phone, role },
+      details: { fullName, email, concentration, phone, role, pathway },
     });
 
     const userObj = user.toObject();
