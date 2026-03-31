@@ -258,7 +258,7 @@ onMounted(async () => {
             </button>
             <button
               type="button"
-              @click="goToSubmissions"
+              @click="() => goToSubmissions()"
               class="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-slate-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50"
             >
               <CloudArrowUpIcon class="h-3.5 w-3.5" />

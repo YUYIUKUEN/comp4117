@@ -183,8 +183,8 @@ const submitEditStudent = async () => {
     await userService.updateUser(editStudentId.value, {
       fullName: editStudentForm.value.fullName.trim(),
       email: editStudentForm.value.email.trim(),
-      concentration: editStudentForm.value.concentration || null,
-      pathway: editStudentForm.value.pathway || null,
+      concentration: editStudentForm.value.concentration || undefined,
+      pathway: editStudentForm.value.pathway || undefined,
       phone: editStudentForm.value.phone.trim() || undefined,
     });
     showEditModal.value = false;

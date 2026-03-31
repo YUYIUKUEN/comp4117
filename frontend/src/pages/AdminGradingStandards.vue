@@ -349,7 +349,7 @@ const loadTemplate = async (templateId: string) => {
                   Research-Based Pathway
                 </label>
                 <select
-                  v-model="formData.rubricTemplatesByPathway['Research-Based']"
+                  v-model="formData.rubricTemplatesByPathway!['Research-Based']"
                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 >
                   <option :value="null">No specific template</option>
@@ -365,7 +365,7 @@ const loadTemplate = async (templateId: string) => {
                   Solution-Based Pathway
                 </label>
                 <select
-                  v-model="formData.rubricTemplatesByPathway['Solution-Based']"
+                  v-model="formData.rubricTemplatesByPathway!['Solution-Based']"
                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 >
                   <option :value="null">No specific template</option>
