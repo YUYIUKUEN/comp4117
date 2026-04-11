@@ -8,7 +8,7 @@ interface CreateUserPayload {
   pathway?: string
   phone?: string
   password?: string
-  cohort?: string
+  cohort?: string | null
 }
 
 interface User {
