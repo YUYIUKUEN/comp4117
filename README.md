@@ -109,9 +109,8 @@ comp4117/
 - **Supervisor Management**: Manage supervisor profiles and assignments
 - **Grading Standards**: Define evaluation criteria and rubrics
 - **Bulk Operations**: 
-  - Mark students as ethics not required
-  - Assign students to supervisors
   - Import students from Excel
+  - Export students from the system
 - **Excel Import/Export**: Batch operations for student management
 - **Activity Logging**: Track all system events
 - **System Configuration**: Manage grading standards, rubric templates
