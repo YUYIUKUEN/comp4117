@@ -4,7 +4,7 @@ const ActivityLog = require('../models/ActivityLog');
 
 const createTopic = async (req, res, next) => {
   try {
-    const { title, description, concentration, academicYear, keywords, referenceDocuments } = req.body;
+    const { title, description, concentration, pathway, academicYear, keywords, referenceDocuments } = req.body;
     const supervisorId = req.auth.userId;
 
     // Verify user is supervisor
@@ -18,9 +18,9 @@ const createTopic = async (req, res, next) => {
     }
 
     // Validation
-    if (!title || !description || !concentration) {
+    if (!title || !description || !concentration || !pathway) {
       return res.status(400).json({
-        error: 'Title, description, and concentration required',
+        error: 'Title, description, concentration, and pathway required',
         code: 'INVALID_INPUT',
         status: 400,
       });
@@ -31,6 +31,7 @@ const createTopic = async (req, res, next) => {
       description,
       supervisor_id: supervisorId,
       concentration,
+      pathway,
       academicYear,
       keywords: keywords || [],
       referenceDocuments: referenceDocuments || [],
@@ -195,7 +196,7 @@ const updateTopic = async (req, res, next) => {
     }
 
     // Update allowed fields
-    const allowedFields = ['title', 'description', 'concentration', 'academicYear', 'keywords', 'referenceDocuments'];
+    const allowedFields = ['title', 'description', 'concentration', 'pathway', 'academicYear', 'keywords', 'referenceDocuments'];
     allowedFields.forEach(field => {
       if (updates[field] !== undefined) {
         topic[field] = updates[field];

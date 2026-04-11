@@ -68,7 +68,7 @@ const run = async () => {
     console.log('✓ Created users');
 
     // ── Topics (by supervisor) ──────────────────────────────────────
-    const [topic1, topic2, topic3, topic4] = await Topic.create([
+    const [topic1, topic2, topic3, topic4, topic5, topic6, topic7] = await Topic.create([
       {
         title: 'AI-Powered Student Advisor Chatbot',
         description: 'Build an intelligent chatbot that helps university students choose courses, understand degree requirements, and plan their academic journey. The system will use natural language processing and a knowledge base of programme regulations to provide personalised advice. Students will explore prompt engineering, retrieval-augmented generation (RAG), and user-interface design for conversational AI.',
@@ -116,9 +116,45 @@ const run = async () => {
         status: 'Draft',
         maxApplications: 3,
       },
+      {
+        title: 'Wearable Sensor Data Analytics for Health Monitoring',
+        description: 'Investigate the use of wearable sensors (smartwatches, fitness trackers) for continuous health monitoring. Students will collect real-world biometric data, apply signal processing and machine learning techniques to detect anomalies, and develop an early warning system. The research explores privacy-preserving analytics and federated learning approaches.',
+        supervisor_id: supervisor._id,
+        concentration: 'Health and Social Wellness Concentration (HSW)',
+        pathway: 'Research-Based',
+        academicYear: 4,
+        keywords: ['wearable sensors', 'health monitoring', 'machine learning', 'signal processing'],
+        status: 'Active',
+        maxApplications: 2,
+        applicationDeadline: new Date(Date.now() + 30 * 24 * 3600 * 1000),
+      },
+      {
+        title: 'Real-time Disease Outbreak Prediction Dashboard',
+        description: 'Develop a full-stack web application that integrates public health data, epidemiological models, and real-time alerts to predict and visualize disease outbreaks at regional and global scales. The system will incorporate data from multiple public APIs, apply time-series forecasting models, and provide interactive dashboards for health officials. Students will work with geospatial data, dashboarding libraries, and cloud infrastructure.',
+        supervisor_id: supervisor._id,
+        concentration: 'Health Technology and Informatics Concentration (HTI)',
+        pathway: 'Solution-Based',
+        academicYear: 4,
+        keywords: ['epidemiology', 'forecasting', 'dashboard', 'real-time data', 'public health'],
+        status: 'Active',
+        maxApplications: 2,
+        applicationDeadline: new Date(Date.now() + 28 * 24 * 3600 * 1000),
+      },
+      {
+        title: 'AI-Driven Mental Health Support Chatbot',
+        description: 'Build a conversational AI system that provides mental health support and therapy guidance to users. The system will use natural language understanding to assess emotional state, provide evidence-based coping strategies, and offer resource recommendations. Students will explore sentiment analysis, emotional intelligence in AI, and ethical considerations in mental health technology.',
+        supervisor_id: supervisor._id,
+        concentration: 'Health and Social Wellness Concentration (HSW)',
+        pathway: 'Solution-Based',
+        academicYear: 3,
+        keywords: ['mental health', 'chatbot', 'sentiment analysis', 'emotional AI', 'therapy'],
+        status: 'Active',
+        maxApplications: 2,
+        applicationDeadline: new Date(Date.now() + 32 * 24 * 3600 * 1000),
+      },
     ]);
 
-    console.log('✓ Created 4 topics (3 Active, 1 Draft)');
+    console.log('✓ Created 7 topics (5 research-based or solution-based, 2 new)');
 
     // ── Applications ────────────────────────────────────────────────
     const [app1, app2, app3, app4, app5] = await Application.create([

@@ -144,8 +144,8 @@ const loadTopic = async () => {
 }
 
 const submitForm = async () => {
-  if (!formData.title || !formData.description) {
-    formError.value = 'Title and description are required'
+  if (!formData.title || !formData.description || !formData.pathway) {
+    formError.value = 'Title, description, and pathway are required'
     return
   }
 
