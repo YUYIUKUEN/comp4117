@@ -599,16 +599,38 @@ const downloadSupervisorFile = async (req, res, next) => {
       });
     }
 
-    const filepath = getFile(studentId, phase, filename);
-    res.download(filepath, file.originalName);
+    try {
+      await ActivityLog.create({
+        user_id: supervisorId,
+        action: 'submission_file_viewed',
+        entityType: 'Submission',
+        entityId: submission._id,
+        details: { phase, filename: file.originalName, studentId },
+      });
+    } catch (logError) {
+      console.error('Failed to write activity log for submission_file_viewed:', logError);
+    }
 
-    await ActivityLog.create({
-      user_id: supervisorId,
-      action: 'submission_file_viewed',
-      entityType: 'Submission',
-      entityId: submission._id,
-      details: { phase, filename: file.originalName, studentId },
-    });
+    let filepath;
+    try {
+      filepath = getFile(studentId, phase, filename);
+    } catch (fileError) {
+      return res.status(404).json({
+        error: 'File not found on server',
+        code: 'FILE_NOT_FOUND',
+        status: 404,
+      });
+    }
+
+    if (!fs.existsSync(filepath)) {
+      return res.status(404).json({
+        error: 'File not found on server',
+        code: 'FILE_NOT_FOUND',
+        status: 404,
+      });
+    }
+
+    res.download(filepath, file.originalName);
   } catch (error) {
     next(error);
   }
