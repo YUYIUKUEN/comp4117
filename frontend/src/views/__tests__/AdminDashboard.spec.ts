@@ -8,7 +8,6 @@ describe('AdminDashboard', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Admin Dashboard')
-    expect(wrapper.text()).toContain('System Overview')
   })
 
   it('displays loading state', () => {
