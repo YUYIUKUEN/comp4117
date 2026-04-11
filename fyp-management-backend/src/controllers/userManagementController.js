@@ -737,6 +737,7 @@ const downloadStudentSubmissionFile = async (req, res, next) => {
     const { studentId, phase, filename } = req.params;
     const { getFile } = require('../config/storage');
     const Submission = require('../models/Submission');
+    const fs = require('fs');
 
     // Verify student exists
     const student = await User.findById(studentId);
@@ -772,11 +773,30 @@ const downloadStudentSubmissionFile = async (req, res, next) => {
       });
     }
 
-    // Get file path and download
-    const filepath = getFile(studentId, phase, filename);
-    res.download(filepath, file.originalName);
+    // Get file path
+    let filepath;
+    try {
+      filepath = getFile(studentId, phase, filename);
+    } catch (fileError) {
+      console.error('File path error:', fileError);
+      return res.status(404).json({
+        error: 'File not found on server',
+        code: 'FILE_NOT_FOUND',
+        status: 404,
+      });
+    }
 
-    // Log activity
+    // Verify file actually exists
+    if (!fs.existsSync(filepath)) {
+      console.error('File does not exist at:', filepath);
+      return res.status(404).json({
+        error: 'File not found on server',
+        code: 'FILE_NOT_FOUND',
+        status: 404,
+      });
+    }
+
+    // Log activity first, then download
     await ActivityLog.create({
       user_id: req.auth.userId,
       action: 'admin_download_submission_file',
@@ -784,6 +804,9 @@ const downloadStudentSubmissionFile = async (req, res, next) => {
       entityId: submission._id,
       details: { studentId, phase, filename },
     });
+
+    // Send download (this should be the last operation)
+    res.download(filepath, file.originalName);
   } catch (error) {
     next(error);
   }
