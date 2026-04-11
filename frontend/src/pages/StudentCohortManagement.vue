@@ -34,6 +34,11 @@ const cohorts = ref<any[]>([]);
 const cohortsLoading = ref(false);
 const cohortsError = ref('');
 
+// Submissions Modal
+const showSubmissionsModal = ref(false);
+const selectedStudentSubmissions = ref<any>(null);
+const submissionsLoading = ref(false);
+
 // Add Student Modal
 const showAddModal = ref(false);
 const addStudentForm = ref({
@@ -188,6 +193,24 @@ const handleDeleteStudent = async (studentId: string) => {
   } catch (error: any) {
     console.error('Failed to deactivate student:', error);
   }
+};
+
+const handleViewSubmissions = async (studentId: string) => {
+  try {
+    submissionsLoading.value = true;
+    const result = await userService.getStudentSubmissions(studentId);
+    selectedStudentSubmissions.value = result.data;
+    showSubmissionsModal.value = true;
+  } catch (error: any) {
+    console.error('Failed to fetch submissions:', error);
+  } finally {
+    submissionsLoading.value = false;
+  }
+};
+
+const downloadFile = (fileId: string, fileName: string) => {
+  // Placeholder for download functionality
+  window.location.href = `/api/v1/admin/users/submissions/files/${fileId}/download`;
 };
 
 // Cohort Modal States
@@ -411,6 +434,9 @@ const handleViewCohort = (cohort: any) => {
                 <th scope="col" class="px-4 py-3 text-left font-medium">
                   Status
                 </th>
+                <th scope="col" class="px-4 py-3 text-left font-medium">
+                  Submissions
+                </th>
                 <th scope="col" class="px-4 py-3 text-right font-medium">
                   Actions
                 </th>
@@ -453,6 +479,14 @@ const handleViewCohort = (cohort: any) => {
                     />
                     {{ student.status }}
                   </span>
+                </td>
+                <td class="px-4 py-3">
+                  <button
+                    @click="handleViewSubmissions(student.id)"
+                    class="text-blue-600 hover:text-blue-700 text-xs font-medium"
+                  >
+                    View
+                  </button>
                 </td>
                 <td class="px-4 py-3 text-right">
                   <div class="flex justify-end gap-2">
@@ -948,6 +982,106 @@ const handleViewCohort = (cohort: any) => {
 
             <div class="flex justify-end gap-3 pt-4 border-t">
               <button @click="showViewCohortModal = false" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Submissions Modal -->
+      <div v-if="showSubmissionsModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div class="rounded-lg bg-white shadow-lg max-w-3xl w-full max-h-[80vh] overflow-y-auto">
+          <div class="sticky top-0 border-b bg-white p-5">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-lg font-semibold text-slate-900">Student Submissions</h2>
+                <p v-if="selectedStudentSubmissions" class="mt-1 text-sm text-slate-500">
+                  {{ selectedStudentSubmissions.studentName }}
+                </p>
+              </div>
+              <button
+                @click="showSubmissionsModal = false"
+                class="text-slate-400 hover:text-slate-600"
+              >
+                <XMarkIcon class="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+
+          <div class="p-5">
+            <div v-if="submissionsLoading" class="flex items-center justify-center py-8">
+              <div class="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600"></div>
+            </div>
+
+            <div v-else-if="selectedStudentSubmissions?.submissions?.length === 0" class="text-center py-8">
+              <p class="text-sm text-slate-500">No submissions found</p>
+            </div>
+
+            <div v-else class="space-y-4">
+              <div
+                v-for="sub in selectedStudentSubmissions?.submissions"
+                :key="sub.id"
+                class="border border-slate-200 rounded-lg p-4"
+              >
+                <div class="flex items-start justify-between mb-3">
+                  <div>
+                    <h3 class="font-medium text-slate-900">{{ sub.phase }}</h3>
+                    <p class="text-xs text-slate-500 mt-1">
+                      Status: 
+                      <span
+                        :class="[
+                          'font-medium',
+                          sub.status === 'Submitted' ? 'text-emerald-600' :
+                          sub.status === 'Overdue' ? 'text-red-600' :
+                          sub.status === 'Not Submitted' ? 'text-slate-500' :
+                          'text-blue-600'
+                        ]"
+                      >
+                        {{ sub.status }}
+                      </span>
+                    </p>
+                  </div>
+                  <span v-if="sub.submittedAt" class="text-xs text-slate-500">
+                    {{ new Date(sub.submittedAt).toLocaleDateString() }}
+                  </span>
+                </div>
+
+                <div v-if="sub.files?.length > 0" class="mt-3 space-y-2">
+                  <p class="text-xs font-medium text-slate-700">Submitted files:</p>
+                  <div class="space-y-1">
+                    <div
+                      v-for="(file, idx) in sub.files"
+                      :key="idx"
+                      class="flex items-center justify-between bg-slate-50 rounded px-3 py-2 text-xs"
+                    >
+                      <span class="text-slate-700">{{ file.originalName }}</span>
+                      <button
+                        @click="downloadFile(file.filename, file.originalName)"
+                        class="text-blue-600 hover:text-blue-700 font-medium"
+                      >
+                        Download
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-else-if="sub.status === 'Not Submitted'" class="mt-3 text-xs text-slate-500">
+                  No files submitted
+                </div>
+
+                <div v-else-if="sub.declarationReason" class="mt-3 text-xs text-slate-600 bg-slate-50 p-2 rounded">
+                  <p class="font-medium mb-1">Declaration reason:</p>
+                  <p>{{ sub.declarationReason }}</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-5 border-t mt-5">
+              <button
+                @click="showSubmissionsModal = false"
+                class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

@@ -62,4 +62,9 @@ export default {
     const response = await httpClient.post(`/admin/users/${userId}/reactivate`)
     return response.data
   },
+
+  async getStudentSubmissions(studentId: string): Promise<any> {
+    const response = await httpClient.get(`/admin/users/${studentId}/submissions`)
+    return response.data
+  },
 }

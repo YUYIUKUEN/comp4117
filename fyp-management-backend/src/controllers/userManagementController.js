@@ -661,6 +661,74 @@ const markStudentsEthicsNotRequired = async (req, res, next) => {
   }
 };
 
+/**
+ * Get all submissions for a specific student
+ * Admin only
+ */
+const getStudentSubmissions = async (req, res, next) => {
+  try {
+    const { studentId } = req.params;
+    const Submission = require('../models/Submission');
+    const User = require('../models/User');
+    const GradingStandard = require('../models/GradingStandard');
+
+    // Verify student exists
+    const student = await User.findById(studentId);
+    if (!student) {
+      return res.status(404).json({
+        error: 'Student not found',
+        code: 'NOT_FOUND',
+        status: 404,
+      });
+    }
+
+    // Get grading standards configured for this student's pathway
+    const studentPathway = student.pathway || 'Research-Based';
+    const gradingStandards = await GradingStandard.find({
+      enabled: true,
+      $or: [
+        { pathways: { $in: [studentPathway] } },
+        { pathways: { $size: 0 } }, // include those with no pathway restrictions
+      ],
+    }).select('submissionType');
+
+    const allowedPhases = gradingStandards.map(gs => gs.submissionType);
+
+    // Fetch all submissions for this student
+    const allSubmissions = await Submission.find({ student_id: studentId })
+      .populate('topic_id', 'title')
+      .sort({ phase: 1 });
+
+    // Filter to only show submissions matching grading standards
+    const filteredSubmissions = allSubmissions.filter(sub =>
+      allowedPhases.includes(sub.phase)
+    );
+
+    res.json({
+      data: {
+        studentId,
+        studentName: student.fullName,
+        pathway: studentPathway,
+        allowedPhases,
+        submissions: filteredSubmissions.map(sub => ({
+          id: sub._id,
+          phase: sub.phase,
+          status: sub.status,
+          submittedAt: sub.submittedAt,
+          submittedDate: sub.submittedDate,
+          dueDate: sub.dueDate,
+          topic: sub.topic_id?.title,
+          files: sub.files || [],
+          declarationReason: sub.declarationReason,
+        })),
+      },
+      status: 200,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllUsers,
   getUserById,
@@ -671,4 +739,5 @@ module.exports = {
   importUsersFromExcel,
   assignStudentsToSupervisor,
   markStudentsEthicsNotRequired,
+  getStudentSubmissions,
 };
