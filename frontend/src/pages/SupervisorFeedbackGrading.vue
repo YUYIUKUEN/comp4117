@@ -238,9 +238,10 @@ const avatarUrl = (name: string, bg = '0F172A') => {
 
 const downloadFile = async (studentId: string, phase: string, filename: string, originalName: string) => {
   try {
-    const response = await httpClient.get(`/submissions/supervisor/student/${studentId}/${phase}/files/${filename}`, {
-      responseType: 'blob',
-    });
+    const response = await httpClient.get(
+      `/submissions/supervisor/student/${encodeURIComponent(studentId)}/${encodeURIComponent(phase)}/files/${encodeURIComponent(filename)}`,
+      { responseType: 'blob' }
+    );
     
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement('a');
