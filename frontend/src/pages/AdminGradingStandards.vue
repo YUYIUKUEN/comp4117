@@ -52,8 +52,6 @@ const resetForm = () => {
     enabled: true,
     enabledByPathway: { 'Research-Based': true, 'Solution-Based': true },
     pathways: ['Research-Based', 'Solution-Based'],
-    templateName: null,
-    rubricItems: [],
     rubricTemplatesByPathway: { 'Research-Based': null, 'Solution-Based': null },
   }
   editingId.value = null
@@ -103,18 +101,6 @@ const handleAddStandard = async () => {
   }
 }
 
-// Helper function to process rubric items
-const ensureRubricItemsHavePoints = (items: any[]) => {
-  if (!items) return []
-  return items.map((item: any) => ({
-    ...item,
-    levels: (item.levels || []).map((level: any) => ({
-      name: level.name,
-      description: level.description,
-    })),
-  }))
-}
-
 const getGradingTypeLabel = (standard: GradingStandard): string => {
   switch (standard.gradingSystem) {
     case 'point-range':
@@ -146,8 +132,6 @@ const startEdit = (standard: GradingStandard) => {
     enabled: standard.enabled,
     enabledByPathway: standard.enabledByPathway || { 'Research-Based': true, 'Solution-Based': true },
     pathways: standard.pathways || ['Research-Based', 'Solution-Based'],
-    templateName: standard.templateName || null,
-    rubricItems: ensureRubricItemsHavePoints(standard.rubricItems || []),
     rubricTemplatesByPathway: standard.rubricTemplatesByPathway || { 'Research-Based': null, 'Solution-Based': null },
   }
   showAddForm.value = true
@@ -182,110 +166,7 @@ const toggleEnabled = async (standard: GradingStandard) => {
 
 
 
-// Rubric management functions
-const addRubricCriterion = () => {
-  if (!formData.value.rubricItems) {
-    formData.value.rubricItems = []
-  }
-  
-  // Add new criterion with same number of levels as existing criteria
-  const numLevels = formData.value.rubricItems?.[0]?.levels?.length || 5
-  const levels = []
-  for (let i = 0; i < numLevels; i++) {
-    levels.push({ name: '', description: '' })
-  }
-  
-  formData.value.rubricItems.push({
-    title: '',
-    description: '',
-    minScore: 0,
-    maxScore: 10,
-    levels,
-  })
-}
 
-const removeRubricCriterion = (index: number) => {
-  if (formData.value.rubricItems) {
-    formData.value.rubricItems.splice(index, 1)
-  }
-}
-
-const addPerformanceLevelColumn = () => {
-  if (!formData.value.rubricItems) return
-  
-  // Add new level to all criteria
-  formData.value.rubricItems.forEach((criterion) => {
-    if (!criterion.levels) criterion.levels = []
-    criterion.levels.push({ name: '', description: '' })
-  })
-}
-
-const removePerformanceLevelColumn = (levelIndex: number) => {
-  if (!formData.value.rubricItems) return
-  
-  // Prevent removing if only 1 level remains
-  if ((formData.value.rubricItems[0]?.levels?.length ?? 0) <= 1) return
-  
-  // Remove level from all criteria
-  formData.value.rubricItems.forEach((criterion) => {
-    if (criterion.levels && criterion.levels.length > levelIndex) {
-      criterion.levels.splice(levelIndex, 1)
-    }
-  })
-}
-
-const updateCellValue = (criterionIndex: number, levelIndex: number, field: string, value: string) => {
-  if (formData.value.rubricItems?.[criterionIndex]?.levels?.[levelIndex]) {
-    const level = formData.value.rubricItems[criterionIndex].levels[levelIndex]
-    if (field === 'name') level.name = value
-    else if (field === 'description') level.description = value
-  }
-}
-
-const updateCriterionTitle = (criterionIndex: number, value: string) => {
-  if (formData.value.rubricItems?.[criterionIndex]) {
-    formData.value.rubricItems[criterionIndex].title = value
-  }
-}
-
-const addPerformanceLevel = (criterionIndex: number) => {
-  if (formData.value.rubricItems && formData.value.rubricItems[criterionIndex]) {
-    if (!formData.value.rubricItems[criterionIndex].levels) {
-      formData.value.rubricItems[criterionIndex].levels = []
-    }
-    formData.value.rubricItems[criterionIndex].levels.push({
-      name: '',
-      description: '',
-    })
-  }
-}
-
-const removePerformanceLevel = (criterionIndex: number, levelIndex: number) => {
-  if (formData.value.rubricItems && formData.value.rubricItems[criterionIndex]?.levels) {
-    formData.value.rubricItems[criterionIndex].levels!.splice(levelIndex, 1)
-  }
-}
-
-const loadTemplate = async (templateId: string) => {
-  if (!templateId) {
-    // Clear rubric items if no template selected
-    formData.value.rubricItems = []
-    return
-  }
-
-  try {
-    const template = await rubricTemplateService.getById(templateId)
-    if (template) {
-      // Populate rubric items from template
-      const items = JSON.parse(JSON.stringify(template.rubricItems || []))
-      // Ensure all levels have points
-      formData.value.rubricItems = ensureRubricItemsHavePoints(items)
-    }
-  } catch (e) {
-    console.error('Failed to load template:', e)
-    error.value = 'Failed to load template'
-  }
-}
 </script>
 
 <template>
@@ -522,166 +403,7 @@ const loadTemplate = async (templateId: string) => {
             </p>
           </div>
 
-          <!-- Rubric Section -->
-          <div class="border-t border-slate-200 pt-4">
-            <div class="mb-4">
-              <h3 class="text-sm font-semibold text-slate-900">Rubric (Optional)</h3>
-              <p class="text-xs text-slate-600 mt-1">Define grading criteria with performance levels for structured evaluation</p>
-            </div>
 
-            <!-- Template Selector -->
-            <div class="mb-4">
-              <label class="block text-sm font-medium text-slate-700 mb-2">
-                Use a template (optional)
-              </label>
-              <select
-                @change="(e) => loadTemplate((e.target as HTMLSelectElement).value)"
-                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              >
-                <option value="">-- Choose a template or create custom --</option>
-                <option v-for="template in rubricTemplates" :key="template._id" :value="template._id">
-                  {{ template.name }}{{ template.isDefault ? ' (Default)' : '' }}
-                </option>
-              </select>
-              <p class="text-xs text-slate-500 mt-1">
-                Selected templates will populate the criteria below. You can still add, edit, or remove criteria.
-              </p>
-            </div>
-
-            <div class="flex items-center justify-between mb-4">
-              <span></span>
-              <button
-                @click="addRubricCriterion"
-                type="button"
-                class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
-              >
-                + Add Criterion
-              </button>
-            </div>
-
-            <!-- Rubric Criteria Table Editor -->
-            <div v-if="formData.rubricItems && formData.rubricItems.length > 0" class="space-y-3">
-              <!-- Rubric Controls -->
-              <div class="flex gap-2 items-center mb-4">
-                <button
-                  @click="addPerformanceLevelColumn"
-                  type="button"
-                  class="rounded-lg bg-blue-50 border border-blue-300 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100"
-                >
-                  + Add Performance Level
-                </button>
-                <span class="text-xs text-slate-600">
-                  {{ formData.rubricItems[0]?.levels?.length || 0 }} levels
-                </span>
-              </div>
-
-              <!-- Rubric Table -->
-              <div class="rounded-lg border border-slate-300 overflow-x-auto">
-                <table class="w-full text-xs border-collapse">
-                  <!-- Header Row: Performance Levels -->
-                  <thead>
-                    <tr class="bg-slate-100 border-b border-slate-300">
-                      <th class="px-4 py-3 text-left font-semibold text-slate-700 bg-slate-50 w-48 border-r border-slate-300">
-                        Criteria
-                      </th>
-                      <th
-                        v-for="(level, levelIndex) in formData.rubricItems[0]?.levels || []"
-                        :key="`header-${levelIndex}`"
-                        class="px-3 py-2 text-center font-medium text-slate-700 bg-slate-100 border-r border-slate-300 min-w-max group relative"
-                      >
-                        <div class="flex flex-col items-center gap-1">
-                          <input
-                            :value="level.name"
-                            @input="updateCellValue(0, levelIndex, 'name', ($event.target as HTMLInputElement).value)"
-                            type="text"
-                            placeholder="Level"
-                            class="w-full rounded border border-slate-300 px-2 py-1 text-center text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                          />
-                          <button
-                            v-if="(formData.rubricItems[0]?.levels?.length || 0) > 1"
-                            @click="removePerformanceLevelColumn(levelIndex)"
-                            type="button"
-                            class="text-red-600 hover:text-red-700 font-bold opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      </th>
-                    </tr>
-                  </thead>
-
-                  <!-- Data Rows: Criteria -->
-                  <tbody>
-                    <tr
-                      v-for="(criterion, criterionIndex) in formData.rubricItems"
-                      :key="`row-${criterionIndex}`"
-                      class="border-b border-slate-300 hover:bg-slate-50"
-                    >
-                      <!-- Criterion Name Cell -->
-                      <td class="px-4 py-3 bg-slate-50 border-r border-slate-300 font-medium text-slate-700">
-                        <div class="flex items-center gap-2">
-                          <input
-                            :value="criterion.title"
-                            @input="updateCriterionTitle(criterionIndex, ($event.target as HTMLInputElement).value)"
-                            type="text"
-                            placeholder="Criterion Title"
-                            class="flex-1 rounded border border-slate-300 px-2 py-1 text-xs font-medium focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                          />
-                          <button
-                            v-if="formData.rubricItems.length > 1"
-                            @click="removeRubricCriterion(criterionIndex)"
-                            type="button"
-                            class="text-red-600 hover:text-red-700 font-bold h-6 w-6 flex items-center justify-center hover:bg-red-50 rounded"
-                            title="Remove criterion row"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      </td>
-
-                      <!-- Level Description Cells -->
-                      <td
-                        v-for="(level, levelIndex) in criterion.levels || []"
-                        :key="`cell-${criterionIndex}-${levelIndex}`"
-                        class="px-3 py-2 border-r border-slate-300"
-                      >
-                        <input
-                          :value="level.description"
-                          @input="updateCellValue(criterionIndex, levelIndex, 'description', ($event.target as HTMLInputElement).value)"
-                          type="text"
-                          placeholder="Level description"
-                          class="w-full rounded border border-slate-300 px-2 py-1 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                        />
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <!-- Add Criterion Row Button -->
-              <div class="flex justify-center">
-                <button
-                  @click="addRubricCriterion"
-                  type="button"
-                  class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                >
-                  + Add Criterion
-                </button>
-              </div>
-            </div>
-
-            <!-- Empty Rubric State -->
-            <div v-else class="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 text-center">
-              <p class="text-xs text-slate-600 mb-3">No criteria defined yet.</p>
-              <button
-                @click="addRubricCriterion"
-                type="button"
-                class="rounded-lg bg-blue-600 px-4 py-2 text-xs font-medium text-white hover:bg-blue-500"
-              >
-                + Add First Criterion
-              </button>
-            </div>
-          </div>
 
           <!-- Actions -->
           <div class="flex gap-2 pt-4">
@@ -803,16 +525,13 @@ const loadTemplate = async (templateId: string) => {
               <!-- Rubric Preview -->
               <div v-if="standard.rubricItems && standard.rubricItems.length > 0" class="mt-3 rounded-lg border border-blue-100 bg-blue-50 p-3">
                 <p class="text-xs font-semibold text-blue-900 mb-2">📋 Rubric ({{ standard.rubricItems.length }} criteria)</p>
-                <div class="space-y-2">
-                  <div v-for="(criterion, idx) in standard.rubricItems.slice(0, 2)" :key="idx" class="text-xs text-blue-800">
+                <p v-if="standard.rubricItems[0]?.levels && standard.rubricItems[0].levels.length > 0" class="text-xs text-blue-700 mb-2">
+                  Levels: {{ standard.rubricItems[0].levels.map(l => l.name).join(', ') }}
+                </p>
+                <div class="space-y-1">
+                  <div v-for="(criterion, idx) in standard.rubricItems" :key="idx" class="text-xs text-blue-800">
                     <p class="font-medium">{{ criterion.title }}</p>
-                    <p v-if="criterion.levels && criterion.levels.length > 0" class="text-blue-700 ml-2">
-                      Levels: {{ criterion.levels.map(l => l.name).join(', ') }}
-                    </p>
                   </div>
-                  <p v-if="standard.rubricItems.length > 2" class="text-xs text-blue-700 italic">
-                    + {{ standard.rubricItems.length - 2 }} more criteria
-                  </p>
                 </div>
               </div>
             </div>
