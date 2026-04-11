@@ -343,13 +343,6 @@ const closeImportModal = () => {
               >
                 Export to Excel
               </button>
-              <button
-                type="button"
-                @click="handleBulkEmail"
-                class="inline-flex items-center rounded-full border border-slate-700 bg-slate-950 px-3 py-1.5 text-slate-200 hover:border-blue-500 hover:text-blue-100"
-              >
-                Bulk email supervisors
-              </button>
             </div>
           </header>
 
@@ -508,52 +501,6 @@ const closeImportModal = () => {
         <section
           class="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]"
         >
-          <div class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm shadow-slate-200/70">
-            <h2 class="text-sm font-semibold text-slate-900">
-              Bulk actions
-            </h2>
-            <p class="mt-1 text-xs text-slate-500">
-              Select students from the table above, then use these actions.
-            </p>
-            <p v-if="selectedIds.size > 0" class="mt-1 text-xs font-medium text-blue-600">
-              {{ selectedIds.size }} student(s) selected
-            </p>
-            <div v-if="bulkMessage" class="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
-              {{ bulkMessage }}
-            </div>
-            <div class="mt-4 flex flex-wrap gap-2 text-[11px]">
-              <button
-                type="button"
-                @click="handleMarkEthicsNotRequired"
-                class="inline-flex items-center rounded-full border border-blue-500/70 bg-blue-600 px-3 py-1.5 text-white hover:bg-blue-500"
-              >
-                Mark selected as "Ethics not required"
-              </button>
-              <button
-                type="button"
-                @click="handleAssignSupervisor"
-                class="inline-flex items-center rounded-full border border-slate-300 bg-white px-3 py-1.5 text-slate-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50"
-              >
-                Assign selected to supervisor
-              </button>
-            </div>
-
-            <!-- Assign supervisor modal -->
-            <div v-if="showAssignModal" class="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-              <label class="block text-xs font-medium text-slate-700 mb-1">Supervisor name</label>
-              <input
-                v-model="assignSupervisorName"
-                type="text"
-                placeholder="Enter supervisor name"
-                class="w-full rounded border border-slate-300 px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-              <div class="mt-2 flex gap-2">
-                <button @click="confirmAssignSupervisor" class="rounded bg-blue-600 px-3 py-1 text-xs text-white hover:bg-blue-500">Confirm</button>
-                <button @click="showAssignModal = false" class="rounded border border-slate-300 px-3 py-1 text-xs text-slate-600 hover:bg-slate-100">Cancel</button>
-              </div>
-            </div>
-          </div>
-
           <aside
             class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm shadow-slate-200/70"
             aria-label="Activity log"
