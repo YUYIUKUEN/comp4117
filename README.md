@@ -27,14 +27,14 @@ The FYP Management System is built to facilitate seamless collaboration between 
 - **Authentication**: JWT (HS256, 24-hour expiry)
 - **Password Hashing**: bcryptjs (10 rounds)
 - **File Upload**: Multer (Azure Blob Storage)
-- **Notifications**: Email reminders
+- **Reminders**: Scheduler for email notifications
 
 ### DevOps
 - **Version Control**: Git/GitHub
-- **Testing**: Vitest (Frontend), Jest (Backend)
-- **CI/CD**: GitHub Actions
+- **Testing**: Vitest (Frontend), Jest (Backend setup)
 - **Database**: Azure Cosmos DB (MongoDB API)
 - **Storage**: Azure Blob Storage
+- **Deployment**: Azure Static Web Apps (Frontend), Azure App Service (Backend)
 
 ---
 
@@ -87,21 +87,22 @@ comp4117/
 
 ### 👨‍🎓 Student Features
 - **Topic Discovery**: Browse and filter available FYP topics
-- **Project Application**: Apply to desired topics
-- **Submission Management**: Submit work across multiple phases (Ethics, Progress Reports, Final Report)
-- **Feedback Tracking**: View supervisor feedback in real-time
-- **Dashboard**: Track project status and deadlines
-- **Meeting Scheduling**: Book meetings with supervisors
+- **Project Application**: Apply to desired topics with approval workflow
+- **Submission Management**: Submit work across configured phases
+- **Feedback Tracking**: View supervisor feedback and grades
+- **Dashboard**: Track project status, deadlines, and submissions
 - **Activity Logs**: Monitor all project events and communications
+- **Meeting Slots**: View available supervisor meeting times
 
 ### 👨‍🏫 Supervisor Features
 - **Topic Management**: Create, edit, and archive project topics
-- **Student Supervision**: Manage assigned students
+- **Topic Moderation**: Submit topics for admin approval
+- **Student Supervision**: Manage assigned students and their progress
 - **Submission Review**: Access and evaluate student submissions
-- **Feedback Providing**: Leave detailed comments and grades
-- **Meeting Management**: Schedule and track meetings with students
-- **Approval Workflows**: Approve/reject topic applications
-- **Bulk Reminders**: Send deadline reminders to students
+- **Feedback & Grading**: Leave detailed comments, grades, and assessments
+- **Pending Approvals**: Review and approve student applications
+- **Meeting Scheduling**: Create and manage meeting time slots
+- **Activity Logs**: Track all supervision activities
 
 ### 👨‍💼 Admin Features
 - **Student Management**: CRUD operations on student records
@@ -177,13 +178,21 @@ comp4117/
 
 | Module | Endpoints | Role |
 |--------|-----------|------|
-| Users | `/admin/users` | Admin |
-| Topics | `/topic`, `/supervisor/topics` | Student, Supervisor |
+| Users | `/admin/users` (CRUD, import/export) | Admin |
+| Topics | `/topic` (browse), `/supervisor/topics` | Student, Supervisor |
+| Topic Moderation | `/topic-moderation` | Admin, Supervisor |
 | Assignments | `/assignment`, `/supervisor/assignments` | All |
+| Applications | `/application` | Student, Supervisor |
 | Submissions | `/submission`, `/supervisor/submissions` | Student, Supervisor |
-| Grading | `/admin/grading-standards` | Admin |
-| Cohorts | `/admin/cohorts` | Admin |
+| Grading Standards | `/admin/grading-standards` | Admin |
+| Rubric Templates | `/admin/rubric-templates` | Admin |
+| Cohorts | `/admin/cohorts` (CRUD) | Admin |
 | Feedback | `/feedback`, `/supervisor/feedback` | All |
+| Meetings | `/meeting`, `/supervisor/meetings` | All |
+| Reminders | `/admin/reminders` | Admin |
+| Activity Logs | `/activity-logs` | Supervisor, Admin |
+| Topic Change Requests | `/topic-change-request` | Supervisor |
+| Internal Notes | `/admin/internal-notes` | Admin |
 
 ---
 
@@ -242,35 +251,45 @@ npm run seed-demo    # Load demo data
 ## Key Features Implementation
 
 ### 1. Student Submission Tracking
-- Admin can view all submission phases configured in grading standards
-- Download submission files directly
-- Track submission status (pending, submitted, overdue, declared not needed)
-- Filter submissions by student pathway
+- Admin views only submission phases configured in grading standards
+- Download submission files directly from admin interface
+- Track submission status: Not Submitted, Submitted, Overdue, Declared Not Needed
+- Filter submissions by student pathway and cohort
 
-### 2. Cohort Management
-- Auto-calculate dates from academic year (Sept 1 - Aug 31)
-- Explicitly assign students to cohorts
+### 2. Explicit Cohort Management
+- Create cohorts with academic year (auto-calculates Sept 1 - Aug 31)
+- Explicitly assign students to cohorts (not auto-calculated)
 - View all students within a cohort
-- Track student count per cohort
+- Track accurate student count per cohort
+- Add/edit/remove cohorts
 
 ### 3. Bulk Operations
-- Import student records from Excel (.xlsx/.csv)
-- Duplicate detection and prevention
-- Reactivate deactivated users on re-import
+- Import students from Excel (.xlsx/.csv)
+- Automatic duplicate detection and prevention
+- Reactivate previously deactivated users on re-import
 - Export student data to Excel
-- Assign multiple students to supervisor in one action
+- Assign multiple students to supervisor
+- Mark students as "Ethics not required"
 
-### 4. Grading Standards
-- Define submission phases per pathway
-- Set point ranges for each phase
-- Map rubric templates
+### 4. Grading Standards System
+- Configure submission phases per pathway (Research-Based, Solution-Based)
+- Set point ranges for each assessment
+- Map rubric templates for detailed evaluation
 - Enable/disable phases dynamically
+- Pathway-specific assessment criteria
 
-### 5. Activity Logging
+### 5. Topic Moderation Workflow
+- Supervisors submit topics for admin review
+- Admin approves/rejects topics
+- Approved topics become available for students
+- Topic change requests from supervisors
+
+### 6. Activity Logging & Audit Trail
 - Track all CRUD operations
-- Log user actions with timestamps
-- Audit trail for compliance
-- Filter logs by entity type, date range
+- Log user actions with timestamps and IP addresses
+- Comprehensive audit trail for compliance
+- Filter logs by entity type, action, date range
+- Entity tracking (User, Topic, Assignment, etc.)
 
 ---
 
@@ -291,23 +310,29 @@ npm run seed-demo    # Load demo data
 ```bash
 # Terminal 1: Backend
 cd fyp-management-backend
-npm run dev
+npm install
+npm run dev          # Runs on http://localhost:5000
 
 # Terminal 2: Frontend
 cd frontend
-npm run dev
+npm install
+npm run dev          # Runs on http://localhost:5173
 ```
-
-Access frontend at `http://localhost:5173`
-API available at `http://localhost:5000`
 
 ### Testing
 ```bash
-# Frontend
+# Frontend (Vitest)
 cd frontend && npm run test
 
-# Backend
+# Backend (Jest setup available)
 cd fyp-management-backend && npm run test
+```
+
+### Database Setup
+```bash
+# Seed demo data
+cd fyp-management-backend
+npm run seed-demo    # Loads test users, topics, assignments
 ```
 
 ### Git Workflow
@@ -323,21 +348,29 @@ git push origin main
 
 ### Frontend (Azure Static Web Apps)
 ```bash
-npm run build
-# Deploy dist/ folder to Static Web Apps
+cd frontend
+npm run build          # Creates dist/ folder
+# Deploy dist/ to Static Web Apps
 ```
 
 ### Backend (Azure App Service)
 ```bash
-npm run build
-npm start
+cd fyp-management-backend
+npm run build          # TypeScript compilation (if applicable)
+npm start              # Starts Express server
 # Deploy to App Service
 ```
 
 ### Database (Azure Cosmos DB)
-- Connection string in environment variables
+- MongoDB API connection string via `MONGODB_URI`
 - Automatic schema creation via Mongoose
 - Indexes pre-configured for common queries
+- Test environment uses local MongoDB
+
+### Storage (Azure Blob Storage)
+- File uploads configured for Blob Storage
+- Connection credentials via environment variables
+- Supports document submissions (PDF, DOCX, etc.)
 
 ---
 
@@ -345,11 +378,14 @@ npm start
 
 | Issue | Solution |
 |-------|----------|
-| Port 5000 already in use | `lsof -i :5000 \| grep -v COMMAND \| awk '{print $2}' \| xargs kill -9` |
-| MongoDB connection refused | Check `MONGODB_URI` env var and connectivity |
-| TypeScript compilation error | Run `npm run build` to see detailed errors |
-| JWT token expired | Frontend automatically refreshes token or re-authenticates |
-| File upload fails | Check Azure Blob Storage credentials |
+| Port 5000/5173 already in use | `lsof -i :5000 \| grep -v COMMAND \| awk '{print $2}' \| xargs kill -9` |
+| MongoDB connection refused | Check `MONGODB_URI` env var, ensure MongoDB running locally or Cosmos DB connected |
+| TypeScript compilation errors | Run `npm run build` to see detailed errors; check `tsconfig.json` |
+| JWT token expired | Log in again; frontend redirects to login on token expiry |
+| File upload fails | Check Azure Blob Storage credentials in environment variables |
+| Import fails with duplicates | Check email addresses in Excel; system skips existing users |
+| Submissions not showing | Verify grading standards configured for student's pathway |
+| Cohort count incorrect | Ensure students explicitly assigned to cohorts (not calculated from dates) |
 
 ---
 
@@ -377,15 +413,46 @@ This project is confidential and for educational purposes only.
 
 ---
 
+## Implementation Status
+
+### ✅ Fully Implemented
+- User management (CRUD, import/export, deactivate/reactivate)
+- Topic creation and moderation workflow
+- Student applications and supervisor approval
+- Assignment management (Student-Supervisor-Topic)
+- Submission tracking across multiple phases
+- Explicit cohort management with date calculation
+- Grading standards configuration
+- Rubric templates
+- Activity logging and audit trail
+- Role-based access control
+- Excel import with duplicate detection
+
+### 🟡 Partially Implemented
+- Meeting scheduling (slot creation, no full calendar system)
+- Email reminders (framework in place, limited in production)
+- Automated tests (Vitest/Jest setup, minimal coverage)
+
+### ⚠️ Not Implemented
+- OAuth2 authentication (uses JWT only)
+- Real-time notifications (WebSocket not configured)
+- Advanced reporting/analytics
+- Mobile app
+
+---
+
 ## Support & Questions
 
 For issues or questions:
 1. Check existing documentation in `/docs`
 2. Review API specs in `/kitty-specs`
-3. Search closed GitHub issues
-4. Create a new GitHub issue with detailed context
+3. Review backend models in `/fyp-management-backend/src/models`
+4. Check frontend pages in `/frontend/src/pages`
+5. Create a new GitHub issue with detailed context
 
 ---
 
-**Last Updated**: April 2026
-**Status**: Active Development
+**Last Updated**: April 2026  
+**Status**: Active Development  
+**Version**: 1.0.0  
+**Repository**: https://github.com/YUYIUKUEN/comp4117
