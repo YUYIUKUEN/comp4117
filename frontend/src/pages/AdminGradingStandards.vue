@@ -126,13 +126,23 @@ const startEdit = (standard: GradingStandard) => {
   formData.value = {
     submissionType: standard.submissionType,
     gradingSystem: 'point-range',
-    pointRange: standard.pointRange || { min: 0, max: 20, step: 1 },
+    pointRange: { 
+      min: standard.pointRange?.min || 0, 
+      max: standard.pointRange?.max || 20, 
+      step: standard.pointRange?.step || 1 
+    },
     description: standard.description || '',
     dueDate: formattedDueDate,
     enabled: standard.enabled,
-    enabledByPathway: standard.enabledByPathway || { 'Research-Based': true, 'Solution-Based': true },
-    pathways: standard.pathways || ['Research-Based', 'Solution-Based'],
-    rubricTemplatesByPathway: standard.rubricTemplatesByPathway || { 'Research-Based': null, 'Solution-Based': null },
+    enabledByPathway: {
+      'Research-Based': standard.enabledByPathway?.['Research-Based'] ?? true,
+      'Solution-Based': standard.enabledByPathway?.['Solution-Based'] ?? true,
+    },
+    pathways: standard.pathways ? [...standard.pathways] : ['Research-Based', 'Solution-Based'],
+    rubricTemplatesByPathway: {
+      'Research-Based': standard.rubricTemplatesByPathway?.['Research-Based'] || null,
+      'Solution-Based': standard.rubricTemplatesByPathway?.['Solution-Based'] || null,
+    },
   }
   showAddForm.value = true
   

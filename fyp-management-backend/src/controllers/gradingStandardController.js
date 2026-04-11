@@ -1,4 +1,26 @@
 const GradingStandard = require('../models/GradingStandard');
+const RubricTemplate = require('../models/RubricTemplate');
+
+/**
+ * Helper function to resolve rubric items from template
+ * Gets the first available template (preferring Research-Based, then Solution-Based)
+ */
+const resolveRubricItemsFromTemplate = async (rubricTemplatesByPathway) => {
+  if (!rubricTemplatesByPathway) return [];
+  
+  // Try Research-Based first, then Solution-Based
+  const templateId = rubricTemplatesByPathway['Research-Based'] || rubricTemplatesByPathway['Solution-Based'];
+  
+  if (!templateId) return [];
+
+  try {
+    const template = await RubricTemplate.findById(templateId);
+    return template?.rubricItems || [];
+  } catch (error) {
+    console.error('Failed to resolve rubric template:', error);
+    return [];
+  }
+};
 
 /**
  * GET /grading-standards
@@ -66,12 +88,18 @@ const createGradingStandard = async (req, res, next) => {
       'Solution-Based': enabled !== false,
     };
 
+    // Resolve rubricItems from template if template(s) are selected
+    let resolvedRubricItems = rubricItems || [];
+    if (rubricTemplatesByPathway && !rubricItems) {
+      resolvedRubricItems = await resolveRubricItemsFromTemplate(rubricTemplatesByPathway);
+    }
+
     const standard = await GradingStandard.create({
       submissionType,
       gradingSystem: 'point-range',
       pointRange: pointRange || { min: 0, max: 20, step: 1 },
       templateName: templateName || null,
-      rubricItems: rubricItems || [],
+      rubricItems: resolvedRubricItems,
       rubricTemplatesByPathway: rubricTemplatesByPathway || { 'Research-Based': null, 'Solution-Based': null },
       pathways: pathways || ['Research-Based', 'Solution-Based'],
       description: description || '',
@@ -128,6 +156,11 @@ const updateGradingStandard = async (req, res, next) => {
     if (templateName !== undefined) standard.templateName = templateName;
     if (rubricItems !== undefined) {
       standard.rubricItems = rubricItems;
+      standard.markModified('rubricItems');
+    } else if (rubricTemplatesByPathway !== undefined) {
+      // If template is changed but no explicit rubricItems provided, resolve from template
+      const resolvedRubricItems = await resolveRubricItemsFromTemplate(rubricTemplatesByPathway);
+      standard.rubricItems = resolvedRubricItems;
       standard.markModified('rubricItems');
     }
     if (rubricTemplatesByPathway !== undefined) {
