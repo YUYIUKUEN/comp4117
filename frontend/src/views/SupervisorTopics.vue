@@ -23,56 +23,78 @@
     </div>
 
     <div v-else class="topics-grid">
-      <div v-for="topic in supervisorTopics.topics" :key="topic._id" class="topic-item">
-        <div class="topic-status">
-          <span :class="['status-badge', `status-${topic.status.toLowerCase()}`]">
-            {{ topic.status }}
-          </span>
+      <div v-for="topic in supervisorTopics.topics" :key="topic._id" class="topic-card">
+        <!-- Card Header with Title and Status -->
+        <div class="card-header">
+          <div class="header-content">
+            <h3 class="topic-title">{{ topic.title }}</h3>
+            <span :class="['status-badge', `status-${topic.status.toLowerCase()}`]">
+              {{ topic.status }}
+            </span>
+          </div>
         </div>
 
-        <h3>{{ topic.title }}</h3>
-        <p class="description">{{ truncateText(topic.description, 100) }}</p>
+        <!-- Description -->
+        <p class="description">{{ truncateText(topic.description, 120) }}</p>
 
-        <div class="metadata">
-          <span class="meta">{{ topic.concentration }}</span>
-          <span v-if="topic.pathway" class="meta pathway-badge">{{ topic.pathway }}</span>
-          <span class="meta">{{ topic.keywords.length }} keywords</span>
+        <!-- Metadata Section -->
+        <div class="metadata-section">
+          <div class="metadata-row">
+            <span class="meta-label">Concentration:</span>
+            <span class="meta-value">{{ topic.concentration }}</span>
+          </div>
+          <div class="metadata-row">
+            <span class="meta-label">Pathway:</span>
+            <span v-if="topic.pathway" :class="['pathway-badge', `pathway-${topic.pathway.toLowerCase().replace('-', '')}`]">
+              {{ topic.pathway }}
+            </span>
+          </div>
+          <div v-if="topic.keywords.length > 0" class="metadata-row">
+            <span class="meta-label">Keywords:</span>
+            <span class="keywords-display">{{ topic.keywords.slice(0, 3).join(', ') }}{{ topic.keywords.length > 3 ? `${' +' + (topic.keywords.length - 3)}` : '' }}</span>
+          </div>
         </div>
 
-        <div class="topic-actions">
+        <!-- Actions Footer -->
+        <div class="card-actions">
           <button
             v-if="topic.status === 'Draft'"
             @click="navigateTo(`/supervisor/topics/edit/${topic._id}`)"
-            class="btn-action btn-edit"
+            class="btn btn-edit"
+            title="Edit this topic"
           >
-            Edit
+            ✎ Edit
           </button>
           <button
             v-if="topic.status === 'Draft'"
             @click="publishTopic(topic._id)"
-            class="btn-action btn-publish"
+            class="btn btn-publish"
+            title="Publish this topic"
           >
-            Publish
+            ↑ Publish
           </button>
           <button
             v-if="topic.status === 'Active'"
             @click="archiveTopic(topic._id)"
-            class="btn-action btn-archive"
+            class="btn btn-archive"
+            title="Archive this topic"
           >
-            Archive
-          </button>
-          <button
-            @click="deleteTopic(topic._id)"
-            class="btn-action btn-delete"
-          >
-            Delete
+            📦 Archive
           </button>
           <router-link
             :to="`/topic/${topic._id}`"
-            class="btn-action btn-view"
+            class="btn btn-view"
+            title="View topic details"
           >
-            View
+            👁 View
           </router-link>
+          <button
+            @click="deleteTopic(topic._id)"
+            class="btn btn-delete"
+            title="Delete this topic permanently"
+          >
+            ✕ Delete
+          </button>
         </div>
       </div>
     </div>
@@ -413,152 +435,230 @@ onMounted(() => {
 
 .topics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1.75rem;
 }
 
-.topic-item {
+.topic-card {
   background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  border: 1px solid #e8ecf1;
+  border-radius: 12px;
   padding: 1.5rem;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
+  height: 100%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.topic-item:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+.topic-card:hover {
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.12);
   border-color: #667eea;
+  transform: translateY(-4px);
 }
 
-.topic-status {
-  margin-bottom: 1rem;
+.card-header {
+  margin-bottom: 0.75rem;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.topic-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1.3;
+  flex: 1;
 }
 
 .status-badge {
   display: inline-block;
-  padding: 0.4rem 0.8rem;
+  padding: 0.35rem 0.75rem;
   border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.7rem;
+  font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .status-draft {
-  background: #e2e3e5;
-  color: #383d41;
+  background: #f3f4f6;
+  color: #6b7280;
 }
 
 .status-active {
-  background: #d4edda;
-  color: #155724;
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
 }
 
 .status-archived {
-  background: #f8d7da;
-  color: #721c24;
-}
-
-.topic-item h3 {
-  margin: 0 0 0.75rem 0;
-  color: #333;
-  font-size: 1.1rem;
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
 }
 
 .description {
-  color: #666;
-  margin: 0 0 1rem 0;
+  color: #6b7280;
+  margin: 0 0 0.95rem 0;
   font-size: 0.9rem;
   line-height: 1.5;
   flex: 1;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
-.metadata {
+.metadata-section {
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 0.85rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid #f0f0f0;
+}
+
+.metadata-row {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
   font-size: 0.85rem;
 }
 
-.meta {
-  color: #999;
+.metadata-row:last-child {
+  margin-bottom: 0;
+}
+
+.meta-label {
+  font-weight: 700;
+  color: #4b5563;
+  min-width: 85px;
+}
+
+.meta-value {
+  color: #6b7280;
+  text-align: right;
+  flex: 1;
+  font-size: 0.85rem;
 }
 
 .pathway-badge {
   display: inline-block;
-  padding: 0.3rem 0.8rem;
-  background: #e3f2fd;
-  color: #1976d2;
-  border-radius: 12px;
+  padding: 0.3rem 0.65rem;
+  border-radius: 18px;
   font-size: 0.8rem;
-  font-weight: 500;
+  font-weight: 600;
 }
 
-.topic-actions {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+.pathway-researchbased {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #93c5fd;
 }
 
-.btn-action {
-  flex: 1;
-  min-width: 80px;
-  padding: 0.5rem;
-  border: none;
-  border-radius: 4px;
+.pathway-solutionbased {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+}
+
+.keywords-display {
+  color: #6b7280;
   font-size: 0.85rem;
-  font-weight: 500;
+}
+
+.card-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  margin-top: auto;
+}
+
+.btn {
+  padding: 0.6rem 0.9rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
   text-decoration: none;
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  white-space: nowrap;
 }
 
 .btn-edit {
-  background: #e3f2fd;
-  color: #1976d2;
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #93c5fd;
 }
 
 .btn-edit:hover {
-  background: #bbdefb;
+  background: #bfdbfe;
+  border-color: #60a5fa;
+  transform: translateY(-2px);
 }
 
 .btn-publish {
-  background: #e8f5e9;
-  color: #388e3c;
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
 }
 
 .btn-publish:hover {
-  background: #c8e6c9;
+  background: #a7f3d0;
+  border-color: #34d399;
+  transform: translateY(-2px);
 }
 
 .btn-delete {
-  background: #ffebee;
-  color: #c62828;
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
 }
 
 .btn-delete:hover {
-  background: #ffcdd2;
+  background: #fecaca;
+  border-color: #f87171;
+  transform: translateY(-2px);
 }
 
 .btn-archive {
-  background: #fff3e0;
-  color: #f57c00;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
 }
 
 .btn-archive:hover {
-  background: #ffe0b2;
+  background: #fde68a;
+  border-color: #fbbf24;
+  transform: translateY(-2px);
 }
 
 .btn-view {
-  background: #f3e5f5;
-  color: #7b1fa2;
-  text-decoration: none;
+  background: #f3e8ff;
+  color: #6b21a8;
+  border: 1px solid #e9d5ff;
+  grid-column: span 2;
 }
 
 .btn-view:hover {
-  background: #e1bee7;
+  background: #ede9fe;
+  border-color: #ddd6fe;
+  transform: translateY(-2px);
 }
 
 .success-toast {
