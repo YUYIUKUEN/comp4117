@@ -256,7 +256,7 @@ const createUser = async (req, res, next) => {
       deactivatedUser.passwordHash = passwordHash;
       deactivatedUser.concentration = concentration || undefined;
       deactivatedUser.phone = phone || undefined;
-      deactivatedUser.cohort = cohort || undefined;
+      deactivatedUser.cohort = cohort || null;
       deactivatedUser.deactivatedAt = null;
       deactivatedUser.updatedAt = new Date();
       await deactivatedUser.save();
@@ -269,7 +269,7 @@ const createUser = async (req, res, next) => {
         role,
         concentration: concentration || undefined,
         phone: phone || undefined,
-        cohort: cohort || undefined,
+        cohort: cohort || null,
       });
     }
 
@@ -332,7 +332,7 @@ const updateUser = async (req, res, next) => {
     if (concentration !== undefined) user.concentration = concentration || null;
     if (phone !== undefined) user.phone = phone;
     if (pathway !== undefined) user.pathway = pathway || null;
-    if (cohort !== undefined) user.cohort = cohort || undefined;
+    if (cohort !== undefined) user.cohort = cohort || null;
     if (role && ['Student', 'Supervisor', 'Admin'].includes(role)) {
       user.role = role;
     }
@@ -729,6 +729,66 @@ const getStudentSubmissions = async (req, res, next) => {
   }
 };
 
+/**
+ * Download a submission file for a student (admin only)
+ */
+const downloadStudentSubmissionFile = async (req, res, next) => {
+  try {
+    const { studentId, phase, filename } = req.params;
+    const { getFile } = require('../config/storage');
+    const Submission = require('../models/Submission');
+
+    // Verify student exists
+    const student = await User.findById(studentId);
+    if (!student) {
+      return res.status(404).json({
+        error: 'Student not found',
+        code: 'STUDENT_NOT_FOUND',
+        status: 404,
+      });
+    }
+
+    // Get submission
+    const submission = await Submission.findOne({
+      student_id: studentId,
+      phase,
+    });
+
+    if (!submission) {
+      return res.status(404).json({
+        error: 'Submission not found',
+        code: 'NOT_FOUND',
+        status: 404,
+      });
+    }
+
+    // Find the file in submission
+    const file = submission.files.find(f => f.filename === filename);
+    if (!file) {
+      return res.status(404).json({
+        error: 'File not found',
+        code: 'FILE_NOT_FOUND',
+        status: 404,
+      });
+    }
+
+    // Get file path and download
+    const filepath = getFile(studentId, phase, filename);
+    res.download(filepath, file.originalName);
+
+    // Log activity
+    await ActivityLog.create({
+      user_id: req.auth.userId,
+      action: 'admin_download_submission_file',
+      entityType: 'Submission',
+      entityId: submission._id,
+      details: { studentId, phase, filename },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllUsers,
   getUserById,
@@ -740,4 +800,5 @@ module.exports = {
   assignStudentsToSupervisor,
   markStudentsEthicsNotRequired,
   getStudentSubmissions,
+  downloadStudentSubmissionFile,
 };

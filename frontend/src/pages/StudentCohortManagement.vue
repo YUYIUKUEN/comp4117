@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import {
   Bars3Icon,
   ArrowLeftIcon,
@@ -90,6 +90,25 @@ const fetchStudents = async () => {
 onMounted(() => {
   fetchStudents();
   fetchCohorts();
+
+  // Auto-refresh cohorts when page visibility changes (tab regains focus)
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === 'visible') {
+      fetchCohorts();
+    }
+  };
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+
+  // Optional: Periodic refresh every 30 seconds
+  const refreshInterval = setInterval(() => {
+    fetchCohorts();
+  }, 30000);
+
+  // Cleanup listeners and interval on unmount
+  onUnmounted(() => {
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+    clearInterval(refreshInterval);
+  });
 });
 
 const filteredStudents = computed(() => {
@@ -130,7 +149,7 @@ const submitAddStudent = async () => {
       role: 'Student',
       concentration: addStudentForm.value.concentration.trim() || undefined,
       phone: addStudentForm.value.phone.trim() || undefined,
-      cohort: addStudentForm.value.cohort.trim() || undefined,
+      cohort: addStudentForm.value.cohort || null,
       password: addStudentForm.value.password.trim() || undefined,
     });
     showAddModal.value = false;
@@ -174,7 +193,7 @@ const submitEditStudent = async () => {
       concentration: editStudentForm.value.concentration || undefined,
       pathway: editStudentForm.value.pathway || undefined,
       phone: editStudentForm.value.phone.trim() || undefined,
-      cohort: editStudentForm.value.cohort.trim() || undefined,
+      cohort: editStudentForm.value.cohort || null,
     });
     showEditModal.value = false;
     await fetchStudents();
@@ -208,9 +227,32 @@ const handleViewSubmissions = async (studentId: string) => {
   }
 };
 
-const downloadFile = (fileId: string, fileName: string) => {
-  // Placeholder for download functionality
-  window.location.href = `/api/v1/admin/users/submissions/files/${fileId}/download`;
+const downloadFile = async (filename: string, originalName: string, phase: string) => {
+  try {
+    if (!selectedStudentSubmissions.value?.studentId) {
+      console.error('Student ID not available');
+      return;
+    }
+    
+    // Use userService which has the admin download endpoint
+    const blob = await userService.downloadStudentSubmissionFile(
+      selectedStudentSubmissions.value.studentId,
+      phase,
+      filename
+    );
+    
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = originalName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Failed to download file:', error);
+    alert('Failed to download file. Please try again.');
+  }
 };
 
 // Cohort Modal States
@@ -1055,7 +1097,7 @@ const handleViewCohort = (cohort: any) => {
                     >
                       <span class="text-slate-700">{{ file.originalName }}</span>
                       <button
-                        @click="downloadFile(file.filename, file.originalName)"
+                        @click="downloadFile(file.filename, file.originalName, sub.phase)"
                         class="text-blue-600 hover:text-blue-700 font-medium"
                       >
                         Download

@@ -67,4 +67,17 @@ export default {
     const response = await httpClient.get(`/admin/users/${studentId}/submissions`)
     return response.data
   },
+
+  async downloadStudentSubmissionFile(studentId: string, phase: string, filename: string): Promise<Blob> {
+    try {
+      const response = await httpClient.get(
+        `/admin/users/${encodeURIComponent(studentId)}/submissions/${encodeURIComponent(phase)}/files/${encodeURIComponent(filename)}`,
+        { responseType: 'blob' }
+      )
+      return response.data
+    } catch (error) {
+      console.error(`Failed to download file ${filename}:`, error)
+      throw new Error('File download failed')
+    }
+  },
 }
