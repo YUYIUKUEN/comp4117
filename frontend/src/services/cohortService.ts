@@ -2,27 +2,27 @@ import httpClient from './httpClient';
 
 const cohortService = {
   // Get all cohorts
-  getCohorts(params = {}) {
+  getCohorts(params: any = {}) {
     return httpClient.get('/admin/cohorts', { params });
   },
 
   // Get a specific cohort
-  getCohortById(cohortId) {
+  getCohortById(cohortId: string) {
     return httpClient.get(`/admin/cohorts/${cohortId}`);
   },
 
   // Create a new cohort
-  createCohort(data) {
+  createCohort(data: any) {
     return httpClient.post('/admin/cohorts', data);
   },
 
   // Update a cohort
-  updateCohort(cohortId, data) {
+  updateCohort(cohortId: string, data: any) {
     return httpClient.put(`/admin/cohorts/${cohortId}`, data);
   },
 
   // Delete/archive a cohort
-  deleteCohort(cohortId) {
+  deleteCohort(cohortId: string) {
     return httpClient.delete(`/admin/cohorts/${cohortId}`);
   },
 };

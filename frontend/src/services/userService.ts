@@ -8,6 +8,7 @@ interface CreateUserPayload {
   pathway?: string
   phone?: string
   password?: string
+  cohort?: string
 }
 
 interface User {
@@ -18,6 +19,7 @@ interface User {
   concentration?: string
   pathway?: string
   phone?: string
+  cohort?: string
   createdAt: string
   deactivatedAt?: string
 }

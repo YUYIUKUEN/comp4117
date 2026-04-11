@@ -156,7 +156,8 @@ const handleMarkEthicsNotRequired = async () => {
     selectedIds.value = new Set();
   } catch (err) {
     console.error('Failed to mark ethics not required:', err);
-    bulkMessage.value = `Error: ${err.response?.data?.error || 'Failed to mark ethics not required'}`;
+    const errorMsg = (err as any).response?.data?.error || 'Failed to mark ethics not required';
+    bulkMessage.value = `Error: ${errorMsg}`;
   }
 };
 
@@ -189,7 +190,8 @@ const confirmAssignSupervisor = async () => {
     await fetchStudentData();
   } catch (err) {
     console.error('Failed to assign supervisor:', err);
-    bulkMessage.value = `Error: ${err.response?.data?.error || 'Failed to assign supervisor'}`;
+    const errorMsg = (err as any).response?.data?.error || 'Failed to assign supervisor';
+    bulkMessage.value = `Error: ${errorMsg}`;
   }
 };
 

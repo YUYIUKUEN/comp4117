@@ -24,6 +24,7 @@ interface Student {
   email: string;
   programme: string;
   pathway?: string;
+  phone?: string;
   cohort: string;
   status: string;
 }
