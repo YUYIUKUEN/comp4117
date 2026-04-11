@@ -271,14 +271,9 @@ const getSubmissionStatusColor = (status: string) => {
                   class="hover:bg-slate-50 transition-colors"
                 >
                   <td class="px-4 py-3">
-                    <div>
-                      <p class="font-medium text-slate-900">
-                        {{ student.name }}
-                      </p>
-                      <p class="text-xs text-slate-500">
-                        {{ student.studentId }}
-                      </p>
-                    </div>
+                    <p class="font-medium text-slate-900">
+                      {{ student.name }}
+                    </p>
                   </td>
                   <td class="px-4 py-3">
                     <div>

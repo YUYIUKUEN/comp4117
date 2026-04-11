@@ -142,14 +142,22 @@ const selectedRows = computed(() => rows.value.filter(r => selectedIds.value.has
 // Bulk actions
 const bulkMessage = ref('');
 
-const handleMarkEthicsNotRequired = () => {
+const handleMarkEthicsNotRequired = async () => {
   if (selectedRows.value.length === 0) {
     bulkMessage.value = 'Please select at least one student from the table above.';
     return;
   }
-  const names = selectedRows.value.map(r => r.student).join(', ');
-  bulkMessage.value = `Marked ${selectedRows.value.length} student(s) as "Ethics not required": ${names}`;
-  // In production this would call an API endpoint
+  
+  try {
+    const studentIds = selectedRows.value.map(r => r.id);
+    await httpClient.post('/admin/users/bulk-mark-ethics-not-required', { studentIds });
+    const names = selectedRows.value.map(r => r.student).join(', ');
+    bulkMessage.value = `✓ Marked ${selectedRows.value.length} student(s) as "Ethics not required": ${names}`;
+    selectedIds.value = new Set();
+  } catch (err) {
+    console.error('Failed to mark ethics not required:', err);
+    bulkMessage.value = `Error: ${err.response?.data?.error || 'Failed to mark ethics not required'}`;
+  }
 };
 
 const showAssignModal = ref(false);
@@ -163,13 +171,26 @@ const handleAssignSupervisor = () => {
   showAssignModal.value = true;
 };
 
-const confirmAssignSupervisor = () => {
+const confirmAssignSupervisor = async () => {
   if (!assignSupervisorName.value.trim()) return;
-  const names = selectedRows.value.map(r => r.student).join(', ');
-  bulkMessage.value = `Assigned ${selectedRows.value.length} student(s) to ${assignSupervisorName.value}: ${names}`;
-  showAssignModal.value = false;
-  assignSupervisorName.value = '';
-  // In production this would call an API endpoint
+  
+  try {
+    const studentIds = selectedRows.value.map(r => r.id);
+    await httpClient.post('/admin/users/bulk-assign-supervisor', {
+      studentIds,
+      supervisorName: assignSupervisorName.value.trim(),
+    });
+    const names = selectedRows.value.map(r => r.student).join(', ');
+    bulkMessage.value = `✓ Assigned ${selectedRows.value.length} student(s) to ${assignSupervisorName.value}: ${names}`;
+    showAssignModal.value = false;
+    assignSupervisorName.value = '';
+    selectedIds.value = new Set();
+    // Refresh data
+    await fetchStudentData();
+  } catch (err) {
+    console.error('Failed to assign supervisor:', err);
+    bulkMessage.value = `Error: ${err.response?.data?.error || 'Failed to assign supervisor'}`;
+  }
 };
 
 const activityLog = ref<any[]>([]);
@@ -542,7 +563,7 @@ const closeImportModal = () => {
               Recent system events across students, supervisors, and staff.
             </p>
 
-            <ol v-if="activityLog.length > 0" class="mt-3 space-y-2 text-[11px]">
+            <ol v-if="activityLog.length > 0" class="mt-3 space-y-2 text-[11px] max-h-64 overflow-y-auto">
               <li
                 v-for="item in activityLog"
                 :key="item.id"

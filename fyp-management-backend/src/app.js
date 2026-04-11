@@ -35,6 +35,7 @@ const gradingStandardRoutes = require('./routes/gradingStandardRoutes');
 const rubricTemplateRoutes = require('./routes/rubricTemplateRoutes');
 const meetingRoutes = require('./routes/meetingRoutes');
 const topicChangeRequestRoutes = require('./routes/topicChangeRequestRoutes');
+const cohortRoutes = require('./routes/cohortRoutes');
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/topics', topicRoutes);
@@ -51,6 +52,7 @@ app.use('/api/v1/grading-standards', gradingStandardRoutes);
 app.use('/api/v1/rubric-templates', rubricTemplateRoutes);
 app.use('/api/v1/meetings', meetingRoutes);
 app.use('/api/v1/topic-change-requests', topicChangeRequestRoutes);
+app.use('/api/v1/admin/cohorts', cohortRoutes);
 app.use('/api/v1/health', healthRoutes);
 
 // --- Serve Vue frontend in production ---

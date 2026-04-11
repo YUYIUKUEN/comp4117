@@ -10,6 +10,7 @@ import {
 } from '@heroicons/vue/24/outline';
 import { useRouter } from 'vue-router';
 import userService from '@/services/userService';
+import cohortService from '@/services/cohortService';
 
 const router = useRouter();
 const sidebarOpen = ref(false);
@@ -28,30 +29,9 @@ interface Student {
 }
 
 const students = ref<Student[]>([]);
-
-const cohorts = ref([
-  {
-    id: 1,
-    name: '2024-2025',
-    totalStudents: 150,
-    academicYear: '2024/2025',
-    status: 'Active',
-  },
-  {
-    id: 2,
-    name: '2023-2024',
-    totalStudents: 148,
-    academicYear: '2023/2024',
-    status: 'Active',
-  },
-  {
-    id: 3,
-    name: '2022-2023',
-    totalStudents: 142,
-    academicYear: '2022/2023',
-    status: 'Archived',
-  },
-]);
+const cohorts = ref<any[]>([]);
+const cohortsLoading = ref(false);
+const cohortsError = ref('');
 
 // Add Student Modal
 const showAddModal = ref(false);
@@ -61,6 +41,7 @@ const addStudentForm = ref({
   concentration: '',
   phone: '',
   password: '',
+  cohort: '',
 });
 const addStudentError = ref('');
 const addStudentLoading = ref(false);
@@ -74,6 +55,7 @@ const editStudentForm = ref({
   concentration: '',
   pathway: '',
   phone: '',
+  cohort: '',
 });
 const editStudentError = ref('');
 const editStudentLoading = ref(false);
@@ -88,7 +70,8 @@ const fetchStudents = async () => {
       email: u.email,
       programme: u.concentration || 'Not set',
       pathway: u.pathway || u.topicPathway || '',
-      cohort: u.createdAt ? new Date(u.createdAt).getFullYear() + '-' + (new Date(u.createdAt).getFullYear() + 1) : 'Unknown',
+      phone: u.phone || '',
+      cohort: u.cohort || 'Not assigned',
       status: u.deactivatedAt ? 'Inactive' : 'Active',
     }));
   } catch (error: any) {
@@ -100,6 +83,7 @@ const fetchStudents = async () => {
 
 onMounted(() => {
   fetchStudents();
+  fetchCohorts();
 });
 
 const filteredStudents = computed(() => {
@@ -119,7 +103,7 @@ const handleBack = () => {
 };
 
 const handleAddStudent = () => {
-  addStudentForm.value = { fullName: '', email: '', concentration: '', phone: '', password: '' };
+  addStudentForm.value = { fullName: '', email: '', concentration: '', phone: '', password: '', cohort: '' };
   addStudentError.value = '';
   showAddModal.value = true;
 };
@@ -140,6 +124,7 @@ const submitAddStudent = async () => {
       role: 'Student',
       concentration: addStudentForm.value.concentration.trim() || undefined,
       phone: addStudentForm.value.phone.trim() || undefined,
+      cohort: addStudentForm.value.cohort.trim() || undefined,
       password: addStudentForm.value.password.trim() || undefined,
     });
     showAddModal.value = false;
@@ -151,10 +136,6 @@ const submitAddStudent = async () => {
   }
 };
 
-const handleAddCohort = () => {
-  console.log('Add cohort');
-};
-
 const handleEditStudent = (studentId: string) => {
   const student = students.value.find(s => s.id === studentId);
   if (!student) return;
@@ -164,7 +145,8 @@ const handleEditStudent = (studentId: string) => {
     email: student.email,
     concentration: student.programme === 'Not set' ? '' : student.programme,
     pathway: student.pathway || '',
-    phone: '',
+    phone: student.phone || '',
+    cohort: student.cohort || '',
   };
   editStudentError.value = '';
   showEditModal.value = true;
@@ -186,6 +168,7 @@ const submitEditStudent = async () => {
       concentration: editStudentForm.value.concentration || undefined,
       pathway: editStudentForm.value.pathway || undefined,
       phone: editStudentForm.value.phone.trim() || undefined,
+      cohort: editStudentForm.value.cohort.trim() || undefined,
     });
     showEditModal.value = false;
     await fetchStudents();
@@ -206,12 +189,114 @@ const handleDeleteStudent = async (studentId: string) => {
   }
 };
 
-const handleEditCohort = (cohortId: number) => {
-  console.log('Edit cohort', cohortId);
+// Cohort Modal States
+const showAddCohortModal = ref(false);
+const showEditCohortModal = ref(false);
+const showViewCohortModal = ref(false);
+const editCohortId = ref('');
+const viewCohortId = ref('');
+const viewCohortData = ref<any>(null);
+const viewCohortStudents = ref<any[]>([]);
+const cohortForm = ref({ name: '', academicYear: '', description: '', status: 'Active' });
+const cohortError = ref('');
+const cohortLoading = ref(false);
+
+const fetchCohorts = async () => {
+  try {
+    cohortsLoading.value = true;
+    cohortsError.value = '';
+    const response = await cohortService.getCohorts({ limit: 100 });
+    console.log('Cohorts response:', response);
+    cohorts.value = response.data?.cohorts || response.data?.data?.cohorts || [];
+  } catch (error: any) {
+    cohortsError.value = error.response?.data?.error || 'Failed to fetch cohorts';
+    console.error('Failed to fetch cohorts:', error);
+  } finally {
+    cohortsLoading.value = false;
+  }
 };
 
-const handleDeleteCohort = (cohortId: number) => {
-  console.log('Delete cohort', cohortId);
+const handleAddCohort = () => {
+  cohortForm.value = { name: '', academicYear: '', description: '', status: 'Active' };
+  cohortError.value = '';
+  showAddCohortModal.value = true;
+};
+
+const submitAddCohort = async () => {
+  cohortError.value = '';
+  if (!cohortForm.value.name.trim() || !cohortForm.value.academicYear.trim()) {
+    cohortError.value = 'Cohort name and academic year are required';
+    return;
+  }
+  try {
+    cohortLoading.value = true;
+    await cohortService.createCohort({
+      name: cohortForm.value.name.trim(),
+      academicYear: cohortForm.value.academicYear.trim(),
+      description: cohortForm.value.description.trim(),
+      status: cohortForm.value.status,
+    });
+    showAddCohortModal.value = false;
+    await fetchCohorts();
+  } catch (error: any) {
+    cohortError.value = error.response?.data?.error || 'Failed to create cohort';
+  } finally {
+    cohortLoading.value = false;
+  }
+};
+
+const handleEditCohort = (cohort: any) => {
+  editCohortId.value = cohort._id || cohort.id;
+  cohortForm.value = {
+    name: cohort.name,
+    academicYear: cohort.academicYear,
+    description: cohort.description || '',
+    status: cohort.status,
+  };
+  cohortError.value = '';
+  showEditCohortModal.value = true;
+};
+
+const submitEditCohort = async () => {
+  cohortError.value = '';
+  if (!cohortForm.value.name.trim() || !cohortForm.value.academicYear.trim()) {
+    cohortError.value = 'Cohort name and academic year are required';
+    return;
+  }
+  try {
+    cohortLoading.value = true;
+    await cohortService.updateCohort(editCohortId.value, {
+      name: cohortForm.value.name.trim(),
+      academicYear: cohortForm.value.academicYear.trim(),
+      description: cohortForm.value.description.trim(),
+      status: cohortForm.value.status,
+    });
+    showEditCohortModal.value = false;
+    await fetchCohorts();
+  } catch (error: any) {
+    cohortError.value = error.response?.data?.error || 'Failed to update cohort';
+  } finally {
+    cohortLoading.value = false;
+  }
+};
+
+const handleDeleteCohort = async (cohortId: string) => {
+  if (!confirm('Archive this cohort? This will mark it as archived but keep the data.')) return;
+  try {
+    await cohortService.deleteCohort(cohortId);
+    await fetchCohorts();
+  } catch (error: any) {
+    alert(error.response?.data?.error || 'Failed to archive cohort');
+  }
+};
+
+const handleViewCohort = (cohort: any) => {
+  viewCohortId.value = cohort._id || cohort.id;
+  viewCohortData.value = cohort;
+  // Filter students assigned to this cohort
+  viewCohortStudents.value = students.value.filter(s => s.cohort === cohort.name);
+  console.log('Viewing cohort', cohort.name, 'Students:', viewCohortStudents.value);
+  showViewCohortModal.value = true;
 };
 </script>
 
@@ -433,7 +518,16 @@ const handleDeleteCohort = (cohortId: number) => {
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-200">
-              <tr v-for="cohort in cohorts" :key="cohort.id" class="hover:bg-slate-50">
+              <tr v-if="cohortsLoading" class="hover:bg-slate-50">
+                <td colspan="5" class="px-4 py-8 text-center text-slate-500">Loading cohorts...</td>
+              </tr>
+              <tr v-else-if="cohortsError" class="hover:bg-slate-50">
+                <td colspan="5" class="px-4 py-8 text-center text-red-600">{{ cohortsError }}</td>
+              </tr>
+              <tr v-else-if="cohorts.length === 0" class="hover:bg-slate-50">
+                <td colspan="5" class="px-4 py-8 text-center text-slate-500">No cohorts found</td>
+              </tr>
+              <tr v-for="cohort in cohorts" :key="cohort._id" class="hover:bg-slate-50">
                 <td class="px-4 py-3">
                   <p class="font-medium text-slate-900">{{ cohort.name }}</p>
                 </td>
@@ -462,13 +556,19 @@ const handleDeleteCohort = (cohortId: number) => {
                 <td class="px-4 py-3 text-right">
                   <div class="flex justify-end gap-2">
                     <button
-                      @click="handleEditCohort(cohort.id)"
+                      @click="handleViewCohort(cohort)"
+                      class="text-green-600 hover:text-green-700 text-xs font-medium"
+                    >
+                      View
+                    </button>
+                    <button
+                      @click="handleEditCohort(cohort)"
                       class="text-blue-600 hover:text-blue-700 text-xs font-medium"
                     >
                       Edit
                     </button>
                     <button
-                      @click="handleDeleteCohort(cohort.id)"
+                      @click="handleDeleteCohort(cohort._id || cohort.id)"
                       class="text-red-600 hover:text-red-700 text-xs font-medium"
                     >
                       Remove
@@ -522,12 +622,14 @@ const handleDeleteCohort = (cohortId: number) => {
             </div>
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-1">Programme / Concentration</label>
-              <input
+              <select
                 v-model="addStudentForm.concentration"
-                type="text"
-                placeholder="e.g. BSocSc Geography"
-                class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
-              />
+                class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
+              >
+                <option value="">Not set</option>
+                <option value="Health and Social Wellness Concentration (HSW)">Health and Social Wellness Concentration (HSW)</option>
+                <option value="Health Technology and Informatics Concentration (HTI)">Health Technology and Informatics Concentration (HTI)</option>
+              </select>
             </div>
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-1">Phone</label>
@@ -547,6 +649,16 @@ const handleDeleteCohort = (cohortId: number) => {
                 class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
               />
               <p class="mt-1 text-xs text-slate-500">Leave blank to use default password.</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Cohort</label>
+              <select
+                v-model="addStudentForm.cohort"
+                class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
+              >
+                <option value="">Not assigned</option>
+                <option v-for="cohort in cohorts" :key="cohort._id" :value="cohort.name">{{ cohort.name }}</option>
+              </select>
             </div>
             <div class="flex justify-end gap-3 pt-2">
               <button
@@ -636,6 +748,16 @@ const handleDeleteCohort = (cohortId: number) => {
                 class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
               />
             </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Cohort</label>
+              <select
+                v-model="editStudentForm.cohort"
+                class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
+              >
+                <option value="">Not assigned</option>
+                <option v-for="cohort in cohorts" :key="cohort._id" :value="cohort.name">{{ cohort.name }}</option>
+              </select>
+            </div>
             <div class="flex justify-end gap-3 pt-2">
               <button
                 type="button"
@@ -654,6 +776,179 @@ const handleDeleteCohort = (cohortId: number) => {
               </button>
             </div>
           </form>
+        </div>
+      </div>
+
+      <!-- Add Cohort Modal -->
+      <div v-if="showAddCohortModal" class="fixed inset-0 z-50 flex items-center justify-center">
+        <div class="fixed inset-0 bg-black/40" @click="showAddCohortModal = false" />
+        <div class="relative z-10 w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-xl mx-4">
+          <div class="flex items-center justify-between mb-5">
+            <h3 class="text-lg font-semibold text-slate-900">Add New Cohort</h3>
+            <button @click="showAddCohortModal = false" class="inline-flex items-center justify-center rounded-md p-1 text-slate-400 hover:text-slate-600">
+              <XMarkIcon class="h-5 w-5" />
+            </button>
+          </div>
+          <div v-if="cohortError" class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ cohortError }}</div>
+          <form @submit.prevent="submitAddCohort" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Cohort Name *</label>
+              <input v-model="cohortForm.name" type="text" required placeholder="e.g. 2024-2025" class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Academic Year *</label>
+              <input v-model="cohortForm.academicYear" type="text" required placeholder="e.g. 2024/2025" class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Description</label>
+              <textarea v-model="cohortForm.description" placeholder="Optional description" rows="3" class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Status</label>
+              <select v-model="cohortForm.status" class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60">
+                <option value="Planning">Planning</option>
+                <option value="Active">Active</option>
+                <option value="Archived">Archived</option>
+              </select>
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+              <button type="button" @click="showAddCohortModal = false" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
+              <button type="submit" :disabled="cohortLoading" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50">
+                <span v-if="cohortLoading" class="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
+                {{ cohortLoading ? 'Creating...' : 'Create Cohort' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Edit Cohort Modal -->
+      <div v-if="showEditCohortModal" class="fixed inset-0 z-50 flex items-center justify-center">
+        <div class="fixed inset-0 bg-black/40" @click="showEditCohortModal = false" />
+        <div class="relative z-10 w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-xl mx-4">
+          <div class="flex items-center justify-between mb-5">
+            <h3 class="text-lg font-semibold text-slate-900">Edit Cohort</h3>
+            <button @click="showEditCohortModal = false" class="inline-flex items-center justify-center rounded-md p-1 text-slate-400 hover:text-slate-600">
+              <XMarkIcon class="h-5 w-5" />
+            </button>
+          </div>
+          <div v-if="cohortError" class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ cohortError }}</div>
+          <form @submit.prevent="submitEditCohort" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Cohort Name *</label>
+              <input v-model="cohortForm.name" type="text" required class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Academic Year *</label>
+              <input v-model="cohortForm.academicYear" type="text" required class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Description</label>
+              <textarea v-model="cohortForm.description" rows="3" class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Status</label>
+              <select v-model="cohortForm.status" class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60">
+                <option value="Planning">Planning</option>
+                <option value="Active">Active</option>
+                <option value="Archived">Archived</option>
+              </select>
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+              <button type="button" @click="showEditCohortModal = false" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
+              <button type="submit" :disabled="cohortLoading" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50">
+                <span v-if="cohortLoading" class="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
+                {{ cohortLoading ? 'Saving...' : 'Save Changes' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- View Cohort Modal -->
+      <div v-if="showViewCohortModal" class="fixed inset-0 z-50 flex items-center justify-center">
+        <div class="fixed inset-0 bg-black/40" @click="showViewCohortModal = false" />
+        <div class="relative z-10 w-full max-w-4xl rounded-xl border border-slate-200 bg-white p-6 shadow-xl mx-4 max-h-[80vh] overflow-y-auto">
+          <div class="flex items-center justify-between mb-5 sticky top-0 bg-white pb-4 border-b">
+            <div>
+              <h3 class="text-lg font-semibold text-slate-900">{{ viewCohortData?.name }}</h3>
+              <p class="text-sm text-slate-500">Academic Year: {{ viewCohortData?.academicYear }}</p>
+            </div>
+            <button @click="showViewCohortModal = false" class="inline-flex items-center justify-center rounded-md p-1 text-slate-400 hover:text-slate-600">
+              <XMarkIcon class="h-5 w-5" />
+            </button>
+          </div>
+          
+          <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p class="text-slate-500">Status</p>
+                <p class="font-medium">{{ viewCohortData?.status }}</p>
+              </div>
+              <div>
+                <p class="text-slate-500">Total Students</p>
+                <p class="font-medium">{{ viewCohortStudents.length }}</p>
+              </div>
+              <div v-if="viewCohortData?.description" class="col-span-2">
+                <p class="text-slate-500">Description</p>
+                <p class="font-medium">{{ viewCohortData.description }}</p>
+              </div>
+            </div>
+
+            <div class="border-t pt-4">
+              <h4 class="font-semibold text-slate-900 mb-3">Students in this Cohort</h4>
+              <div v-if="viewCohortStudents.length === 0" class="text-center py-6 text-slate-500">
+                No students in this cohort yet
+              </div>
+              <div v-else class="overflow-x-auto">
+                <table class="min-w-full text-xs">
+                  <thead class="bg-slate-50 text-slate-600 border-b border-slate-200">
+                    <tr>
+                      <th scope="col" class="px-4 py-3 text-left font-medium">Name</th>
+                      <th scope="col" class="px-4 py-3 text-left font-medium">Email</th>
+                      <th scope="col" class="px-4 py-3 text-left font-medium">Programme</th>
+                      <th scope="col" class="px-4 py-3 text-left font-medium">Pathway</th>
+                      <th scope="col" class="px-4 py-3 text-left font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-200">
+                    <tr v-for="student in viewCohortStudents" :key="student.id" class="hover:bg-slate-50">
+                      <td class="px-4 py-3">
+                        <p class="font-medium text-slate-900">{{ student.name }}</p>
+                      </td>
+                      <td class="px-4 py-3">
+                        <p class="text-slate-600">{{ student.email }}</p>
+                      </td>
+                      <td class="px-4 py-3">
+                        <p class="text-slate-600">{{ student.programme }}</p>
+                      </td>
+                      <td class="px-4 py-3">
+                        <span v-if="student.pathway" class="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-blue-700">
+                          {{ student.pathway }}
+                        </span>
+                        <span v-else class="text-slate-400">—</span>
+                      </td>
+                      <td class="px-4 py-3">
+                        <span :class="[
+                          'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs',
+                          student.status === 'Active'
+                            ? 'border-emerald-500/50 bg-emerald-50 text-emerald-700'
+                            : 'border-slate-500/50 bg-slate-50 text-slate-700'
+                        ]">
+                          <span class="h-1.5 w-1.5 rounded-full" :class="student.status === 'Active' ? 'bg-emerald-500' : 'bg-slate-500'" />
+                          {{ student.status }}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-4 border-t">
+              <button @click="showViewCohortModal = false" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Close</button>
+            </div>
+          </div>
         </div>
       </div>
     </main>

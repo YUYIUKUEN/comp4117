@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema({
   role: { type: String, enum: ['Student', 'Supervisor', 'Admin'], required: true },
   concentration: String,
   pathway: { type: String, enum: ['Research-Based', 'Solution-Based', null], default: null }, // Student's selected pathway (can be null if not yet chosen)
+  cohort: String, // Admin-assigned cohort (e.g., "2026-2027")
   phone: String,
   officeHours: String,
   createdAt: { type: Date, default: Date.now },

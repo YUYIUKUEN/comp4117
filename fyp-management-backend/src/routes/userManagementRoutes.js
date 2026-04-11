@@ -9,6 +9,8 @@ const {
   deactivateUser,
   reactivateUser,
   importUsersFromExcel,
+  assignStudentsToSupervisor,
+  markStudentsEthicsNotRequired,
 } = require('../controllers/userManagementController');
 
 // Multer config for Excel/CSV import (in-memory, 5 MB limit)
@@ -39,6 +41,12 @@ router.post('/', authenticate, requireRole('Admin'), createUser);
 
 // Import users from Excel/CSV - Admin only
 router.post('/import', authenticate, requireRole('Admin'), importUpload.single('file'), importUsersFromExcel);
+
+// Bulk assign students to supervisor - Admin only (must come before /:userId)
+router.post('/bulk-assign-supervisor', authenticate, requireRole('Admin'), assignStudentsToSupervisor);
+
+// Bulk mark students as ethics not required - Admin only (must come before /:userId)
+router.post('/bulk-mark-ethics-not-required', authenticate, requireRole('Admin'), markStudentsEthicsNotRequired);
 
 // Get user by ID - Admin only
 router.get('/:userId', authenticate, requireRole('Admin'), getUserById);

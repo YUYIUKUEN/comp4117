@@ -28,7 +28,7 @@ const getAllUsers = async (req, res, next) => {
       .select('-passwordHash')
       .skip(skipAmount)
       .limit(parseInt(limit))
-      .sort({ createdAt: -1 });
+      .sort({ _id: -1 });
 
     // For students, fetch their assignments to populate supervisor and topic info
     const Assignment = require('../models/Assignment');
@@ -212,7 +212,7 @@ const reactivateUser = async (req, res, next) => {
 const createUser = async (req, res, next) => {
   try {
     // Role check is handled by requireRole('Admin') middleware on the route
-    const { email, fullName, role, concentration, phone, password } = req.body;
+    const { email, fullName, role, concentration, phone, password, cohort } = req.body;
 
     // Validate required fields
     if (!email || !fullName || !role) {
@@ -256,6 +256,7 @@ const createUser = async (req, res, next) => {
       deactivatedUser.passwordHash = passwordHash;
       deactivatedUser.concentration = concentration || undefined;
       deactivatedUser.phone = phone || undefined;
+      deactivatedUser.cohort = cohort || undefined;
       deactivatedUser.deactivatedAt = null;
       deactivatedUser.updatedAt = new Date();
       await deactivatedUser.save();
@@ -268,6 +269,7 @@ const createUser = async (req, res, next) => {
         role,
         concentration: concentration || undefined,
         phone: phone || undefined,
+        cohort: cohort || undefined,
       });
     }
 
@@ -300,7 +302,7 @@ const createUser = async (req, res, next) => {
 const updateUser = async (req, res, next) => {
   try {
     const { userId } = req.params;
-    const { fullName, email, concentration, phone, role, pathway } = req.body;
+    const { fullName, email, concentration, phone, role, pathway, cohort } = req.body;
 
     const user = await User.findById(userId);
     if (!user) {
@@ -330,6 +332,7 @@ const updateUser = async (req, res, next) => {
     if (concentration !== undefined) user.concentration = concentration || null;
     if (phone !== undefined) user.phone = phone;
     if (pathway !== undefined) user.pathway = pathway || null;
+    if (cohort !== undefined) user.cohort = cohort || undefined;
     if (role && ['Student', 'Supervisor', 'Admin'].includes(role)) {
       user.role = role;
     }
@@ -342,7 +345,7 @@ const updateUser = async (req, res, next) => {
       action: 'user_updated',
       entityType: 'User',
       entityId: userId,
-      details: { fullName, email, concentration, phone, role, pathway },
+      details: { fullName, email, concentration, phone, role, pathway, cohort },
     });
 
     const userObj = user.toObject();
@@ -419,6 +422,7 @@ const importUsersFromExcel = async (req, res, next) => {
       const role = col(row, 'role') || 'Student';
       const concentration = col(row, 'concentration', 'programme', 'program', 'major');
       const phone = col(row, 'phone', 'telephone', 'phonenumber');
+      const cohort = col(row, 'cohort', 'cohort name', 'year');
 
       if (!email || !fullName) {
         results.errors.push({ row: rowNum, reason: 'Missing email or fullName' });
@@ -448,6 +452,7 @@ const importUsersFromExcel = async (req, res, next) => {
         deactivated.passwordHash = defaultHash;
         deactivated.concentration = concentration || undefined;
         deactivated.phone = phone || undefined;
+        deactivated.cohort = cohort || undefined;
         deactivated.deactivatedAt = null;
         deactivated.updatedAt = new Date();
         await deactivated.save();
@@ -459,6 +464,7 @@ const importUsersFromExcel = async (req, res, next) => {
           role,
           concentration: concentration || undefined,
           phone: phone || undefined,
+          cohort: cohort || undefined,
         });
       }
       results.created++;
@@ -482,6 +488,179 @@ const importUsersFromExcel = async (req, res, next) => {
   }
 };
 
+/**
+ * Assign selected students to a supervisor
+ * Admin only
+ * POST /admin/users/bulk-assign-supervisor
+ */
+const assignStudentsToSupervisor = async (req, res, next) => {
+  try {
+    const { studentIds, supervisorName } = req.body;
+
+    if (!Array.isArray(studentIds) || studentIds.length === 0) {
+      return res.status(400).json({
+        error: 'studentIds must be a non-empty array',
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+
+    if (!supervisorName || typeof supervisorName !== 'string') {
+      return res.status(400).json({
+        error: 'supervisorName is required',
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+
+    // Find supervisor by name
+    const supervisor = await User.findOne({
+      fullName: supervisorName,
+      role: 'Supervisor',
+    });
+
+    if (!supervisor) {
+      return res.status(404).json({
+        error: `Supervisor "${supervisorName}" not found`,
+        code: 'SUPERVISOR_NOT_FOUND',
+        status: 404,
+      });
+    }
+
+    // Update assignments for each student
+    const Assignment = require('../models/Assignment');
+    const Topic = require('../models/Topic');
+    let updated = 0;
+
+    for (const studentId of studentIds) {
+      const student = await User.findById(studentId);
+      if (!student || student.role !== 'Student') {
+        continue;
+      }
+
+      // Find student's active assignment with their topic
+      const assignment = await Assignment.findOne({
+        student_id: studentId,
+        status: 'Active',
+      }).populate('topic_id');
+
+      if (assignment) {
+        // Update supervisor in existing assignment
+        assignment.supervisor_id = supervisor._id;
+        await assignment.save();
+        updated++;
+      } else if (student.topicId) {
+        // If no assignment but student has a topic, create one
+        const topic = await Topic.findById(student.topicId);
+        if (topic) {
+          await Assignment.create({
+            student_id: studentId,
+            topic_id: topic._id,
+            supervisor_id: supervisor._id,
+            pathway: topic.pathway || 'Research-Based',
+            status: 'Active',
+          });
+          updated++;
+        }
+      }
+    }
+
+    // Log activity
+    await ActivityLog.create({
+      user_id: req.auth.userId,
+      action: 'bulk_assign_supervisor',
+      entityType: 'Assignment',
+      entityId: 'bulk',
+      details: { studentCount: studentIds.length, supervisorName, updated },
+    });
+
+    res.json({
+      data: {
+        message: `Assigned ${updated} student(s) to ${supervisor.fullName}`,
+        updated,
+        supervisorId: supervisor._id,
+      },
+      status: 200,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Mark selected students as ethics not required
+ * Admin only
+ * POST /admin/users/bulk-mark-ethics-not-required
+ */
+const markStudentsEthicsNotRequired = async (req, res, next) => {
+  try {
+    const { studentIds } = req.body;
+
+    if (!Array.isArray(studentIds) || studentIds.length === 0) {
+      return res.status(400).json({
+        error: 'studentIds must be a non-empty array',
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+
+    const Submission = require('../models/Submission');
+    let updated = 0;
+
+    // Find ethics-related submission phases (typically "Ethics Clearance" or similar)
+    const ethicsPhases = ['Ethics Clearance', 'Research Ethics Clearance', 'REC'];
+
+    for (const studentId of studentIds) {
+      const student = await User.findById(studentId);
+      if (!student || student.role !== 'Student') {
+        continue;
+      }
+
+      // Find active assignment to get the topic
+      const Assignment = require('../models/Assignment');
+      const assignment = await Assignment.findOne({
+        student_id: studentId,
+        status: 'Active',
+      });
+
+      if (assignment) {
+        // Update or create submission records for ethics phases
+        for (const phase of ethicsPhases) {
+          const submission = await Submission.findOneAndUpdate(
+            { student_id: studentId, topic_id: assignment.topic_id, phase },
+            {
+              status: 'Declared Not Needed',
+              declaredAt: new Date(),
+              declarationReason: 'Marked by admin - ethics not required for this project',
+            },
+            { upsert: true, new: true }
+          );
+          updated++;
+        }
+      }
+    }
+
+    // Log activity
+    await ActivityLog.create({
+      user_id: req.auth.userId,
+      action: 'bulk_mark_ethics_not_required',
+      entityType: 'Submission',
+      entityId: 'bulk',
+      details: { studentCount: studentIds.length, updated },
+    });
+
+    res.json({
+      data: {
+        message: `Marked ${updated} ethics submissions as not required for ${studentIds.length} student(s)`,
+        updated,
+      },
+      status: 200,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllUsers,
   getUserById,
@@ -490,4 +669,6 @@ module.exports = {
   deactivateUser,
   reactivateUser,
   importUsersFromExcel,
+  assignStudentsToSupervisor,
+  markStudentsEthicsNotRequired,
 };
