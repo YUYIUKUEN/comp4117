@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import {
   Bars3Icon,
   ArrowLeftIcon,
@@ -18,6 +18,8 @@ const activeTab = ref('students'); // 'students' or 'cohorts'
 const isLoading = ref(false);
 const searchQuery = ref('');
 const cohortFilter = ref(''); // Filter by cohort
+const currentPage = ref(1);
+const itemsPerPage = 20;
 
 interface Student {
   id: string;
@@ -152,6 +154,23 @@ const filteredStudents = computed(() => {
 const uniqueCohorts = computed(() => {
   const cohortsSet = new Set(students.value.map(s => s.cohort));
   return Array.from(cohortsSet).sort();
+});
+
+// Paginated students
+const paginatedStudents = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  const end = start + itemsPerPage;
+  return filteredStudents.value.slice(start, end);
+});
+
+// Total pages
+const totalPages = computed(() => {
+  return Math.ceil(filteredStudents.value.length / itemsPerPage);
+});
+
+// Reset to page 1 when filter changes
+watch([cohortFilter, searchQuery], () => {
+  currentPage.value = 1;
 });
 
 const handleBack = () => {
@@ -632,7 +651,7 @@ const handleViewCohort = (cohort: any) => {
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-200">
-              <tr v-for="student in filteredStudents" :key="student.id" class="hover:bg-slate-50">
+              <tr v-for="student in paginatedStudents" :key="student.id" class="hover:bg-slate-50">
                 <td class="px-4 py-3 text-left">
                   <input
                     type="checkbox"
@@ -704,6 +723,36 @@ const handleViewCohort = (cohort: any) => {
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div v-if="filteredStudents.length > 0" class="mt-4 flex items-center justify-between gap-4 border-t border-slate-200 pt-4">
+          <p class="text-xs text-slate-600">
+            Showing <span class="font-semibold">{{ (currentPage - 1) * itemsPerPage + 1 }}</span> to 
+            <span class="font-semibold">{{ Math.min(currentPage * itemsPerPage, filteredStudents.length) }}</span> of 
+            <span class="font-semibold">{{ filteredStudents.length }}</span> students
+          </p>
+          <div class="flex items-center gap-2">
+            <button
+              @click="currentPage = Math.max(1, currentPage - 1)"
+              :disabled="currentPage === 1"
+              class="inline-flex items-center rounded border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              ← Previous
+            </button>
+            <div class="flex items-center gap-1">
+              <span class="text-xs text-slate-600">
+                Page <span class="font-semibold">{{ currentPage }}</span> of <span class="font-semibold">{{ totalPages }}</span>
+              </span>
+            </div>
+            <button
+              @click="currentPage = Math.min(totalPages, currentPage + 1)"
+              :disabled="currentPage === totalPages"
+              class="inline-flex items-center rounded border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next →
+            </button>
+          </div>
         </div>
       </section>
 

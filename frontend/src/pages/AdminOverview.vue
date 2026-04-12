@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   UsersIcon,
@@ -22,6 +22,8 @@ const stats = ref({
 const rows = ref<any[]>([]);
 const searchQuery = ref('');
 const isLoading = ref(false);
+const currentPage = ref(1);
+const itemsPerPage = 20;
 
 const filteredRows = computed(() => {
   if (!searchQuery.value.trim()) return rows.value;
@@ -33,6 +35,23 @@ const filteredRows = computed(() => {
     r.supervisor.toLowerCase().includes(q) ||
     r.topic.toLowerCase().includes(q)
   );
+});
+
+// Paginated rows
+const paginatedRows = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  const end = start + itemsPerPage;
+  return filteredRows.value.slice(start, end);
+});
+
+// Total pages
+const totalPages = computed(() => {
+  return Math.ceil(filteredRows.value.length / itemsPerPage);
+});
+
+// Reset to page 1 when filter changes
+watch(searchQuery, () => {
+  currentPage.value = 1;
 });
 
 // Fetch real data from API
@@ -425,7 +444,7 @@ const closeImportModal = () => {
               </thead>
               <tbody class="divide-y divide-slate-800">
                 <tr
-                  v-for="row in filteredRows"
+                  v-for="row in paginatedRows"
                   :key="row.id"
                   class="hover:bg-slate-900/80"
                 >
@@ -495,6 +514,36 @@ const closeImportModal = () => {
                 </tr>
               </tbody>
             </table>
+          </div>
+
+          <!-- Pagination Controls -->
+          <div v-if="filteredRows.length > 0" class="mt-4 flex items-center justify-between gap-4 border-t border-slate-200 pt-4">
+            <p class="text-xs text-slate-600">
+              Showing <span class="font-semibold">{{ (currentPage - 1) * itemsPerPage + 1 }}</span> to 
+              <span class="font-semibold">{{ Math.min(currentPage * itemsPerPage, filteredRows.length) }}</span> of 
+              <span class="font-semibold">{{ filteredRows.length }}</span> students
+            </p>
+            <div class="flex items-center gap-2">
+              <button
+                @click="currentPage = Math.max(1, currentPage - 1)"
+                :disabled="currentPage === 1"
+                class="inline-flex items-center rounded border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                ← Previous
+              </button>
+              <div class="flex items-center gap-1">
+                <span class="text-xs text-slate-600">
+                  Page <span class="font-semibold">{{ currentPage }}</span> of <span class="font-semibold">{{ totalPages }}</span>
+                </span>
+              </div>
+              <button
+                @click="currentPage = Math.min(totalPages, currentPage + 1)"
+                :disabled="currentPage === totalPages"
+                class="inline-flex items-center rounded border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next →
+              </button>
+            </div>
           </div>
         </section>
 
