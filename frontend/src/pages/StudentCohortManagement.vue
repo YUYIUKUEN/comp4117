@@ -184,10 +184,10 @@ const handleEditStudent = (studentId: string) => {
   editStudentForm.value = {
     fullName: student.name,
     email: student.email,
-    concentration: student.programme === 'Not assigned' ? '' : student.programme,
-    pathway: student.pathway === 'Not assigned' ? '' : student.pathway,
+    concentration: (student.programme === 'Not assigned') ? '' : (student.programme || ''),
+    pathway: (student.pathway === 'Not assigned') ? '' : (student.pathway || ''),
     phone: student.phone || '',
-    cohort: student.cohort === 'Not assigned' ? '' : student.cohort,
+    cohort: (student.cohort === 'Not assigned') ? '' : (student.cohort || ''),
   };
   editStudentError.value = '';
   showEditModal.value = true;
@@ -207,9 +207,9 @@ const submitEditStudent = async () => {
       fullName: editStudentForm.value.fullName.trim(),
       email: editStudentForm.value.email.trim(),
       concentration: editStudentForm.value.concentration || undefined,
-      pathway: editStudentForm.value.pathway === '' ? null : editStudentForm.value.pathway || undefined,
+      pathway: editStudentForm.value.pathway === '' ? undefined : (editStudentForm.value.pathway || undefined),
       phone: editStudentForm.value.phone.trim() || undefined,
-      cohort: editStudentForm.value.cohort || null,
+      cohort: editStudentForm.value.cohort || undefined,
     });
     showEditModal.value = false;
     await fetchStudents();
@@ -301,7 +301,7 @@ const submitBulkUpdate = async () => {
     showBulkUpdateModal.value = false;
     await fetchStudents();
     
-    alert(`✓ Successfully updated ${response.data.data.updated} student(s)`);
+    alert(`✓ Successfully updated ${response.data.updated} student(s)`);
   } catch (error: any) {
     bulkUpdateError.value = error.response?.data?.error || 'Failed to update students. Please try again.';
   } finally {
