@@ -17,6 +17,7 @@ const sidebarOpen = ref(false);
 const activeTab = ref('students'); // 'students' or 'cohorts'
 const isLoading = ref(false);
 const searchQuery = ref('');
+const cohortFilter = ref(''); // Filter by cohort
 
 interface Student {
   id: string;
@@ -128,15 +129,29 @@ onMounted(() => {
 });
 
 const filteredStudents = computed(() => {
-  if (!searchQuery.value.trim()) return students.value;
+  let result = students.value;
+
+  // Filter by cohort
+  if (cohortFilter.value) {
+    result = result.filter(s => s.cohort === cohortFilter.value);
+  }
+
+  // Filter by search query
+  if (!searchQuery.value.trim()) return result;
   const q = searchQuery.value.toLowerCase();
-  return students.value.filter(s =>
+  return result.filter(s =>
     s.name.toLowerCase().includes(q) ||
     s.email.toLowerCase().includes(q) ||
     s.programme.toLowerCase().includes(q) ||
     s.cohort.toLowerCase().includes(q) ||
     (s.pathway && s.pathway.toLowerCase().includes(q))
   );
+});
+
+// Get unique cohorts for filter dropdown
+const uniqueCohorts = computed(() => {
+  const cohortsSet = new Set(students.value.map(s => s.cohort));
+  return Array.from(cohortsSet).sort();
 });
 
 const handleBack = () => {
@@ -539,6 +554,17 @@ const handleViewCohort = (cohort: any) => {
               placeholder="Search students..."
             >
           </div>
+
+          <!-- Cohort Filter Dropdown -->
+          <select
+            v-model="cohortFilter"
+            class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
+          >
+            <option value="">All Cohorts</option>
+            <option v-for="cohort in uniqueCohorts" :key="cohort" :value="cohort">
+              {{ cohort }}
+            </option>
+          </select>
         </div>
 
         <!-- Bulk Action Bar -->
