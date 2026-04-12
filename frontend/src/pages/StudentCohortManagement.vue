@@ -242,8 +242,8 @@ const submitEditStudent = async () => {
       email: editStudentForm.value.email.trim(),
       concentration: editStudentForm.value.concentration,
       pathway: editStudentForm.value.pathway,
-      phone: editStudentForm.value.phone.trim() || undefined,
-      cohort: editStudentForm.value.cohort || undefined,
+      phone: editStudentForm.value.phone.trim(),
+      cohort: editStudentForm.value.cohort,
     });
     showEditModal.value = false;
     await fetchStudents();
