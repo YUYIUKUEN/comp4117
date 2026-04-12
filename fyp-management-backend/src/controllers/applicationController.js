@@ -782,3 +782,86 @@ exports.rejectApplication = async (req, res) => {
     });
   }
 };
+
+/**
+ * Update application preference rank
+ * PATCH /applications/:applicationId/preference
+ */
+exports.updatePreferenceRank = async (req, res) => {
+  try {
+    const { applicationId } = req.params;
+    const { preference_rank } = req.body;
+    const student_id = req.user._id;
+
+    // Validate ID
+    if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+      return res.status(400).json({
+        code: 'INVALID_ID',
+        message: 'Invalid application ID',
+      });
+    }
+
+    // Validate preference_rank
+    if (!Number.isInteger(preference_rank) || preference_rank < 1 || preference_rank > 5) {
+      return res.status(400).json({
+        code: 'INVALID_PREFERENCE_RANK',
+        message: 'preference_rank must be an integer between 1 and 5',
+      });
+    }
+
+    const application = await Application.findById(applicationId);
+
+    if (!application) {
+      return res.status(404).json({
+        code: 'APPLICATION_NOT_FOUND',
+        message: 'Application not found',
+      });
+    }
+
+    // Verify student owns this application
+    if (!application.student_id.equals(student_id)) {
+      return res.status(403).json({
+        code: 'FORBIDDEN',
+        message: 'You can only update your own applications',
+      });
+    }
+
+    // Can only update Pending applications
+    if (application.status !== 'Pending') {
+      return res.status(400).json({
+        code: 'CANNOT_UPDATE',
+        message: 'Can only update pending applications',
+      });
+    }
+
+    // Update preference rank
+    application.preference_rank = preference_rank;
+    application.updatedAt = new Date();
+    await application.save();
+
+    // Log activity
+    await ActivityLog.create({
+      user_id: student_id,
+      action: 'UPDATE_APPLICATION_PREFERENCE',
+      entityType: 'Application',
+      entityId: applicationId,
+      details: {
+        preference_rank: preference_rank,
+      },
+    });
+
+    // Populate and return updated application
+    await application.populate(['student_id', 'topic_id']);
+
+    res.json({
+      success: true,
+      data: application,
+    });
+  } catch (error) {
+    console.error('Error updating preference rank:', error);
+    res.status(500).json({
+      code: 'INTERNAL_ERROR',
+      message: 'Internal server error',
+    });
+  }
+};

@@ -11,6 +11,7 @@ const {
   getTopicApplicationStats,
   approveApplication,
   rejectApplication,
+  updatePreferenceRank,
 } = require('../controllers/applicationController');
 
 /**
@@ -22,6 +23,9 @@ router.post('/', authenticate, requireRole(['Student']), applyToTopic);
 
 // Get student's applications
 router.get('/my-applications', authenticate, requireRole(['Student']), getMyApplications);
+
+// Update application preference rank
+router.patch('/:applicationId/preference', authenticate, requireRole(['Student']), updatePreferenceRank);
 
 // Withdraw application
 router.delete('/:id', authenticate, requireRole(['Student']), withdrawApplication);

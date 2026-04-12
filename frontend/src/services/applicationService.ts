@@ -130,6 +130,21 @@ export default {
   },
 
   /**
+   * Update application preference rank (student only)
+   */
+  async updatePreferenceRank(applicationId: string, preferenceRank: number): Promise<Application> {
+    try {
+      const response = await httpClient.patch(`/applications/${applicationId}/preference`, {
+        preference_rank: preferenceRank
+      })
+      return response.data.data
+    } catch (error) {
+      console.error('Error updating preference rank:', error)
+      throw error
+    }
+  },
+
+  /**
    * Approve application (supervisor only)
    */
   async approveApplication(
