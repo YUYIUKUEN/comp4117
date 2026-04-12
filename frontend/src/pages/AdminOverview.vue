@@ -73,7 +73,12 @@ const fetchStudentData = async () => {
       id: s._id || i + 1,
       student: s.fullName || 'Unknown',
       email: s.email || '',
+      fullName: s.fullName || '',
+      role: s.role || 'Student',
       programme: s.concentration || 'N/A',
+      concentration: s.concentration || '',
+      phone: s.phone || '',
+      cohort: s.cohort || '',
       supervisor: s.supervisor?.fullName || 'Not assigned',
       supervisorEmail: s.supervisor?.email || '',
       topic: s.topicTitle || 'No topic assigned',
@@ -104,11 +109,12 @@ onMounted(() => {
 
 // Export to Excel (CSV download)
 const handleExportExcel = () => {
-  const headers = ['Student', 'Email', 'Programme', 'Supervisor', 'Topic', 'Status'];
+  // Export with columns matching import schema for bidirectional workflow
+  const headers = ['email', 'fullName', 'role', 'concentration', 'phone', 'cohort'];
   const csvRows = [
     headers.join(','),
     ...rows.value.map(r =>
-      [r.student, r.email, r.programme, r.supervisor, r.topic, r.status]
+      [r.email, r.fullName, r.role, r.concentration, r.phone, r.cohort]
         .map(v => `"${String(v).replace(/"/g, '""')}"`) 
         .join(',')
     ),
