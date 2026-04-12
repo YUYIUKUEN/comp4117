@@ -66,6 +66,22 @@ const editStudentForm = ref({
 const editStudentError = ref('');
 const editStudentLoading = ref(false);
 
+// Bulk Update Feature
+const selectedStudents = ref<Set<string>>(new Set());
+const showBulkUpdateModal = ref(false);
+const bulkUpdateForm = ref({
+  cohort: '',
+  pathway: '',
+  concentration: '',
+});
+const bulkUpdateSelected = ref({
+  cohort: false,
+  pathway: false,
+  concentration: false,
+});
+const bulkUpdateError = ref('');
+const bulkUpdateLoading = ref(false);
+
 const fetchStudents = async () => {
   try {
     isLoading.value = true;
@@ -74,8 +90,8 @@ const fetchStudents = async () => {
       id: u._id,
       name: u.fullName,
       email: u.email,
-      programme: u.concentration || 'Not set',
-      pathway: u.pathway || u.topicPathway || '',
+      programme: u.concentration || 'Not assigned',
+      pathway: (u.pathway && u.pathway.trim()) ? u.pathway : 'Not assigned',
       phone: u.phone || '',
       cohort: u.cohort || 'Not assigned',
       status: u.deactivatedAt ? 'Inactive' : 'Active',
@@ -168,10 +184,10 @@ const handleEditStudent = (studentId: string) => {
   editStudentForm.value = {
     fullName: student.name,
     email: student.email,
-    concentration: student.programme === 'Not set' ? '' : student.programme,
-    pathway: student.pathway || '',
+    concentration: student.programme === 'Not assigned' ? '' : student.programme,
+    pathway: student.pathway === 'Not assigned' ? '' : student.pathway,
     phone: student.phone || '',
-    cohort: student.cohort || '',
+    cohort: student.cohort === 'Not assigned' ? '' : student.cohort,
   };
   editStudentError.value = '';
   showEditModal.value = true;
@@ -191,7 +207,7 @@ const submitEditStudent = async () => {
       fullName: editStudentForm.value.fullName.trim(),
       email: editStudentForm.value.email.trim(),
       concentration: editStudentForm.value.concentration || undefined,
-      pathway: editStudentForm.value.pathway || undefined,
+      pathway: editStudentForm.value.pathway === '' ? null : editStudentForm.value.pathway || undefined,
       phone: editStudentForm.value.phone.trim() || undefined,
       cohort: editStudentForm.value.cohort || null,
     });
@@ -226,6 +242,77 @@ const handleViewSubmissions = async (studentId: string) => {
     submissionsLoading.value = false;
   }
 };
+
+// Bulk Selection Methods
+const toggleStudentSelection = (studentId: string) => {
+  if (selectedStudents.value.has(studentId)) {
+    selectedStudents.value.delete(studentId);
+  } else {
+    selectedStudents.value.add(studentId);
+  }
+};
+
+const selectAllStudents = (selectAll: boolean) => {
+  if (selectAll) {
+    selectedStudents.value = new Set(filteredStudents.value.map(s => s.id));
+  } else {
+    selectedStudents.value.clear();
+  }
+};
+
+const isAllSelected = computed(() => {
+  if (filteredStudents.value.length === 0) return false;
+  return filteredStudents.value.every(s => selectedStudents.value.has(s.id));
+});
+
+const isPartiallySelected = computed(() => {
+  if (filteredStudents.value.length === 0 || selectedStudents.value.size === 0) return false;
+  return !isAllSelected.value && selectedStudents.value.size > 0;
+});
+
+const handleBulkUpdateClick = () => {
+  if (selectedStudents.value.size === 0) {
+    alert('Please select at least one student');
+    return;
+  }
+  bulkUpdateForm.value = { cohort: '', pathway: '', concentration: '' };
+  bulkUpdateSelected.value = { cohort: false, pathway: false, concentration: false };
+  bulkUpdateError.value = '';
+  showBulkUpdateModal.value = true;
+};
+
+const submitBulkUpdate = async () => {
+  bulkUpdateError.value = '';
+
+  try {
+    bulkUpdateLoading.value = true;
+    
+    const updateData: any = {
+      studentIds: Array.from(selectedStudents.value),
+      cohort: bulkUpdateForm.value.cohort,
+      pathway: bulkUpdateForm.value.pathway,
+      concentration: bulkUpdateForm.value.concentration,
+    };
+
+    const response = await userService.bulkUpdateStudents(updateData);
+    
+    // Clear selection and refresh
+    selectedStudents.value.clear();
+    showBulkUpdateModal.value = false;
+    await fetchStudents();
+    
+    alert(`✓ Successfully updated ${response.data.data.updated} student(s)`);
+  } catch (error: any) {
+    bulkUpdateError.value = error.response?.data?.error || 'Failed to update students. Please try again.';
+  } finally {
+    bulkUpdateLoading.value = false;
+  }
+};
+
+const clearSelection = () => {
+  selectedStudents.value.clear();
+};
+
 
 const downloadFile = async (filename: string, originalName: string, phase: string) => {
   try {
@@ -454,10 +541,44 @@ const handleViewCohort = (cohort: any) => {
           </div>
         </div>
 
+        <!-- Bulk Action Bar -->
+        <div v-if="selectedStudents.size > 0" class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between gap-4">
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-medium text-slate-900">
+              {{ selectedStudents.size }} student{{ selectedStudents.size !== 1 ? 's' : '' }} selected
+            </span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              @click="handleBulkUpdateClick"
+              type="button"
+              class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500"
+            >
+              Bulk Update
+            </button>
+            <button
+              @click="clearSelection"
+              type="button"
+              class="inline-flex items-center gap-2 rounded-lg bg-slate-200 px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-300"
+            >
+              Clear Selection
+            </button>
+          </div>
+        </div>
+
         <div class="overflow-x-auto">
           <table class="min-w-full text-xs">
             <thead class="bg-slate-50 text-slate-600 border-b border-slate-200">
               <tr>
+                <th scope="col" class="px-4 py-3 text-left font-medium w-10">
+                  <input
+                    type="checkbox"
+                    :checked="isAllSelected"
+                    :indeterminate="isPartiallySelected"
+                    @change="e => selectAllStudents((e.target as HTMLInputElement).checked)"
+                    class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </th>
                 <th scope="col" class="px-4 py-3 text-left font-medium">
                   Name
                 </th>
@@ -486,6 +607,14 @@ const handleViewCohort = (cohort: any) => {
             </thead>
             <tbody class="divide-y divide-slate-200">
               <tr v-for="student in filteredStudents" :key="student.id" class="hover:bg-slate-50">
+                <td class="px-4 py-3 text-left">
+                  <input
+                    type="checkbox"
+                    :checked="selectedStudents.has(student.id)"
+                    @change="toggleStudentSelection(student.id)"
+                    class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </td>
                 <td class="px-4 py-3">
                   <p class="font-medium text-slate-900">{{ student.name }}</p>
                 </td>
@@ -1126,6 +1255,92 @@ const handleViewCohort = (cohort: any) => {
               </button>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Bulk Update Modal -->
+      <div v-if="showBulkUpdateModal" class="fixed inset-0 z-50 flex items-center justify-center">
+        <div class="fixed inset-0 bg-black/40" @click="showBulkUpdateModal = false" />
+        <div class="relative z-10 w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-xl mx-4">
+          <div class="flex items-center justify-between mb-5">
+            <h3 class="text-lg font-semibold text-slate-900">Bulk Update Students</h3>
+            <button @click="showBulkUpdateModal = false" class="inline-flex items-center justify-center rounded-md p-1 text-slate-400 hover:text-slate-600">
+              <XMarkIcon class="h-5 w-5" />
+            </button>
+          </div>
+          
+          <div v-if="bulkUpdateError" class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {{ bulkUpdateError }}
+          </div>
+
+          <form @submit.prevent="submitBulkUpdate" class="space-y-4">
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+              <p class="text-sm font-medium text-blue-900">
+                Updating {{ selectedStudents.size }} student{{ selectedStudents.size !== 1 ? 's' : '' }}
+              </p>
+              <p class="text-xs text-blue-700 mt-1">
+                Select at least one field to update (you can also select "Not assigned" to clear a field)
+              </p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Cohort (Optional)</label>
+              <select
+                v-model="bulkUpdateForm.cohort"
+                @change="bulkUpdateSelected.cohort = true"
+                class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
+              >
+                <option value="">-- Not assigned --</option>
+                <option v-for="cohort in cohorts" :key="cohort._id" :value="cohort.name">
+                  {{ cohort.name }}
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Pathway (Optional)</label>
+              <select
+                v-model="bulkUpdateForm.pathway"
+                @change="bulkUpdateSelected.pathway = true"
+                class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
+              >
+                <option value="">-- Not assigned --</option>
+                <option value="Research-Based">Research-Based</option>
+                <option value="Solution-Based">Solution-Based</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Concentration / Programme (Optional)</label>
+              <select
+                v-model="bulkUpdateForm.concentration"
+                @change="bulkUpdateSelected.concentration = true"
+                class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
+              >
+                <option value="">-- Not assigned --</option>
+                <option value="Health and Social Wellness Concentration (HSW)">Health and Social Wellness Concentration (HSW)</option>
+                <option value="Health Technology and Informatics Concentration (HTI)">Health Technology and Informatics Concentration (HTI)</option>
+              </select>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-4 border-t">
+              <button
+                type="button"
+                @click="showBulkUpdateModal = false"
+                class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                :disabled="bulkUpdateLoading"
+                class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+              >
+                <span v-if="bulkUpdateLoading" class="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
+                {{ bulkUpdateLoading ? 'Updating...' : `Update ${selectedStudents.size} Student${selectedStudents.size !== 1 ? 's' : ''}` }}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </main>

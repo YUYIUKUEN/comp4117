@@ -812,6 +812,82 @@ const downloadStudentSubmissionFile = async (req, res, next) => {
   }
 };
 
+/**
+ * Bulk update students: cohort, pathway, concentration
+ * Admin only
+ * POST /admin/users/bulk-update
+ */
+const bulkUpdateStudents = async (req, res, next) => {
+  try {
+    const { studentIds, cohort, pathway, concentration } = req.body;
+
+    // Validate input
+    if (!Array.isArray(studentIds) || studentIds.length === 0) {
+      return res.status(400).json({
+        error: 'studentIds must be a non-empty array',
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+
+    // Validate pathway if provided
+    if (pathway !== undefined && pathway !== null && pathway !== '' && !['Research-Based', 'Solution-Based'].includes(pathway)) {
+      return res.status(400).json({
+        error: 'Invalid pathway. Must be "Research-Based", "Solution-Based", or empty/null',
+        code: 'VALIDATION_ERROR',
+        status: 400,
+      });
+    }
+
+    // Build update object - include empty strings to clear fields
+    const updateData = {};
+    if (req.body.hasOwnProperty('cohort')) {
+      updateData.cohort = cohort === '' ? null : cohort;
+    }
+    if (req.body.hasOwnProperty('pathway')) {
+      updateData.pathway = pathway === '' ? null : pathway;
+    }
+    if (req.body.hasOwnProperty('concentration')) {
+      updateData.concentration = concentration === '' ? null : concentration;
+    }
+    updateData.updatedAt = new Date();
+
+    // Perform bulk update (only on Student role)
+    const result = await User.updateMany(
+      {
+        _id: { $in: studentIds },
+        role: 'Student',
+      },
+      {
+        $set: updateData,
+      }
+    );
+
+    // Create activity logs for audit trail
+    const activityLogs = studentIds.map(studentId => ({
+      user_id: req.auth.userId,
+      action: 'bulk_update_student',
+      entityType: 'User',
+      entityId: studentId,
+      details: updateData,
+    }));
+
+    await ActivityLog.insertMany(activityLogs);
+
+    res.json({
+      data: {
+        updated: result.modifiedCount,
+        total: studentIds.length,
+        message: `Successfully updated ${result.modifiedCount} out of ${studentIds.length} student(s)`,
+        fields: Object.keys(updateData).filter(k => k !== 'updatedAt'),
+      },
+      status: 200,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllUsers,
   getUserById,
@@ -824,4 +900,5 @@ module.exports = {
   markStudentsEthicsNotRequired,
   getStudentSubmissions,
   downloadStudentSubmissionFile,
+  bulkUpdateStudents,
 };

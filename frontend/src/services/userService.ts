@@ -80,4 +80,14 @@ export default {
       throw new Error('File download failed')
     }
   },
+
+  async bulkUpdateStudents(payload: {
+    studentIds: string[]
+    cohort?: string
+    pathway?: string
+    concentration?: string
+  }): Promise<{ data: { updated: number; total: number; message: string; fields: string[] }; status: number }> {
+    const response = await httpClient.post('/admin/users/bulk-update', payload)
+    return response.data
+  },
 }

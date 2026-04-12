@@ -13,6 +13,7 @@ const {
   markStudentsEthicsNotRequired,
   getStudentSubmissions,
   downloadStudentSubmissionFile,
+  bulkUpdateStudents,
 } = require('../controllers/userManagementController');
 
 // Multer config for Excel/CSV import (in-memory, 5 MB limit)
@@ -49,6 +50,9 @@ router.post('/bulk-assign-supervisor', authenticate, requireRole('Admin'), assig
 
 // Bulk mark students as ethics not required - Admin only (must come before /:userId)
 router.post('/bulk-mark-ethics-not-required', authenticate, requireRole('Admin'), markStudentsEthicsNotRequired);
+
+// Bulk update students (cohort, pathway, concentration) - Admin only (must come before /:userId)
+router.post('/bulk-update', authenticate, requireRole('Admin'), bulkUpdateStudents);
 
 // Get student submissions - Admin only (must come before /:userId)
 router.get('/:studentId/submissions', authenticate, requireRole('Admin'), getStudentSubmissions);
