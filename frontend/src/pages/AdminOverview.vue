@@ -601,14 +601,24 @@ const closeImportModal = () => {
       <div v-if="showImportModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @click.self="closeImportModal">
         <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
           <h2 class="text-lg font-semibold text-slate-900">Import Users from Excel</h2>
-          <p class="mt-1 text-xs text-slate-500">
-            Upload an <strong>.xlsx</strong> or <strong>.csv</strong> file with columns:
-            <span class="font-medium">email</span>,
-            <span class="font-medium">fullName</span>,
-            <span class="font-medium">role</span> (default: Student),
-            <span class="font-medium">concentration</span> (optional),
-            <span class="font-medium">phone</span> (optional).
+          <p class="mt-2 text-xs text-slate-600">
+            Upload an <strong>.xlsx</strong> or <strong>.csv</strong> file. 
           </p>
+          <div class="mt-3 space-y-2 text-xs">
+            <div>
+              <p class="font-semibold text-slate-900">Required Columns:</p>
+              <p class="text-slate-600">• <span class="font-medium">email</span> (aliases: e-mail, emailaddress)</p>
+              <p class="text-slate-600">• <span class="font-medium">fullName</span> (aliases: full name, name, student, studentname)</p>
+            </div>
+            <div>
+              <p class="font-semibold text-slate-900">Optional Columns:</p>
+              <p class="text-slate-600">• <span class="font-medium">role</span> (Student, Supervisor, Admin; default: Student)</p>
+              <p class="text-slate-600">• <span class="font-medium">concentration</span> (aliases: programme, program, major)</p>
+              <p class="text-slate-600">• <span class="font-medium">phone</span> (aliases: telephone, phonenumber)</p>
+              <p class="text-slate-600">• <span class="font-medium">cohort</span> (aliases: cohort name, year)</p>
+            </div>
+            <p class="text-slate-500 italic">Default password for new users: <span class="font-mono">changeme123</span></p>
+          </div>
 
           <div class="mt-4">
             <label class="block">
