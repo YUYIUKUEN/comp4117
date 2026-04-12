@@ -206,8 +206,8 @@ const submitEditStudent = async () => {
     await userService.updateUser(editStudentId.value, {
       fullName: editStudentForm.value.fullName.trim(),
       email: editStudentForm.value.email.trim(),
-      concentration: editStudentForm.value.concentration || undefined,
-      pathway: editStudentForm.value.pathway === '' ? undefined : (editStudentForm.value.pathway || undefined),
+      concentration: editStudentForm.value.concentration,
+      pathway: editStudentForm.value.pathway,
       phone: editStudentForm.value.phone.trim() || undefined,
       cohort: editStudentForm.value.cohort || undefined,
     });
